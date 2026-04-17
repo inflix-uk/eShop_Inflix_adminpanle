@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Fix headings inside list items - align with bullet/number marker */
+.prose li > h1,
+.prose li > h2,
+.prose li > h3,
+.prose li > h4,
+.prose li > h5,
+.prose li > h6 {
+  display: inline !important;
+  margin: 0 !important;
+}

@@ -1,0 +1,17 @@
+.aa [type='text']:focus {
+  box-shadow: none !important;
+}
+.css-b62m3t-container {
+  border: 1px solid rgb(209 213 219);
+  border-radius: 5px;
+}
+body{
+  margin: 0;
+  padding:0;
+}
+.chat-container{
+  height: calc(95vh - 100px);
+}
+.chat--window-container{  
+  height: calc(80vh - 100px);
+}
