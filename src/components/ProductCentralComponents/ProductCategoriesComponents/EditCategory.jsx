@@ -1,6 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import LoadingBar from 'react-top-loading-bar'
-import { Editor } from "@tinymce/tinymce-react";
 import ProductCentralTabs from '../../../pages/adminpages/ProductCentral/ProductCentralTabs'
 import Top from '../../../pages/adminpages/nav/Top'
 import Side from '../../../pages/adminpages/nav/Side'
@@ -9,47 +8,8 @@ import { toast } from 'react-toastify'
 import { useAuth } from '../../../context/Auth';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-
-const tinymceInit = {
-    height: 500,
-    menubar: true,
-    plugins: [
-        "advlist",
-        "autolink",
-        "lists",
-        "link",
-        "image",
-        "charmap",
-        "preview",
-        "anchor",
-        "searchreplace",
-        "visualblocks",
-        "code",
-        "fullscreen",
-        "insertdatetime",
-        "media",
-        "table",
-        "help",
-        "wordcount",
-    ],
-    toolbar:
-        "undo redo | blocks fontsize | bold italic underline strikethrough | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media | table | removeformat | code fullscreen",
-    table_toolbar:
-        "tableprops tabledelete | tableinsertrowbefore tableinsertrowafter tabledeleterow | tableinsertcolbefore tableinsertcolafter tabledeletecol",
-    content_style: `
-        body { font-family:Helvetica,Arial,sans-serif; font-size:14px; }
-        ul { list-style-type: disc; padding-left: 2rem; margin: 1rem 0; }
-        ol { list-style-type: decimal; padding-left: 2rem; margin: 1rem 0; }
-        ul ul { list-style-type: circle; }
-        ul ul ul { list-style-type: square; }
-        ol ol { list-style-type: lower-alpha; }
-        ol ol ol { list-style-type: lower-roman; }
-        li { margin-bottom: 0.25rem; }
-        li > h1, li > h2, li > h3, li > h4, li > h5, li > h6 { display: inline; margin: 0; }
-    `,
-    advlist_bullet_styles: "disc,circle,square",
-    advlist_number_styles: "decimal,lower-alpha,upper-alpha,lower-roman,upper-roman",
-};
+import BlockEditor from '../../../pages/adminpages/blog-new/components/createblog/BlockEditor/BlockEditor';
+import { appendBlocksToFormData } from '../../../pages/adminpages/blog-new/utils/appendBlocksToFormData';
 
 export default function EditCategory() {
     const auth = useAuth();
@@ -69,11 +29,11 @@ export default function EditCategory() {
     const [productMetaDesc, set_productMetaDesc] = useState("");
     const [productMetaKeywords, set_productMetaKeywords] = useState("");
     const [productContent, set_productContent] = useState("");
+    const [contentBlocks, setContentBlocks] = useState([]);
     const [metaSchemas, setMetaSchemas] = useState([""]);
     const [metaKeywords, setMetaKeywords] = useState("");
     const [saving, setSaving] = useState(false);
     const [isDataLoaded, setIsDataLoaded] = useState(false);
-    const editorRef = useRef(null);
     // Function to add new schema input
     const handleAddSchema = () => {
         setMetaSchemas([...metaSchemas, ""]);
@@ -210,10 +170,20 @@ export default function EditCategory() {
             formData.append("metaDescription", productMetaDesc);
             formData.append("metaKeywords", productMetaKeywords);
             formData.append("metaSchemas", JSON.stringify(metaSchemas));
-            const editorContent = editorRef.current ? editorRef.current.getContent() : productContent;
-            formData.append("content", editorContent ?? "");
+            if (Array.isArray(contentBlocks) && contentBlocks.length > 0) {
+                formData.append("content", "");
+            } else {
+                formData.append("content", productContent ?? "");
+            }
             formData.append("isFeatured", true);
             formData.append("isPublish", true);
+
+            appendBlocksToFormData(formData, contentBlocks, {
+                jsonField: "content_blocks",
+                countField: "categoryBlockImageCount",
+                filePrefix: "categoryBlockImages",
+                imageFilenamePrefix: "category-content-block",
+            });
 
             // Only append images if they are File objects (newly selected images)
             if (productIcon && productIcon instanceof File) {
@@ -241,6 +211,7 @@ export default function EditCategory() {
                         set_productMetaDesc("");
                         set_productMetaKeywords("");
                         set_productContent("");
+                        setContentBlocks([]);
                         setMetaSchemas([""]);
                         setProgress(100);
                         navigate('/admin/product-central')
@@ -273,6 +244,8 @@ export default function EditCategory() {
                 set_productMetaDesc(category.metaDescription || "");
                 set_productMetaKeywords(category.metaKeywords || "");
                 set_productContent(category.content ?? "");
+                const rawBlocks = category.content_blocks;
+                setContentBlocks(Array.isArray(rawBlocks) ? rawBlocks : []);
 
                 // Handle images - support both blob url and legacy path
                 setProductIcon(category.Logo ? { url: category.Logo.url, path: category.Logo.path } : null);
@@ -651,26 +624,39 @@ export default function EditCategory() {
                                                         ))}
                                                     </div>
                                                 </div>
-                                                {/* Content Editor */}
+                                                {/* Block-based category page content (same as homepage / product description) */}
                                                 <div className="col-span-2">
-                                                    <label htmlFor="productContent" className="block mb-2 text-sm font-medium text-gray-900">
+                                                    <label className="block mb-2 text-sm font-medium text-gray-900">
                                                         Content
                                                     </label>
+                                                    <p className="mb-3 text-sm text-gray-500">
+                                                        Add content rows and pick layouts for text, images, widgets, and product blocks.
+                                                        The storefront uses this when rows exist; otherwise it shows the legacy HTML field below.
+                                                    </p>
                                                     {isDataLoaded ? (
-                                                        <Editor
-                                                            tinymceScriptSrc="/tinymce/tinymce.min.js"
-                                                            licenseKey="gpl"
-                                                            onInit={(evt, editorInstance) => {
-                                                                editorRef.current = editorInstance;
-                                                            }}
-                                                            initialValue={productContent}
-                                                            init={tinymceInit}
-                                                        />
+                                                        <div className="w-full rounded-lg border border-gray-200 bg-gray-50/50 p-2 sm:p-4">
+                                                            <BlockEditor
+                                                                blocks={contentBlocks}
+                                                                setBlocks={setContentBlocks}
+                                                                className="p-0 sm:p-2"
+                                                            />
+                                                        </div>
                                                     ) : (
-                                                        <div className="h-[500px] border border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
+                                                        <div className="min-h-[320px] border border-gray-300 rounded-lg flex items-center justify-center bg-gray-50">
                                                             <span className="text-gray-500">Loading editor...</span>
                                                         </div>
                                                     )}
+                                                    {productContent?.trim() && contentBlocks.length === 0 ? (
+                                                        <details className="mt-3 rounded-md border border-amber-200 bg-amber-50/80 px-3 py-2 text-sm text-amber-900">
+                                                            <summary className="cursor-pointer font-medium">
+                                                                Legacy HTML content (read-only — not shown on the store once you add content rows)
+                                                            </summary>
+                                                            <div
+                                                                className="prose prose-sm mt-2 max-h-48 overflow-y-auto border border-amber-100 bg-white p-2"
+                                                                dangerouslySetInnerHTML={{ __html: productContent }}
+                                                            />
+                                                        </details>
+                                                    ) : null}
                                                 </div>
                                             </div>
                                             <button

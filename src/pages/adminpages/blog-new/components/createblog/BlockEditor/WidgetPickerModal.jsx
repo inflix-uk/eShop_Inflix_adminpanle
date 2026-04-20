@@ -17,6 +17,8 @@ import {
   Megaphone,
   Newspaper,
   Code2,
+  Percent,
+  Gift,
 } from "lucide-react";
 
 const WIDGET_OPTIONS = [
@@ -102,6 +104,20 @@ const WIDGET_OPTIONS = [
     description:
       "Grid of recent posts (public site uses the same latest-blogs feed). Set heading, how many posts, and optional “view all” link.",
     Icon: Newspaper,
+  },
+  {
+    id: "activeDeals",
+    title: "Active deals & coupons",
+    description:
+      "Live list from the deals API (filters, copy code, shop links). Use on the Deals & Discounts footer page or anywhere offers should appear.",
+    Icon: Percent,
+  },
+  {
+    id: "dealsDiscountCards",
+    title: "Deals & discount cards",
+    description:
+      "Hand-picked offers you edit here: emoji, title, coupon or deal button, optional start/expiry. Same card layout as the deals page.",
+    Icon: Gift,
   },
   {
     id: "htmlCss",

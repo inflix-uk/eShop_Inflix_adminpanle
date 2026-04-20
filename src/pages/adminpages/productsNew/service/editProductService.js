@@ -4,9 +4,20 @@
  * Note: API calls have been moved to ProductApi class
  */
 
+import { appendBlocksToFormData } from "../../blog-new/utils/appendBlocksToFormData";
+
 // Constants
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
+
+function appendProductDescriptionBlocksToFormData(formData, product) {
+  appendBlocksToFormData(formData, product.Product_description_blocks, {
+    jsonField: "Product_description_blocks",
+    countField: "descriptionBlockImageCount",
+    filePrefix: "descriptionBlockImages",
+    imageFilenamePrefix: "product-desc-block",
+  });
+}
 
 class EditProductService {
   constructor() {
@@ -221,6 +232,8 @@ class EditProductService {
         formData.append("Gallery_Images", JSON.stringify(image));
       }
     });
+
+    appendProductDescriptionBlocksToFormData(formData, product);
 
     return formData;
   }

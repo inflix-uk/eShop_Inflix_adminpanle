@@ -30,6 +30,9 @@ const ProductCentralNavbarOrder = lazy(() =>
 const ProductCentralSubcategories = lazy(() =>
   import("./pages/adminpages/ProductCentral/ProductCentralSubcategories")
 );
+const ProductCentralEditSubcategory = lazy(() =>
+  import("./pages/adminpages/ProductCentral/ProductCentralEditSubcategory")
+);
 const ProductCentralTags = lazy(() =>
   import("./pages/adminpages/ProductCentral/ProductCentralTags")
 );
@@ -792,6 +795,20 @@ function App() {
                     <Suspense fallback={<div>Loading...</div>}>
                       <PermissionRoute permission="zextons.view_product_central">
                         <ProductCentralSubcategories />
+                      </PermissionRoute>
+                    </Suspense>
+                  </ErrorBoundary>
+                </>
+              }
+            />
+            <Route
+              path="/admin/product-central/edit-subcategory/:categoryId/:subIndex"
+              element={
+                <>
+                  <ErrorBoundary fallback={<div>Error</div>}>
+                    <Suspense fallback={<div>Loading...</div>}>
+                      <PermissionRoute permission="zextons.view_product_central">
+                        <ProductCentralEditSubcategory />
                       </PermissionRoute>
                     </Suspense>
                   </ErrorBoundary>

@@ -182,6 +182,31 @@ export default function BlockEditor({ blocks, setBlocks, className, collapsibleR
           maxPosts: 6,
           viewAllLabel: 'View all blogs',
         };
+      } else if (widgetSubtype === 'activeDeals') {
+        newBlock.content = {
+          widgetType: 'activeDeals',
+        };
+      } else if (widgetSubtype === 'dealsDiscountCards') {
+        newBlock.content = {
+          widgetType: 'dealsDiscountCards',
+          sectionHeading: '',
+          items: [
+            {
+              id: nanoid(),
+              emoji: '🎁',
+              title: '',
+              desc: '',
+              type: 'Deal',
+              hasExpiry: true,
+              startDate: '',
+              expiryDate: '',
+              isExpired: false,
+              couponCode: '',
+              buttonText: 'Shop now',
+              buttonUrl: '',
+            },
+          ],
+        };
       } else if (widgetSubtype === 'htmlCss') {
         newBlock.content = {
           widgetType: 'htmlCss',
@@ -538,6 +563,8 @@ export default function BlockEditor({ blocks, setBlocks, className, collapsibleR
             widgetType === "categoryCards" ||
             widgetType === "promotionalSections" ||
             widgetType === "latestBlogs" ||
+            widgetType === "activeDeals" ||
+            widgetType === "dealsDiscountCards" ||
             widgetType === "htmlCss"
           ) {
             addBlock(rowIndex, columnIndex, "widget", widgetType);
