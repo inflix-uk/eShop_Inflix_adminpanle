@@ -16,7 +16,7 @@ import SimImg from "../../assets/sim.png";
 import ScreenProtectorImg from "../../assets/screenprotector.png";
 import BackCoverImg from "../../assets/backcover.png";
   
-// Map icon IDs to their components/images
+// Map icon IDs to their components/images  
 const ICON_MAP = {
   powerAdapter: { type: "component", component: Adapter, name: "Power Adapter" },
   chargingCable: { type: "component", component: PowerCable, name: "Charging Cable" },
