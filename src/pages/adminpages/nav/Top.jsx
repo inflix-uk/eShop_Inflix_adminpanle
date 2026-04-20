@@ -32,6 +32,7 @@ export default function Top({ toggleSidebar, isSidebarOpen, selectedPage = 'dash
   const [isGenerating, setIsGenerating] = useState(false);
   const [showSitemapModal, setShowSitemapModal] = useState(false);
   const [sitemapCount, setSitemapCount] = useState(null);
+  const [sitemapUrl, setSitemapUrl] = useState('');
 
   const handleLogout = async () => {
     await auth.logout();
@@ -39,11 +40,15 @@ export default function Top({ toggleSidebar, isSidebarOpen, selectedPage = 'dash
   };
 
   const handleGenerateSitemap = async () => {
+    const siteUrl = (import.meta.env.VITE_PUBLIC_SITE_URL || 'https://zextons.co.uk').replace(/\/$/, '');
+    
     try {
       setIsGenerating(true);
       setSitemapCount(null);
+      setSitemapUrl(`${siteUrl}/sitemap.xml`);
+      
       try {
-        const res = await fetch('https://zextons.co.uk/api/generate-sitemap', {
+        const res = await fetch(`${siteUrl}/api/generate-sitemap`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           mode: 'cors',
@@ -56,7 +61,7 @@ export default function Top({ toggleSidebar, isSidebarOpen, selectedPage = 'dash
         setShowSitemapModal(true);
       } catch (corsErr) {
         // Likely a CORS/preflight issue in local dev. Fallback to a no-cors request.
-        await fetch('https://zextons.co.uk/api/generate-sitemap', {
+        await fetch(`${siteUrl}/api/generate-sitemap`, {
           method: 'GET',
           mode: 'no-cors',
         });
@@ -235,7 +240,7 @@ export default function Top({ toggleSidebar, isSidebarOpen, selectedPage = 'dash
                 Close
               </button>
               <a
-                href="https://zextons.co.uk/sitemap.xml"
+                href={sitemapUrl || `${(import.meta.env.VITE_PUBLIC_SITE_URL || 'https://zextons.co.uk').replace(/\/$/, '')}/sitemap.xml`}
                 target="_blank"
                 rel="noreferrer"
                 className="px-3 py-2 text-sm rounded-md bg-primary text-white hover:opacity-90"

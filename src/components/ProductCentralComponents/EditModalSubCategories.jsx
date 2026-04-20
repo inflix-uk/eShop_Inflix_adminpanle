@@ -2,6 +2,26 @@ import React, { useState, useRef } from "react";
 import { Editor } from "@tinymce/tinymce-react";
 import { useAuth } from "../../context/Auth";
 
+/** Preview URL for banner: blob URL, legacy API path, or new File upload. */
+function getSubcategoryBannerPreviewSrc(banner, apiBase) {
+    if (!banner) return null;
+    if (banner instanceof File) {
+        return URL.createObjectURL(banner);
+    }
+    if (typeof banner === "object") {
+        if (banner.url && typeof banner.url === "string") {
+            return banner.url;
+        }
+        if (banner.path && typeof banner.path === "string") {
+            const p = banner.path.trim();
+            if (/^https?:\/\//i.test(p)) return p;
+            const base = (apiBase || "").replace(/\/$/, "");
+            return `${base}/${p.replace(/^\//, "")}`;
+        }
+    }
+    return null;
+}
+
 const tinymceInit = {
     height: 500,
     menubar: true,
@@ -65,6 +85,7 @@ export default function EditModalSubCategories({
 }) {
     const editorRef = useRef(null);
     const auth = useAuth();
+    const bannerPreviewSrc = getSubcategoryBannerPreviewSrc(subcategoryBanner, auth.ip);
 
     const handleFormSubmit = (e) => {
         e.preventDefault();
@@ -140,11 +161,11 @@ export default function EditModalSubCategories({
                                                 <div className="text-center">
                                                     {subcategoryBanner ? (
                                                         <>
-                                                            {subcategoryBanner.path ? (
+                                                            {bannerPreviewSrc ? (
                                                                 <>
                                                                     <img
-                                                                        src={`${auth.ip}${subcategoryBanner.path}`}
-                                                                        alt="path"
+                                                                        src={bannerPreviewSrc}
+                                                                        alt="Subcategory banner preview"
                                                                         className="h-12 rounded-md mx-auto cursor-pointer"
                                                                         onClick={() => {
                                                                             setSubcategoryBanner(null);
@@ -154,19 +175,7 @@ export default function EditModalSubCategories({
                                                                         Click image to delete
                                                                     </p>
                                                                 </>
-                                                            ) : (
-                                                                <>
-                                                                    <img
-                                                                        src={URL.createObjectURL(subcategoryBanner)}
-                                                                        alt="obj"
-                                                                        className="h-12 rounded-md mx-auto cursor-pointer"
-                                                                        onClick={() => setSubcategoryBanner(null)}
-                                                                    />
-                                                                    <p className="text-xs  text-red-600">
-                                                                        Click image to delete
-                                                                    </p>
-                                                                </>
-                                                            )}
+                                                            ) : null}
                                                         </>
                                                     ) : (
                                                         <svg

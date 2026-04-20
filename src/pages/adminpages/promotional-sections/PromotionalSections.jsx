@@ -244,7 +244,8 @@ export default function PromotionalSections() {
                 Promotional Sections
               </h1>
               <p className="mt-2 text-gray-600">
-                Manage promotional banners and cards displayed on the homepage
+                Three stacked homepage promos: top banner, two cards in one row, then a bottom strip.
+                Each section opens in its own editor.
               </p>
             </div>
 
@@ -255,15 +256,16 @@ export default function PromotionalSections() {
               </div>
             ) : (
               <div className="space-y-6">
-                {/* Buy Now Pay Later Section */}
+                {/* Top banner */}
                 <div className="bg-white shadow rounded-lg overflow-hidden">
                   <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
                     <div>
                       <h2 className="text-xl font-semibold text-gray-900">
-                        Buy Now Pay Later Banner
+                        Top banner (full width)
                       </h2>
                       <p className="text-sm text-gray-500 mt-1">
-                        Background: 1216 × 160 px | Payment images: 96 × 40 px (3 images)
+                        On the site: first wide strip under the hero. Suggested background 1216 × 160
+                        px; optional payment logos ~96 × 40 px (up to 3).
                       </p>
                     </div>
                     <button
@@ -275,15 +277,16 @@ export default function PromotionalSections() {
                   </div>
                 </div>
 
-                {/* Sell/Buy Cards Section */}
+                {/* Two cards */}
                 <div className="bg-white shadow rounded-lg overflow-hidden">
                   <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
                     <div>
                       <h2 className="text-xl font-semibold text-gray-900">
-                        Sell/Buy Cards
+                        Two cards (side by side)
                       </h2>
                       <p className="text-sm text-gray-500 mt-1">
-                        Each card: 540 × 220 px background
+                        On the site: two equal tiles under the top banner (left card, then right).
+                        Suggested background per card: 540 × 220 px.
                       </p>
                     </div>
                     <button
@@ -295,15 +298,16 @@ export default function PromotionalSections() {
                   </div>
                 </div>
 
-                {/* Tiny Phone Banner Section */}
+                {/* Bottom strip */}
                 <div className="bg-white shadow rounded-lg overflow-hidden">
                   <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
                     <div>
                       <h2 className="text-xl font-semibold text-gray-900">
-                        Tiny Phone Banner
+                        Bottom strip (full width)
                       </h2>
                       <p className="text-sm text-gray-500 mt-1">
-                        Background: 1216 × 160 px | Center: 389 × 80 px | Right: 137 × 112 px
+                        On the site: last band in this block — text, button, and images. Suggested:
+                        background 1216 × 160 px, center ~389 × 80 px, right ~137 × 112 px.
                       </p>
                     </div>
                     <button

@@ -156,14 +156,17 @@ const TinyPhoneBannerModal = ({ isOpen, onClose, onSave, data = null, isSubmitti
 
         <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
           <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900">
-                Tiny Phone Banner
-              </h3>
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900">Bottom strip (full width)</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Last band in the promo stack: headline, text, button, and images across the page.
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={handleClose}
-                className="text-gray-400 hover:text-gray-500"
+                className="shrink-0 text-gray-400 hover:text-gray-500"
               >
                 <FiX className="h-6 w-6" />
               </button>

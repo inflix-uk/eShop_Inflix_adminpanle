@@ -174,14 +174,17 @@ const BuyNowPayLaterModal = ({ isOpen, onClose, onSave, data = null, isSubmittin
 
         <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
           <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900">
-                Buy Now Pay Later Banner
-              </h3>
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <h3 className="text-lg font-medium text-gray-900">Top banner (full width)</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  This is the first wide strip in the homepage promo stack (above the two cards).
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={handleClose}
-                className="text-gray-400 hover:text-gray-500"
+                className="shrink-0 text-gray-400 hover:text-gray-500"
               >
                 <FiX className="h-6 w-6" />
               </button>
@@ -202,7 +205,7 @@ const BuyNowPayLaterModal = ({ isOpen, onClose, onSave, data = null, isSubmittin
                   className={`mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm ${
                     errors.heading ? 'border-red-300' : 'border-gray-300'
                   }`}
-                  placeholder="Buy Now Pay Later | Interest-free Installments"
+                  placeholder="e.g. Pay in instalments with Klarna"
                 />
                 {errors.heading && (
                   <p className="mt-1 text-sm text-red-600">{errors.heading}</p>
@@ -249,24 +252,30 @@ const BuyNowPayLaterModal = ({ isOpen, onClose, onSave, data = null, isSubmittin
                 )}
               </div>
 
-              {/* Payment Provider Images */}
+              {/* Optional logos under banner text (left → right on the live page) */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Payment Provider Images (3 images)
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Logos under the banner text (optional)
                 </label>
-                <div className="grid grid-cols-3 gap-4">
-                  {[0, 1, 2].map((index) => (
+                <p className="mb-3 text-xs text-gray-500">
+                  Shown in one row beneath the heading and paragraph: left slot, then middle, then
+                  right. Leave a slot empty if you do not need it.
+                </p>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  {[
+                    "Logo under banner — left (1 of 3)",
+                    "Logo under banner — middle (2 of 3)",
+                    "Logo under banner — right (3 of 3)",
+                  ].map((label, index) => (
                     <div key={index}>
                       <ImageUploader
-                        label={`Payment Image ${index + 1}`}
+                        label={label}
                         value={formData.paymentImagePreviews[index]}
                         onChange={(file) => handlePaymentImageChange(index, file)}
                         accept="image/*"
                         maxSizeMB={1}
                       />
-                      <p className="mt-1 text-xs text-gray-500">
-                        Size: 96 × 40 px
-                      </p>
+                      <p className="mt-1 text-xs text-gray-500">Suggested size: 96 × 40 px</p>
                     </div>
                   ))}
                 </div>

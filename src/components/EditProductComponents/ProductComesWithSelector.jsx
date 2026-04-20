@@ -15,7 +15,7 @@ import twoxcontrollerImg from "../../assets/twoxcontroller.png";
 import SimImg from "../../assets/sim.png";
 import ScreenProtectorImg from "../../assets/screenprotector.png";
 import BackCoverImg from "../../assets/backcover.png";
-
+  
 // Map icon IDs to their components/images
 const ICON_MAP = {
   powerAdapter: { type: "component", component: Adapter, name: "Power Adapter" },
@@ -31,40 +31,134 @@ const ICON_MAP = {
   backCover: { type: "image", src: BackCoverImg, name: "Back Cover" },
 };
 
+/** Match preset keys when DB has snake_case / kebab-case (e.g. back_cover, back-cover). */
+function normalizePresetIconKey(id) {
+  if (!id || typeof id !== "string") return id;
+  const t = id.trim();
+  if (!t) return t;
+  return t.replace(/[-_]([a-z0-9])/gi, (_, c) => c.toUpperCase());
+}
+
+function decodeIconHtmlIfNeeded(str) {
+  if (!str || typeof str !== "string") return str;
+  const t = str.trim();
+  if (t.includes("&lt;") && !t.includes("<")) {
+    try {
+      const ta = document.createElement("textarea");
+      ta.innerHTML = t;
+      return ta.value.trim();
+    } catch {
+      return t;
+    }
+  }
+  return t;
+}
+
+function looksLikeIconHtml(str) {
+  if (!str || typeof str !== "string") return false;
+  const decoded = decodeIconHtmlIfNeeded(str);
+  return decoded.includes("<");
+}
+
+function looksLikeImageUrl(str) {
+  if (!str || typeof str !== "string") return false;
+  const t = str.trim();
+  return (
+    /^https?:\/\//i.test(t) ||
+    /^\/uploads\//i.test(t) ||
+    /^data:image\//i.test(t)
+  );
+}
+
+function getVariantValueImageSrc(image, apiBase) {
+  if (!image) return null;
+  if (image.url) return image.url;
+  if (image.path && apiBase) {
+    const base = apiBase.endsWith("/") ? apiBase.slice(0, -1) : apiBase;
+    const p = image.path.startsWith("/") ? image.path : `/${image.path}`;
+    return `${base}${p}`;
+  }
+  return null;
+}
+
+function resolveIconMapEntry(iconId) {
+  if (!iconId || typeof iconId !== "string") return null;
+  const raw = iconId.trim();
+  const camelized = normalizePresetIconKey(raw);
+  const lcFirst = camelized ? camelized.charAt(0).toLowerCase() + camelized.slice(1) : camelized;
+  return ICON_MAP[raw] || ICON_MAP[camelized] || ICON_MAP[lcFirst] || null;
+}
+
+function normalizeSlugForMatch(s) {
+  if (!s || typeof s !== "string") return "";
+  return s.toLowerCase().replace(/[-_]+/g, "-");
+}
+
+function orderedUniqueStrings(arr) {
+  const seen = new Set();
+  const out = [];
+  for (const s of arr || []) {
+    if (s == null || seen.has(s)) continue;
+    seen.add(s);
+    out.push(s);
+  }
+  return out;
+}
+
 // Icon renderer component
-const IconRenderer = ({ iconId, className = "h-6 w-6" }) => {
-  // Handle custom HTML icons (e.g., Flaticon)
-  if (iconId && typeof iconId === "string" && iconId.includes("<")) {
+const IconRenderer = ({ iconId, image, apiBase, className = "h-6 w-6" }) => {
+  const placeholder = (
+    <span className={`${className} flex items-center justify-center text-gray-400 border border-dashed border-gray-300 rounded`}>
+      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+      </svg>
+    </span>
+  );
+
+  const rawIcon = typeof iconId === "string" ? iconId.trim() : iconId;
+  const hasIcon = rawIcon !== undefined && rawIcon !== null && String(rawIcon).length > 0;
+
+  // Custom HTML icons (Flaticon, inline SVG) — including HTML-encoded saves
+  if (hasIcon && typeof rawIcon === "string" && looksLikeIconHtml(rawIcon)) {
+    const html = decodeIconHtmlIfNeeded(rawIcon);
     return (
       <span
-        className={`${className} flex items-center justify-center`}
-        dangerouslySetInnerHTML={{ __html: iconId }}
+        className={`${className} flex items-center justify-center [&>i]:text-base [&>svg]:w-full [&>svg]:h-full`}
+        dangerouslySetInnerHTML={{ __html: html }}
       />
     );
   }
 
-  const iconData = ICON_MAP[iconId];
-
-  if (!iconData) {
-    return (
-      <span className={`${className} flex items-center justify-center text-gray-400 border border-dashed border-gray-300 rounded`}>
-        <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-      </span>
-    );
+  // Icon stored as direct image URL (custom upload / absolute URL)
+  if (hasIcon && typeof rawIcon === "string" && looksLikeImageUrl(rawIcon)) {
+    return <img src={rawIcon.trim()} alt="" className={`${className} object-contain`} />;
   }
 
-  if (iconData.type === "component") {
-    const IconComponent = iconData.component;
-    return <IconComponent className={className} />;
+  const iconData = hasIcon ? resolveIconMapEntry(rawIcon) : null;
+  if (iconData) {
+    if (iconData.type === "component") {
+      const IconComponent = iconData.component;
+      return <IconComponent className={className} />;
+    }
+    return <img src={iconData.src} alt={iconData.name} className={`${className} object-contain`} />;
   }
 
-  return <img src={iconData.src} alt={iconData.name} className={className} />;
+  const imgFromValue = getVariantValueImageSrc(image, apiBase);
+  if (imgFromValue) {
+    return <img src={imgFromValue} alt="" className={`${className} object-contain`} />;
+  }
+
+  if (!hasIcon) return placeholder;
+  return placeholder;
 };
 
 IconRenderer.propTypes = {
   iconId: PropTypes.string,
+  image: PropTypes.shape({
+    url: PropTypes.string,
+    path: PropTypes.string,
+  }),
+  apiBase: PropTypes.string,
   className: PropTypes.string,
 };
 
@@ -78,12 +172,16 @@ export default function ProductComesWithSelector({ product, setProduct }) {
   const dropdownRef = useRef(null);
   const searchInputRef = useRef(null);
 
-  // Load Flaticon CSS for custom icons
+  // Load Flaticon CSS for custom icons (align with Product Central product-options page)
   useEffect(() => {
     const flatIconStyles = [
-      'https://cdn-uicons.flaticon.com/2.6.0/uicons-regular-rounded/css/uicons-regular-rounded.css',
-      'https://cdn-uicons.flaticon.com/2.6.0/uicons-bold-rounded/css/uicons-bold-rounded.css',
-      'https://cdn-uicons.flaticon.com/2.6.0/uicons-solid-rounded/css/uicons-solid-rounded.css',
+      "https://cdn-uicons.flaticon.com/2.6.0/uicons-regular-rounded/css/uicons-regular-rounded.css",
+      "https://cdn-uicons.flaticon.com/2.6.0/uicons-bold-rounded/css/uicons-bold-rounded.css",
+      "https://cdn-uicons.flaticon.com/2.6.0/uicons-solid-rounded/css/uicons-solid-rounded.css",
+      "https://cdn-uicons.flaticon.com/2.6.0/uicons-regular-straight/css/uicons-regular-straight.css",
+      "https://cdn-uicons.flaticon.com/2.6.0/uicons-bold-straight/css/uicons-bold-straight.css",
+      "https://cdn-uicons.flaticon.com/2.6.0/uicons-solid-straight/css/uicons-solid-straight.css",
+      "https://cdn-uicons.flaticon.com/2.6.0/uicons-brands/css/uicons-brands.css",
     ];
 
     flatIconStyles.forEach((href) => {
@@ -126,7 +224,7 @@ export default function ProductComesWithSelector({ product, setProduct }) {
         const response = await axios.get(`${auth.ip}get/variant-attributes`);
         if (response.data.status === 200 || response.data.status === 201) {
           const comesWithAttribute = response.data.variantAttributes.find(
-            (attr) => attr.slug === "comes_with"
+            (attr) => attr.slug === "comes_with" || attr.slug === "comes-with"
           );
 
           if (comesWithAttribute && comesWithAttribute.values) {
@@ -151,22 +249,50 @@ export default function ProductComesWithSelector({ product, setProduct }) {
 
   // Get currently selected items (array of slugs)
   const selectedItems = product?.comesWithItems || [];
+  const uniqueProductSlugs = orderedUniqueStrings(selectedItems);
 
-  // DEBUG: Log what's being received
-  console.log("========== DEBUG: ProductComesWithSelector ==========");
-  console.log("product.comesWithItems:", product?.comesWithItems);
-  console.log("selectedItems:", selectedItems);
-  console.log("comesWithItems from API:", comesWithItems.map(i => i.slug));
-  console.log("====================================================");
+  const resolveCatalogItem = (productSlug) =>
+    comesWithItems.find(
+      (item) =>
+        item.slug === productSlug ||
+        normalizeSlugForMatch(item.slug) === normalizeSlugForMatch(productSlug)
+    );
 
-  // Get selected items with full data
-  const selectedItemsData = selectedItems
-    .map((slug) => comesWithItems.find((item) => item.slug === slug))
-    .filter(Boolean);
+  const selectionRows = uniqueProductSlugs.map((productSlug) => ({
+    productSlug,
+    item: resolveCatalogItem(productSlug),
+  }));
+
+  const orphanCount = selectionRows.filter((row) => !row.item).length;
+
+  useEffect(() => {
+    if (process.env.NODE_ENV !== "development") return;
+    const slugs = product?.comesWithItems || [];
+    const uniq = orderedUniqueStrings(slugs);
+    console.groupCollapsed("[Admin · Comes With] edit product");
+    console.log("product.comesWithItems count:", slugs.length);
+    console.log("product.comesWithItems:", [...slugs]);
+    console.log("catalog option count (API):", comesWithItems.length);
+    console.log("unique slugs on product:", uniq.length);
+    uniq.forEach((slug) => {
+      const hit = comesWithItems.find(
+        (item) =>
+          item.slug === slug ||
+          normalizeSlugForMatch(item.slug) === normalizeSlugForMatch(slug)
+      );
+      console.log(slug, "→", hit ? `catalog: ${hit.name}` : "LEGACY (remove from product)");
+    });
+    console.groupEnd();
+  }, [product?.comesWithItems, comesWithItems]);
 
   // Get available items (not yet selected) and filter by search
   const availableItems = comesWithItems
-    .filter((item) => !selectedItems.includes(item.slug))
+    .filter(
+      (item) =>
+        !selectedItems.some(
+          (s) => normalizeSlugForMatch(s) === normalizeSlugForMatch(item.slug)
+        )
+    )
     .filter((item) =>
       item.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -194,8 +320,20 @@ export default function ProductComesWithSelector({ product, setProduct }) {
       <div className="py-3 px-4">
         <div className="flex items-center justify-between mb-2">
           <h1 className="font-bold text-sm">Comes With</h1>
-          <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
+          <span
+            className={`text-xs px-1.5 py-0.5 rounded ${
+              orphanCount > 0
+                ? "bg-amber-50 text-amber-800 border border-amber-200"
+                : "text-gray-400 bg-gray-100"
+            }`}
+            title={
+              orphanCount > 0
+                ? `${orphanCount} saved slug(s) are not in the catalog. Remove them so the storefront matches this list.`
+                : undefined
+            }
+          >
             {selectedItems.length}
+            {orphanCount > 0 ? ` (${orphanCount} legacy)` : ""}
           </span>
         </div>
 
@@ -257,7 +395,7 @@ export default function ProductComesWithSelector({ product, setProduct }) {
                           className="w-full flex items-center gap-2 px-2 py-1.5 text-left hover:bg-gray-50 transition-colors"
                         >
                           <div className="w-6 h-6 flex items-center justify-center bg-gray-100 rounded flex-shrink-0">
-                            <IconRenderer iconId={item.icon} className="h-4 w-4" />
+                            <IconRenderer iconId={item.icon} image={item.image} apiBase={auth.ip} className="h-4 w-4" />
                           </div>
                           <span className="text-xs font-medium text-gray-700 truncate">{item.name}</span>
                         </button>
@@ -268,20 +406,33 @@ export default function ProductComesWithSelector({ product, setProduct }) {
               )}
             </div>
 
-            {/* Selected items - compact chips */}
-            {selectedItemsData.length > 0 ? (
+            {/* Selected items: catalog match + legacy slugs still on the product */}
+            {selectionRows.length > 0 ? (
               <div className="flex flex-wrap gap-1.5">
-                {selectedItemsData.map((item) => (
+                {selectionRows.map(({ productSlug, item }) => (
                   <div
-                    key={item.slug}
-                    className="flex items-center gap-1.5 px-2 py-1 bg-blue-50 border border-blue-200 rounded text-xs"
-                    title={item.name}
+                    key={productSlug}
+                    className={`flex items-center gap-1.5 px-2 py-1 rounded text-xs border ${
+                      item ? "bg-blue-50 border-blue-200" : "bg-amber-50 border-amber-200"
+                    }`}
+                    title={
+                      item
+                        ? item.name
+                        : `Legacy slug not in catalog: ${productSlug}`
+                    }
                   >
-                    <IconRenderer iconId={item.icon} className="h-3.5 w-3.5" />
-                    <span className="font-medium text-gray-700 max-w-[80px] truncate">{item.name}</span>
+                    <IconRenderer
+                      iconId={item?.icon}
+                      image={item?.image}
+                      apiBase={auth.ip}
+                      className="h-3.5 w-3.5"
+                    />
+                    <span className="font-medium text-gray-700 max-w-[80px] truncate">
+                      {item ? item.name : productSlug.replace(/[-_]/g, " ")}
+                    </span>
                     <button
                       type="button"
-                      onClick={() => handleRemoveItem(item.slug)}
+                      onClick={() => handleRemoveItem(productSlug)}
                       className="text-gray-400 hover:text-red-500"
                     >
                       <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

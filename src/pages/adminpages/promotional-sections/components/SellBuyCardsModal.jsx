@@ -202,7 +202,7 @@ const SellBuyCardsModal = ({ isOpen, onClose, onSave, data = null, isSubmitting 
 
   const renderCardForm = (cardType, cardLabel) => (
     <div className="border rounded-lg p-4 space-y-4">
-      <h4 className="text-md font-semibold text-gray-900 mb-4">{cardLabel} Card</h4>
+      <h4 className="text-md font-semibold text-gray-900">{cardLabel}</h4>
       
       {/* Heading */}
       <div>
@@ -216,7 +216,7 @@ const SellBuyCardsModal = ({ isOpen, onClose, onSave, data = null, isSubmitting 
           className={`mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm ${
             errors[`${cardType}.heading`] ? 'border-red-300' : 'border-gray-300'
           }`}
-          placeholder={cardType === 'sellCard' ? 'Sell' : 'Buy'}
+          placeholder={cardType === 'sellCard' ? 'e.g. Trade-in your old phone' : 'e.g. Shop refurbished phones'}
         />
         {errors[`${cardType}.heading`] && (
           <p className="mt-1 text-sm text-red-600">{errors[`${cardType}.heading`]}</p>
@@ -235,7 +235,7 @@ const SellBuyCardsModal = ({ isOpen, onClose, onSave, data = null, isSubmitting 
           className={`mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm ${
             errors[`${cardType}.paragraph`] ? 'border-red-300' : 'border-gray-300'
           }`}
-          placeholder={cardType === 'sellCard' ? 'Sell Your Old Devices For Cash.' : 'Approved Used refurbished phones.'}
+          placeholder="Short supporting line for this tile."
         />
         {errors[`${cardType}.paragraph`] && (
           <p className="mt-1 text-sm text-red-600">{errors[`${cardType}.paragraph`]}</p>
@@ -254,7 +254,7 @@ const SellBuyCardsModal = ({ isOpen, onClose, onSave, data = null, isSubmitting 
           className={`mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm ${
             errors[`${cardType}.buttonName`] ? 'border-red-300' : 'border-gray-300'
           }`}
-          placeholder={cardType === 'sellCard' ? 'Sell Now' : 'Shop Now'}
+          placeholder={cardType === 'sellCard' ? 'Get a quote' : 'Shop now'}
         />
         {errors[`${cardType}.buttonName`] && (
           <p className="mt-1 text-sm text-red-600">{errors[`${cardType}.buttonName`]}</p>
@@ -273,7 +273,7 @@ const SellBuyCardsModal = ({ isOpen, onClose, onSave, data = null, isSubmitting 
           className={`mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm ${
             errors[`${cardType}.buttonLink`] ? 'border-red-300' : 'border-gray-300'
           }`}
-          placeholder={cardType === 'sellCard' ? 'https://sell.zextons.co.uk/' : '/shopall'}
+          placeholder="/your-page or https://..."
         />
         {errors[`${cardType}.buttonLink`] && (
           <p className="mt-1 text-sm text-red-600">{errors[`${cardType}.buttonLink`]}</p>
@@ -327,7 +327,7 @@ const SellBuyCardsModal = ({ isOpen, onClose, onSave, data = null, isSubmitting 
           <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-medium text-gray-900">
-                Sell/Buy Cards
+                Two homepage cards
               </h3>
               <button
                 type="button"
@@ -339,8 +339,12 @@ const SellBuyCardsModal = ({ isOpen, onClose, onSave, data = null, isSubmitting 
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              {renderCardForm('sellCard', 'Sell')}
-              {renderCardForm('buyCard', 'Buy')}
+              <p className="text-sm text-gray-600">
+                On the homepage this pair sits under the top banner: two equal tiles in one row on
+                desktop, stacked on mobile.
+              </p>
+              {renderCardForm('sellCard', 'First card (left on desktop)')}
+              {renderCardForm('buyCard', 'Second card (right on desktop)')}
 
               {/* Action Buttons */}
               <div className="flex justify-end space-x-3 pt-4 border-t">

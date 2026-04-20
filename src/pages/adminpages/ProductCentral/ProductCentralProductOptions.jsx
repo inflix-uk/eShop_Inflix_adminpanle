@@ -26,6 +26,50 @@ import backCoverImg from "../../../assets/backcover.png";
 // Product Options slugs that should appear in this page
 const PRODUCT_OPTIONS_SLUGS = ["select_options", "top_section", "comes_with"];
 
+function normalizePresetIconKey(id) {
+  if (!id || typeof id !== "string") return id;
+  const t = id.trim();
+  if (!t) return t;
+  return t.replace(/[-_]([a-z0-9])/gi, (_, c) => c.toUpperCase());
+}
+
+function decodeIconHtmlIfNeeded(str) {
+  if (!str || typeof str !== "string") return str;
+  const t = str.trim();
+  if (t.includes("&lt;") && !t.includes("<")) {
+    try {
+      const ta = document.createElement("textarea");
+      ta.innerHTML = t;
+      return ta.value.trim();
+    } catch {
+      return t;
+    }
+  }
+  return t;
+}
+
+function looksLikeIconHtml(str) {
+  if (!str || typeof str !== "string") return false;
+  return decodeIconHtmlIfNeeded(str).includes("<");
+}
+
+function looksLikeImageUrl(str) {
+  if (!str || typeof str !== "string") return false;
+  const t = str.trim();
+  return /^https?:\/\//i.test(t) || /^\/uploads\//i.test(t) || /^data:image\//i.test(t);
+}
+
+function getVariantValueImageSrc(image, apiBase) {
+  if (!image) return null;
+  if (image.url) return image.url;
+  if (image.path && apiBase) {
+    const base = apiBase.endsWith("/") ? apiBase.slice(0, -1) : apiBase;
+    const p = image.path.startsWith("/") ? image.path : `/${image.path}`;
+    return `${base}${p}`;
+  }
+  return null;
+}
+
 export default function ProductCentralProductOptions() {
   const auth = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -68,34 +112,51 @@ export default function ProductCentralProductOptions() {
   const [useCustomIcon, setUseCustomIcon] = useState(false);
   const [customIconCode, setCustomIconCode] = useState("");
 
-  // Helper function to render icon preview
-  const renderIconPreview = (iconId, customIcon = null) => {
+  // Helper function to render icon preview (preset id, custom HTML, image URL, or value.image)
+  const renderIconPreview = (iconId, customIcon = null, valueImage = null) => {
     if (customIcon) {
+      const html = decodeIconHtmlIfNeeded(customIcon);
       return (
         <span
-          className="flex items-center justify-center"
-          dangerouslySetInnerHTML={{ __html: customIcon }}
+          className="flex items-center justify-center [&>i]:text-lg [&>svg]:w-6 [&>svg]:h-6"
+          dangerouslySetInnerHTML={{ __html: html }}
         />
       );
     }
-    if (!iconId) return null;
-    const iconData = AVAILABLE_ICONS.find((i) => i.id === iconId);
-    if (!iconData) {
-      if (typeof iconId === "string" && iconId.includes("<")) {
-        return (
-          <span
-            className="flex items-center justify-center"
-            dangerouslySetInnerHTML={{ __html: iconId }}
-          />
-        );
+    const raw = typeof iconId === "string" ? iconId.trim() : iconId;
+    const hasIcon = raw !== undefined && raw !== null && String(raw).length > 0;
+
+    if (hasIcon && typeof raw === "string" && looksLikeIconHtml(raw)) {
+      const html = decodeIconHtmlIfNeeded(raw);
+      return (
+        <span
+          className="flex items-center justify-center [&>i]:text-lg [&>svg]:w-6 [&>svg]:h-6"
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
+      );
+    }
+    if (hasIcon && typeof raw === "string" && looksLikeImageUrl(raw)) {
+      return <img src={raw} alt="" className="w-6 h-6 object-contain" />;
+    }
+    if (hasIcon) {
+      const camelized = normalizePresetIconKey(raw);
+      const lcFirst = camelized ? camelized.charAt(0).toLowerCase() + camelized.slice(1) : "";
+      const iconData = AVAILABLE_ICONS.find(
+        (i) => i.id === raw || i.id === camelized || i.id === lcFirst
+      );
+      if (iconData) {
+        if (iconData.type === "component") {
+          const IconComponent = iconData.component;
+          return <IconComponent className="w-6 h-6" />;
+        }
+        return <img src={iconData.src} alt={iconData.name} className="w-6 h-6 object-contain" />;
       }
-      return null;
     }
-    if (iconData.type === "component") {
-      const IconComponent = iconData.component;
-      return <IconComponent className="w-6 h-6" />;
+    const fromUpload = getVariantValueImageSrc(valueImage, auth.ip);
+    if (fromUpload) {
+      return <img src={fromUpload} alt="" className="w-6 h-6 object-contain" />;
     }
-    return <img src={iconData.src} alt={iconData.name} className="w-6 h-6 object-contain" />;
+    return null;
   };
 
   // Rich text editor config
@@ -300,9 +361,9 @@ export default function ProductCentralProductOptions() {
     setSelectedAttributeId(attributeId);
     setEditingValue(value);
     setValueForm({ name: value.name, isActive: value.isActive, colorCode: value.colorCode || "", icon: value.icon || "", description: value.description || "" });
-    const isCustomIcon = value.icon && typeof value.icon === "string" && value.icon.includes("<");
+    const isCustomIcon = value.icon && typeof value.icon === "string" && looksLikeIconHtml(value.icon);
     setUseCustomIcon(isCustomIcon);
-    setCustomIconCode(isCustomIcon ? value.icon : "");
+    setCustomIconCode(isCustomIcon ? decodeIconHtmlIfNeeded(value.icon) : "");
     setShowValueModal(true);
   };
 
@@ -501,9 +562,9 @@ export default function ProductCentralProductOptions() {
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       {/* Icon for values with icons */}
-                      {value.icon && (
+                      {(value.icon || value.image?.url || value.image?.path) && (
                         <div className="w-8 h-8 flex items-center justify-center bg-primary/10 rounded-lg flex-shrink-0">
-                          {renderIconPreview(value.icon)}
+                          {renderIconPreview(value.icon, null, value.image)}
                         </div>
                       )}
                       <div className="flex-1 min-w-0">

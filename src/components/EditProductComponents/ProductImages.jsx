@@ -336,11 +336,12 @@ export default function ProductImages({
                       </div>
                     </div>
                   ))}
-                  {/* Add Button */}
-                  <label className="w-16 h-16 flex items-center justify-center border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors">
-                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  {/* Add Multiple Images Button */}
+                  <label className="w-16 h-16 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors group">
+                    <svg className="w-4 h-4 text-gray-400 group-hover:text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
                     </svg>
+                    <span className="text-[7px] text-gray-400 group-hover:text-primary mt-0.5">Add More</span>
                     <input type="file" className="sr-only" multiple accept="image/*" onChange={handleProductGalleryImages} />
                   </label>
                 </div>
@@ -382,18 +383,17 @@ export default function ProductImages({
                 )}
               </div>
             ) : (
-              <div className="h-full flex flex-col items-center justify-center py-3">
-                <svg className="w-6 h-6 text-gray-300 mb-1" viewBox="0 0 24 24" fill="currentColor">
+              <label className="h-full flex flex-col items-center justify-center py-4 cursor-pointer hover:bg-blue-50/50 transition-colors rounded-md">
+                <svg className="w-8 h-8 text-gray-300 mb-2" viewBox="0 0 24 24" fill="currentColor">
                   <path fillRule="evenodd" d="M1.5 6a2.25 2.25 0 012.25-2.25h16.5A2.25 2.25 0 0122.5 6v12a2.25 2.25 0 01-2.25 2.25H3.75A2.25 2.25 0 011.5 18V6zM3 16.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0021 18v-1.94l-2.69-2.689a1.5 1.5 0 00-2.12 0l-.88.879.97.97a.75.75 0 11-1.06 1.06l-5.16-5.159a1.5 1.5 0 00-2.12 0L3 16.061zm10.125-7.81a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0z" clipRule="evenodd" />
                 </svg>
-                <label className="text-[10px] text-primary font-medium cursor-pointer hover:underline">
-                  + Add Gallery Images
-                  <input type="file" className="sr-only" multiple accept="image/*" onChange={handleProductGalleryImages} />
-                </label>
-              </div>
+                <span className="text-[11px] text-primary font-medium">+ Add Gallery Images</span>
+                <span className="text-[9px] text-gray-400 mt-1">Select multiple images at once</span>
+                <input type="file" className="sr-only" multiple accept="image/*" onChange={handleProductGalleryImages} />
+              </label>
             )}
           </div>
-          <p className="text-[9px] text-gray-400 mt-1">Click to edit details • Drag to reorder • Position 1 shows first on frontend</p>
+          <p className="text-[9px] text-gray-400 mt-1">Select multiple images at once • Click image to edit details • Drag to reorder</p>
         </div>
       </div>
     </div>

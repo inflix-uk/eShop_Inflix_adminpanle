@@ -93,7 +93,7 @@ const WIDGET_OPTIONS = [
     id: "promotionalSections",
     title: "Promotional sections",
     description:
-      "Buy Now Pay Later, Sell/Buy cards, and Tiny Phone banner — edit all copy and images inline (same layout as homepage promos).",
+      "Homepage-style promos in one block: a top banner, two cards in a row, then a bottom strip. Edit each part in the order it appears on the page.",
     Icon: Megaphone,
   },
   {

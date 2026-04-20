@@ -189,35 +189,35 @@ export default function ProductSubCategory() {
         };
         console.log("Prepared updated subcategory data:", updatedSubcategory);
 
-        if (subcategoryBanner) {
-            console.log("Subcategory banner detected, processing with FormData");
+        const hasNewBannerFile = subcategoryBanner instanceof File;
+
+        if (hasNewBannerFile) {
+            console.log("New subcategory banner file, sending FormData");
 
             const formData = new FormData();
             formData.append("banner", subcategoryBanner);
-            console.log("Added banner to FormData");
 
             // Append all other updated subcategory fields
             Object.keys(updatedSubcategory).forEach((key) => {
                 console.log(`Appending ${key}:`, updatedSubcategory[key]);
-                formData.append(key, JSON.stringify(updatedSubcategory[key])); // Stringify if needed
+                formData.append(key, JSON.stringify(updatedSubcategory[key]));
             });
 
-            // Patch only the specific subcategory with FormData
             axios.patch(`${auth.ip}update/product/subcategory/${selectedCategoryId}`, formData)
                 .then((response) => {
                     console.log("Response from server (with banner):", response);
                     toast.success("Subcategory updated successfully.");
-                    fetchCategories(); // Refresh categories after the update
-                    setEditModalOpen(false); // Close modal
+                    fetchCategories();
+                    setEditModalOpen(false);
                 })
                 .catch((error) => {
                     console.error("Failed to update subcategory (with banner):", error);
                     toast.error("Failed to update subcategory.");
                 });
         } else {
-            console.log("No subcategory banner, sending JSON data");
+            console.log("No new banner file, sending JSON (keeps existing banner on server)");
 
-            // Patch only the specific subcategory (no banner update)
+            // Patch only the specific subcategory (no new file; metadata still updates)
             axios.patch(`${auth.ip}update/product/subcategory/${selectedCategoryId}`, updatedSubcategory)
                 .then((response) => {
                     console.log("Response from server (without banner):", response);

@@ -9,6 +9,19 @@ import { toast } from "react-toastify";
 import { ClipboardDocumentIcon } from "@heroicons/react/24/outline"; // Cli
 import { Helmet } from "react-helmet-async";
 
+const PLACEHOLDER_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Ccircle cx='8.5' cy='8.5' r='1.5'%3E%3C/circle%3E%3Cpolyline points='21 15 16 10 5 21'%3E%3C/polyline%3E%3C/svg%3E";
+
+function getThumbUrl(image, ip) {
+  if (!image) return PLACEHOLDER_IMAGE;
+  if (image.url) return image.url;
+  if (image.path && ip) {
+    const base = ip.endsWith("/") ? ip.slice(0, -1) : ip;
+    const p = image.path.startsWith("/") ? image.path : `/${image.path}`;
+    return `${base}${p}`;
+  }
+  return PLACEHOLDER_IMAGE;
+}
+
 export default function AllProducts() {
   const auth = useAuth();
   const [selectedPage, setSelectedPage] = useState("products");
@@ -128,8 +141,9 @@ export default function AllProducts() {
       correctedPath = correctedPath.split("/uploads/")[1];
     }
 
-    
-    return `${API_BASE_URL}uploads/${correctedPath}`;
+    // Use auth.ip as the base URL (same as backend URL)
+    const baseUrl = auth.ip.endsWith("/") ? auth.ip.slice(0, -1) : auth.ip;
+    return `${baseUrl}/uploads/${correctedPath}`;
   };
   const categoryMapping = {
     "Mobile-Phones": "/ Electronics / Communications / Telephony / Mobile Phones / Unlocked Mobile Phones",
@@ -155,6 +169,14 @@ export default function AllProducts() {
     }
     return ""; // Return an empty string or a default category if no match is found
   }
+
+  // Helper to get image URL - handles both url (Blob) and path (local) properties
+  const getImageUrl = (img) => {
+    if (!img) return '';
+    if (img.url) return img.url;
+    if (img.path) return `${import.meta.env.VITE_BACKEND_URL}${img.path}`;
+    return '';
+  };
 
   const handleExportClick = () => {
     if (exportLoading) return; // Prevent multiple clicks
@@ -192,8 +214,8 @@ export default function AllProducts() {
             description: product.Product_summary || '',
             availability: 'in_stock',
             link: `${import.meta.env.VITE_BACKEND_URL}products/${productNameSlug}`,
-            image_link: `${import.meta.env.VITE_BACKEND_URL}${product.thumbnail_image.path}`,
-            additional_image_link: product.Gallery_Images.map(img => `${import.meta.env.VITE_BACKEND_URL}${img.path}`).join(", "),
+            image_link: getImageUrl(product.thumbnail_image),
+            additional_image_link: (product.Gallery_Images || []).map(img => getImageUrl(img)).filter(Boolean).join(", "),
             price: `${product.variantValues[0].Price} GBP`,
             sale_price: product.variantValues[0].salePrice ? `${product.variantValues[0].salePrice} GBP` : null,
             identifier_exists: product.variantValues[0].EIN ? 'yes' : 'no',
@@ -224,8 +246,8 @@ export default function AllProducts() {
             const colorParts = nameParts.filter(part => part !== variantCondition && part !== storage && !conditions.includes(part));
             const colorName = colorParts.join('-').split(' (')[0].trim().replace(/\s+/g, '-'); // Replace spaces with hyphens
             const fullProductNameSlug = `${productNameSlug}-${storage}-${colorName}-${variantCondition}`.toLowerCase();
-            const firstImageLink = variant.variantImages.length > 0
-              ? `${import.meta.env.VITE_BACKEND_URL}${variant.variantImages[0].path}`
+            const firstImageLink = (variant.variantImages || []).length > 0
+              ? getImageUrl(variant.variantImages[0])
               : '';
             const condition = product.condition === 'Brand New' ? 'New' : product.condition;
             return {
@@ -235,7 +257,7 @@ export default function AllProducts() {
               availability: 'in_stock',
               link: `${import.meta.env.VITE_BACKEND_URL}products/${fullProductNameSlug}`,
               image_link: firstImageLink,
-              additional_image_link: variant.variantImages.map(img => `${import.meta.env.VITE_BACKEND_URL}${img.path}`).join(", "),
+              additional_image_link: (variant.variantImages || []).map(img => getImageUrl(img)).filter(Boolean).join(", "),
               price: `${variant.Price} GBP`,
               sale_price: variant.salePrice ? `${variant.salePrice} GBP` : null,
               identifier_exists: variant.EIN ? 'yes' : 'no',
@@ -309,8 +331,8 @@ export default function AllProducts() {
             description: product.Product_summary || '',
             availability: 'in_stock',
             link: `${import.meta.env.VITE_BACKEND_URL}products/${productNameSlug}`,
-            image_link: `${import.meta.env.VITE_BACKEND_URL}${product.thumbnail_image.path}`,
-            additional_image_link: product.Gallery_Images.map(img => `${import.meta.env.VITE_BACKEND_URL}${img.path}`).join(", "),
+            image_link: getImageUrl(product.thumbnail_image),
+            additional_image_link: (product.Gallery_Images || []).map(img => getImageUrl(img)).filter(Boolean).join(", "),
             price: `${product.variantValues[0].Price} GBP`,
             sale_price: product.variantValues[0].salePrice ? `${product.variantValues[0].salePrice} GBP` : null,
             identifier_exists: product.variantValues[0].EIN ? 'yes' : 'no',
@@ -341,8 +363,8 @@ export default function AllProducts() {
             const colorParts = nameParts.filter(part => part !== variantCondition && part !== storage);
             const colorName = colorParts.join('-').split(' (')[0].trim();
             const fullProductNameSlug = `${productNameSlug}-${storage}-${colorName}-${variantCondition}`.toLowerCase();
-            const firstImageLink = variant.variantImages.length > 0
-              ? `${import.meta.env.VITE_BACKEND_URL}${variant.variantImages[0].path}`
+            const firstImageLink = (variant.variantImages || []).length > 0
+              ? getImageUrl(variant.variantImages[0])
               : '';
             const condition = product.condition === 'Brand New' ? 'New' : product.condition;
             return {
@@ -352,7 +374,7 @@ export default function AllProducts() {
               availability: 'in_stock',
               link: `${import.meta.env.VITE_BACKEND_URL}products/${fullProductNameSlug}`,
               image_link: firstImageLink,
-              additional_image_link: variant.variantImages.map(img => `${import.meta.env.VITE_BACKEND_URL}${img.path}`).join(", "),
+              additional_image_link: (variant.variantImages || []).map(img => getImageUrl(img)).filter(Boolean).join(", "),
               price: `${variant.Price} GBP`,
               sale_price: variant.salePrice ? `${variant.salePrice} GBP` : null,
               identifier_exists: variant.EIN ? 'yes' : 'no',
@@ -436,8 +458,8 @@ export default function AllProducts() {
             description: product.Product_summary || '',
             availability: availability,
             link: `${import.meta.env.VITE_BACKEND_URL}products/${productNameSlug}`,
-            image_link: `${import.meta.env.VITE_BACKEND_URL}${product.thumbnail_image.path}`,
-            additional_image_link: product.Gallery_Images.map(img => `${import.meta.env.VITE_BACKEND_URL}${img.path}`).join(", "),
+            image_link: getImageUrl(product.thumbnail_image),
+            additional_image_link: (product.Gallery_Images || []).map(img => getImageUrl(img)).filter(Boolean).join(", "),
             price: `${product.variantValues[0].Price} GBP`,
             sale_price: product.variantValues[0].salePrice ? `${product.variantValues[0].salePrice} GBP` : null,
             identifier_exists: product.variantValues[0].EIN ? 'yes' : 'no',
@@ -464,8 +486,8 @@ export default function AllProducts() {
             const colorParts = nameParts.filter(part => part !== variantCondition && part !== storage && !conditions.includes(part));
             const colorName = colorParts.join('-').split(' (')[0].trim().replace(/\s+/g, '-');
             const fullProductNameSlug = `${productNameSlug}-${storage}-${colorName}-${variantCondition}`.toLowerCase();
-            const firstImageLink = variant.variantImages.length > 0
-              ? `${import.meta.env.VITE_BACKEND_URL}${variant.variantImages[0].path}`
+            const firstImageLink = (variant.variantImages || []).length > 0
+              ? getImageUrl(variant.variantImages[0])
               : '';
             const condition = product.condition === 'Brand New' ? 'New' : product.condition;
             // Dynamic availability based on quantity
@@ -479,7 +501,7 @@ export default function AllProducts() {
               availability: availability,
               link: `${import.meta.env.VITE_BACKEND_URL}products/${fullProductNameSlug}`,
               image_link: firstImageLink,
-              additional_image_link: variant.variantImages.map(img => `${import.meta.env.VITE_BACKEND_URL}${img.path}`).join(", "),
+              additional_image_link: (variant.variantImages || []).map(img => getImageUrl(img)).filter(Boolean).join(", "),
               price: `${variant.Price} GBP`,
               sale_price: variant.salePrice ? `${variant.salePrice} GBP` : null,
               identifier_exists: variant.EIN ? 'yes' : 'no',
@@ -716,9 +738,13 @@ export default function AllProducts() {
                                       <div className="h-11 w-11 flex-shrink-0 flex justify-center">
                                         <Link to={`https://zextons.co.uk/products/${productNameSlug}`}>
                                           <img
-                                            className="h-11  rounded-lg"
-                                            src={`${auth.ip}${product.thumbnail_image?.path}`}
-                                          // alt="productThumbnailImage"
+                                            className="h-11 w-11 object-cover rounded-lg"
+                                            src={getThumbUrl(product.thumbnail_image, auth.ip)}
+                                            alt="Product thumbnail"
+                                            onError={(e) => {
+                                              e.target.onerror = null;
+                                              e.target.src = PLACEHOLDER_IMAGE;
+                                            }}
                                           />
                                         </Link>
                                       </div>

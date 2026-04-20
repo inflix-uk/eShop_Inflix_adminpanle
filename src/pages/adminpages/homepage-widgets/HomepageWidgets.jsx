@@ -89,7 +89,7 @@ const AVAILABLE_WIDGETS = [
     id: "promotionalSections",
     title: "Promotional sections (block)",
     description:
-      "Buy Now Pay Later, Sell/Buy cards, and Tiny Phone banner authored inline in the block editor (Add Widget → Promotional sections).",
+      "Top banner, two side-by-side cards, and bottom strip — same stack as the homepage promos; add via Add Widget → Promotional sections.",
     settingKey: "promotionalSectionsEnabled",
   },
   {

@@ -590,7 +590,7 @@ export function extractCategoryCardsWidgetImageDataUrls(
 }
 
 /**
- * Data-URL images on promotionalSections widget (BNPL, sell/buy cards, tiny phone).
+ * Data-URL images on promotionalSections widget (top banner, two cards, bottom strip).
  */
 export function extractPromotionalSectionsWidgetImageDataUrls(
   processedBlocks,

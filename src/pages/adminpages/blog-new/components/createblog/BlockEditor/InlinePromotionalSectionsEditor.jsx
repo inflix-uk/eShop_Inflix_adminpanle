@@ -4,6 +4,13 @@ import PropTypes from "prop-types";
 import ImageUploader from "../../../../banners/components/ImageUploader";
 import { normalizePromotionalSectionsContent, patchPromotionalSectionsWidget } from "./promotionalSectionsWidgetDefaults";
 
+/** Labels for the three optional logos under the top banner (left → right on the live site). */
+const PAYMENT_LOGO_LABELS = [
+  "Logo under banner — left (1 of 3)",
+  "Logo under banner — middle (2 of 3)",
+  "Logo under banner — right (3 of 3)",
+];
+
 export default function InlinePromotionalSectionsEditor({ content, blockId, onChange }) {
   const v = normalizePromotionalSectionsContent(content);
 
@@ -73,9 +80,21 @@ export default function InlinePromotionalSectionsEditor({ content, blockId, onCh
 
   return (
     <div className="space-y-4 max-h-[min(75vh,800px)] overflow-y-auto pr-1">
+      <div className="rounded-lg border border-gray-200 bg-gray-50/90 p-3 text-xs text-gray-700 leading-relaxed">
+        <p className="font-semibold text-gray-900">Layout on the live page (top → bottom)</p>
+        <ol className="mt-1.5 list-decimal space-y-1 pl-4">
+          <li>Wide banner at the top (payment / finance style message).</li>
+          <li>Two equal cards in one row on desktop; stacked on small screens.</li>
+          <li>Narrow full-width strip at the bottom (headline + button + artwork).</li>
+        </ol>
+      </div>
+
       <div className="rounded-lg border border-indigo-200 bg-white p-3 shadow-sm space-y-3">
-        <div className="text-xs font-semibold text-indigo-900 border-b border-indigo-100 pb-2">
-          Buy Now Pay Later
+        <div className="border-b border-indigo-100 pb-2">
+          <div className="text-sm font-semibold text-indigo-950">1. Top banner</div>
+          <p className="mt-0.5 text-xs text-gray-600">
+            Spans the full content width above the two cards.
+          </p>
         </div>
         <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
           <div>
@@ -104,12 +123,15 @@ export default function InlinePromotionalSectionsEditor({ content, blockId, onCh
           maxSizeMB={4}
         />
         <div>
-          <p className="text-xs font-medium text-gray-600 mb-2">Payment logos (optional, up to 3)</p>
+          <p className="text-xs font-medium text-gray-600 mb-2">
+            Small logos in a row under the heading and paragraph (optional). On the site they read
+            left to right: first, second, third.
+          </p>
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             {[0, 1, 2].map((i) => (
               <ImageUploader
                 key={i}
-                label={`Payment ${i + 1}`}
+                label={PAYMENT_LOGO_LABELS[i]}
                 value={bnpl.paymentImages[i] || ""}
                 onChange={(file) => toDataUrl(`pay_${i}`, file)}
                 maxSizeMB={2}
@@ -120,16 +142,20 @@ export default function InlinePromotionalSectionsEditor({ content, blockId, onCh
       </div>
 
       <div className="rounded-lg border border-indigo-200 bg-white p-3 shadow-sm space-y-4">
-        <div className="text-xs font-semibold text-indigo-900 border-b border-indigo-100 pb-2">
-          Sell / Buy cards
+        <div className="border-b border-indigo-100 pb-2">
+          <div className="text-sm font-semibold text-indigo-950">2. Two cards in a row</div>
+          <p className="mt-0.5 text-xs text-gray-600">
+            Shown together under the top banner. First card on the left, second on the right (mobile:
+            first above second).
+          </p>
         </div>
         {["sellCard", "buyCard"].map((key) => {
           const card = key === "sellCard" ? sell : buy;
-          const label = key === "sellCard" ? "Sell card" : "Buy card";
+          const label = key === "sellCard" ? "First card (left)" : "Second card (right)";
           const prefix = key === "sellCard" ? "sell" : "buy";
           return (
             <div key={key} className="space-y-2 border-t border-indigo-50 pt-3 first:border-t-0 first:pt-0">
-              <div className="text-xs font-medium text-gray-700">{label}</div>
+              <div className="text-xs font-semibold text-gray-800">{label}</div>
               <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
                 <div>
                   <label className="block text-xs text-gray-600">Heading</label>
@@ -205,8 +231,12 @@ export default function InlinePromotionalSectionsEditor({ content, blockId, onCh
       </div>
 
       <div className="rounded-lg border border-indigo-200 bg-white p-3 shadow-sm space-y-3">
-        <div className="text-xs font-semibold text-indigo-900 border-b border-indigo-100 pb-2">
-          Tiny Phone banner
+        <div className="border-b border-indigo-100 pb-2">
+          <div className="text-sm font-semibold text-indigo-950">3. Bottom strip</div>
+          <p className="mt-0.5 text-xs text-gray-600">
+            Full-width band at the bottom of this widget: headline, supporting text, primary button,
+            plus background and side images.
+          </p>
         </div>
         <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
           <div>

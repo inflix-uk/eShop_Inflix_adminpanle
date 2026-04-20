@@ -1946,11 +1946,27 @@ export default function WidgetBlock({
             </button>
           </div>
         </div>
-        <p className="text-xs text-gray-600 mb-3">
-          Fill any section you want to show. For publish, complete at least one: <strong>BNPL</strong>{" "}
-          (heading, paragraph, background), both <strong>Sell/Buy</strong> cards (heading, link,
-          background), or <strong>Tiny Phone</strong> (heading, paragraph, button label and link).
-        </p>
+        <div className="mb-3 rounded-md border border-indigo-100 bg-white/80 px-3 py-2.5 text-xs text-gray-700 leading-relaxed">
+          <p className="font-medium text-indigo-950">How this looks on the site</p>
+          <ul className="mt-1.5 list-disc space-y-1 pl-4 text-gray-600">
+            <li>
+              <span className="font-medium text-gray-800">Top banner</span> — full-width strip with
+              heading, text, background, optional payment logos.
+            </li>
+            <li>
+              <span className="font-medium text-gray-800">Two cards</span> — side by side on large
+              screens (first card left, second card right); stacked on phones.
+            </li>
+            <li>
+              <span className="font-medium text-gray-800">Bottom strip</span> — full-width promo with
+              text, button, and images.
+            </li>
+          </ul>
+          <p className="mt-2 text-gray-600">
+            You only need to finish <strong>one</strong> of the three blocks above to publish (fill its
+            required fields and images).
+          </p>
+        </div>
         <InlinePromotionalSectionsEditor content={content} blockId={id} onChange={onChange} />
       </div>
     );

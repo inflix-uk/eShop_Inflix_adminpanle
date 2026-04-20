@@ -651,12 +651,14 @@ export default function EditProduct() {
 
   const handleProductGalleryImages = (event) => {
     const files = event.target.files;
-    if (files) {
+    if (files && files.length > 0) {
       // Use service to validate images
       const validation = editProductService.validateImages(files);
 
       if (!validation.isValid) {
         toast.error(validation.error);
+        // Reset input so user can try again
+        event.target.value = '';
         return;
       }
 
@@ -670,7 +672,12 @@ export default function EditProduct() {
         ...product,
         Gallery_Images: updatedGalleryImages,
       });
+
+      // Show success message with count
+      toast.success(`${validation.validFiles.length} image${validation.validFiles.length > 1 ? 's' : ''} added to gallery`);
     }
+    // Reset input to allow selecting the same files again
+    event.target.value = '';
     console.log(product);
   };
 
