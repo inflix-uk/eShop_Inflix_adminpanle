@@ -24,6 +24,8 @@ import {
   Megaphone,
   Newspaper,
   Code2,
+  Percent,
+  Gift,
 } from "lucide-react";
 import { DynamicIcon } from "lucide-react/dynamic";
 import { API_BASE_URL } from "../../../service/blogService";
@@ -43,6 +45,7 @@ const MAX_FAQ_ITEMS = 30;
 const MAX_GALLERY_ITEMS = 24;
 const MAX_ICON_BOX_ITEMS = 12;
 const MAX_TESTIMONIAL_ITEMS = 12;
+const MAX_DEALS_DISCOUNT_ITEMS = 24;
 
 const BLOCKED_NEWSLETTER_PLACEHOLDERS = new Set(["malikoffical32@gmail.com"]);
 
@@ -94,6 +97,45 @@ function createTestimonialItem() {
     rating: 5,
     avatarUrl: "",
   };
+}
+
+function createDealsDiscountCardItem() {
+  return {
+    id: nanoid(),
+    emoji: "🎁",
+    title: "",
+    desc: "",
+    type: "Deal",
+    hasExpiry: true,
+    startDate: "",
+    expiryDate: "",
+    isExpired: false,
+    couponCode: "",
+    buttonText: "Shop now",
+    buttonUrl: "",
+  };
+}
+
+/** `<input type="date">` only accepts yyyy-MM-dd; map legacy ISO / dd/mm/yyyy when possible. */
+function dealsCardDateToInputValue(raw) {
+  const s = String(raw ?? "").trim();
+  if (!s) return "";
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const d = new Date(s);
+  if (!Number.isNaN(d.getTime())) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+  const m2 = s.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  if (m2) {
+    const dd = m2[1].padStart(2, "0");
+    const mm = m2[2].padStart(2, "0");
+    const yyyy = m2[3];
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  return "";
 }
 
 function normalizeLucideIconCodeForPreview(code) {
@@ -2072,6 +2114,361 @@ export default function WidgetBlock({
             </p>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (widgetType === "dealsDiscountCards") {
+    const sectionHeading = content?.sectionHeading ?? "";
+    const items = Array.isArray(content?.items) ? content.items : [];
+
+    const patchDeals = (partial) =>
+      onChange(id, {
+        widgetType: "dealsDiscountCards",
+        sectionHeading,
+        items,
+        ...partial,
+      });
+
+    const updateItem = (itemId, patch) => {
+      patchDeals({
+        items: items.map((it) => (it.id === itemId ? { ...it, ...patch } : it)),
+      });
+    };
+
+    const addItem = () => {
+      if (items.length >= MAX_DEALS_DISCOUNT_ITEMS) return;
+      patchDeals({ items: [...items, createDealsDiscountCardItem()] });
+    };
+
+    const removeItem = (itemId) => {
+      if (items.length <= 1) return;
+      patchDeals({ items: items.filter((it) => it.id !== itemId) });
+    };
+
+    if (items.length === 0) {
+      return (
+        <div className="border-2 border-lime-200 rounded-lg p-4 mb-4 bg-lime-50/50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Grip className="text-lime-700" size={18} />
+              <Gift className="text-lime-800" size={18} />
+              <span className="text-sm font-semibold text-lime-950">Deals &amp; discount cards</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={onMoveUp}
+                className="p-1.5 text-gray-600 hover:bg-white rounded-full"
+                title="Move up"
+              >
+                <ChevronUp size={18} />
+              </button>
+              <button
+                type="button"
+                onClick={onMoveDown}
+                className="p-1.5 text-gray-600 hover:bg-white rounded-full"
+                title="Move down"
+              >
+                <ChevronDown size={18} />
+              </button>
+              <button
+                type="button"
+                onClick={() => onDelete(id)}
+                className="p-1.5 text-red-500 hover:bg-red-50 rounded-full"
+                title="Remove widget"
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => patchDeals({ items: [createDealsDiscountCardItem()] })}
+            className="mt-3 rounded-md bg-lime-700 px-3 py-1.5 text-sm text-white hover:bg-lime-800"
+          >
+            Add first card
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div className="border-2 border-lime-200 rounded-lg p-3 mb-4 bg-lime-50/50">
+        <div className="flex justify-between items-center mb-3 pb-2 border-b border-lime-200">
+          <div className="flex items-center gap-2">
+            <Grip className="text-lime-700" size={18} />
+            <Gift className="text-lime-800" size={18} />
+            <span className="text-sm font-semibold text-lime-950">Deals &amp; discount cards</span>
+            <span className="text-xs text-lime-800 bg-lime-100 px-2 py-0.5 rounded-full">
+              {items.length} card{items.length !== 1 ? "s" : ""}
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={onMoveUp}
+              className="p-1.5 text-gray-600 hover:bg-white rounded-full"
+              title="Move up"
+            >
+              <ChevronUp size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={onMoveDown}
+              className="p-1.5 text-gray-600 hover:bg-white rounded-full"
+              title="Move down"
+            >
+              <ChevronDown size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={() => onDelete(id)}
+              className="p-1.5 text-red-500 hover:bg-red-50 rounded-full"
+              title="Remove widget"
+            >
+              <Trash2 size={18} />
+            </button>
+          </div>
+        </div>
+
+        <div className="mb-3">
+          <label className="block text-xs font-medium text-gray-600 mb-1">
+            Section heading <span className="text-gray-400 font-normal">(optional, above filters)</span>
+          </label>
+          <input
+            type="text"
+            value={sectionHeading}
+            onChange={(e) => patchDeals({ sectionHeading: e.target.value })}
+            className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+            placeholder="e.g. Next discount code, coupons, and promo codes"
+          />
+        </div>
+
+        <div className="space-y-3 max-h-[min(520px,60vh)] overflow-y-auto pr-1">
+          {items.map((it, index) => {
+            const dealType = it.type === "Coupon" ? "Coupon" : "Deal";
+            const hasExpiry = it.hasExpiry !== false;
+            return (
+              <div
+                key={it.id}
+                className="rounded-lg border border-lime-100 bg-white p-3 shadow-sm"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-lime-900">Card {index + 1}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeItem(it.id)}
+                    disabled={items.length <= 1}
+                    className="text-xs text-red-600 hover:underline disabled:opacity-40 disabled:no-underline"
+                  >
+                    Remove card
+                  </button>
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Emoji</label>
+                    <input
+                      type="text"
+                      value={it.emoji ?? ""}
+                      onChange={(e) => updateItem(it.id, { emoji: e.target.value })}
+                      className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                      placeholder="🎁"
+                      maxLength={8}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Type</label>
+                    <select
+                      value={dealType}
+                      onChange={(e) =>
+                        updateItem(it.id, {
+                          type: e.target.value === "Coupon" ? "Coupon" : "Deal",
+                        })
+                      }
+                      className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                    >
+                      <option value="Deal">Deal</option>
+                      <option value="Coupon">Coupon</option>
+                    </select>
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Title</label>
+                    <input
+                      type="text"
+                      value={it.title ?? ""}
+                      onChange={(e) => updateItem(it.id, { title: e.target.value })}
+                      className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                      placeholder="Offer headline"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
+                    <textarea
+                      value={it.desc ?? ""}
+                      onChange={(e) => updateItem(it.id, { desc: e.target.value })}
+                      rows={3}
+                      className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                      placeholder="Offer details"
+                    />
+                  </div>
+                  <div className="sm:col-span-2 flex flex-wrap gap-4">
+                    <label className="flex items-center gap-2 text-xs text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={hasExpiry}
+                        onChange={(e) => updateItem(it.id, { hasExpiry: e.target.checked })}
+                      />
+                      Has start / expiry dates
+                    </label>
+                    <label className="flex items-center gap-2 text-xs text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={!!it.isExpired}
+                        onChange={(e) => updateItem(it.id, { isExpired: e.target.checked })}
+                      />
+                      Show as expired (grey button)
+                    </label>
+                  </div>
+                  {hasExpiry ? (
+                    <>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Start date
+                        </label>
+                        <input
+                          type="date"
+                          value={dealsCardDateToInputValue(it.startDate)}
+                          onChange={(e) =>
+                            updateItem(it.id, { startDate: e.target.value || "" })
+                          }
+                          className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                        />
+                        <p className="mt-0.5 text-[11px] text-gray-500">
+                          Browser calendar; saved as YYYY-MM-DD for the live site.
+                        </p>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Expiry date
+                        </label>
+                        <input
+                          type="date"
+                          value={dealsCardDateToInputValue(it.expiryDate)}
+                          min={dealsCardDateToInputValue(it.startDate) || undefined}
+                          onChange={(e) =>
+                            updateItem(it.id, { expiryDate: e.target.value || "" })
+                          }
+                          className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                        />
+                        <p className="mt-0.5 text-[11px] text-gray-500">
+                          Optional minimum is the start date when both are set.
+                        </p>
+                      </div>
+                    </>
+                  ) : null}
+                  {dealType === "Coupon" ? (
+                    <div className="sm:col-span-2">
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Coupon code <span className="text-gray-400">(tap-to-copy on site)</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={it.couponCode ?? ""}
+                        onChange={(e) => updateItem(it.id, { couponCode: e.target.value })}
+                        className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm font-mono"
+                        placeholder="XMAS2026"
+                      />
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Button text
+                        </label>
+                        <input
+                          type="text"
+                          value={it.buttonText ?? ""}
+                          onChange={(e) => updateItem(it.id, { buttonText: e.target.value })}
+                          className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                          placeholder="Shop now"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Button URL
+                        </label>
+                        <input
+                          type="text"
+                          value={it.buttonUrl ?? ""}
+                          onChange={(e) => updateItem(it.id, { buttonUrl: e.target.value })}
+                          className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                          placeholder="https://… or /path"
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <button
+          type="button"
+          onClick={addItem}
+          disabled={items.length >= MAX_DEALS_DISCOUNT_ITEMS}
+          className="mt-3 w-full py-2 border border-dashed border-lime-300 rounded-md text-lime-900 text-sm flex items-center justify-center gap-1 hover:bg-lime-100/50 disabled:opacity-50"
+        >
+          <PlusCircle size={16} />
+          Add card ({items.length}/{MAX_DEALS_DISCOUNT_ITEMS})
+        </button>
+      </div>
+    );
+  }
+
+  if (widgetType === "activeDeals") {
+    return (
+      <div className="border-2 border-emerald-200 rounded-lg p-3 mb-4 bg-emerald-50/60">
+        <div className="flex justify-between items-center mb-3 pb-2 border-b border-emerald-200">
+          <div className="flex items-center gap-2">
+            <Grip className="text-emerald-700" size={18} />
+            <Percent className="text-emerald-800" size={18} />
+            <span className="text-sm font-semibold text-emerald-950">
+              Active deals &amp; coupons
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={onMoveUp}
+              className="p-1.5 text-gray-600 hover:bg-white rounded-full"
+              title="Move up"
+            >
+              <ChevronUp size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={onMoveDown}
+              className="p-1.5 text-gray-600 hover:bg-white rounded-full"
+              title="Move down"
+            >
+              <ChevronDown size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={() => onDelete(id)}
+              className="p-1.5 text-red-500 hover:bg-red-50 rounded-full"
+              title="Remove widget"
+            >
+              <Trash2 size={18} />
+            </button>
+          </div>
+        </div>
+        <p className="text-sm text-gray-700">
+          On the live site this block loads <strong>active deals</strong> from the same API as the old
+          Deals &amp; Discounts page (filters: All / Deal / Coupon / Expired). No extra settings here.
+        </p>
       </div>
     );
   }

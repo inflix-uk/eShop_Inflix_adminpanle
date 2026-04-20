@@ -3,10 +3,41 @@ import { Helmet } from "react-helmet-async";
 import LoadingBar from "react-top-loading-bar";
 import Side from "../nav/Side";
 import Top from "../nav/Top";
-import { getSiteTheme, saveSiteTheme } from "./service/siteThemeService";
+import TypographySettingsForm from "./components/TypographySettingsForm";
+import { DEFAULT_TYPOGRAPHY, ALLOWED_FONTS, ALLOWED_WEIGHTS } from "./typographyDefaults";
+import { getSiteTheme, saveSiteTheme, saveTypographyTheme } from "./service/siteThemeService";
 
 const DEFAULT_PRIMARY = "#16a34a";
 const DEFAULT_SECONDARY = "#15803d";
+
+function normalizeTypography(raw) {
+  const base = DEFAULT_TYPOGRAPHY;
+  if (!raw || typeof raw !== "object") {
+    return {
+      h1: { ...base.h1 },
+      h2: { ...base.h2 },
+      h3: { ...base.h3 },
+      p: { ...base.p },
+    };
+  }
+  const pick = (key) => {
+    const r = raw[key] || {};
+    const rf = typeof r.font === "string" ? r.font.trim() : "";
+    const font =
+      ALLOWED_FONTS.find((f) => f.toLowerCase() === rf.toLowerCase()) ?? base[key].font;
+    return {
+      font,
+      weight: ALLOWED_WEIGHTS.includes(Number(r.weight)) ? Number(r.weight) : base[key].weight,
+      style: r.style === "italic" ? "italic" : "normal",
+    };
+  };
+  return {
+    h1: pick("h1"),
+    h2: pick("h2"),
+    h3: pick("h3"),
+    p: pick("p"),
+  };
+}
 
 const normalizeHex = (value) => {
   const v = (value || "").trim();
@@ -29,6 +60,8 @@ export default function SiteWideColor() {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewMainHover, setPreviewMainHover] = useState(false);
+  const [typography, setTypography] = useState(() => normalizeTypography(null));
+  const [typographySaving, setTypographySaving] = useState(false);
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
   const closeSidebar = () => setIsSidebarOpen(false);
@@ -42,6 +75,7 @@ export default function SiteWideColor() {
       if (!cancelled && data) {
         setPrimaryColor(data.primaryColor || DEFAULT_PRIMARY);
         setSecondaryColor(data.secondaryColor || DEFAULT_SECONDARY);
+        setTypography(normalizeTypography(data.typography));
       }
       if (!cancelled) {
         setLoading(false);
@@ -76,6 +110,15 @@ export default function SiteWideColor() {
   const resetDefaults = () => {
     setPrimaryColor(DEFAULT_PRIMARY);
     setSecondaryColor(DEFAULT_SECONDARY);
+  };
+
+  const handleSaveTypography = async () => {
+    setTypographySaving(true);
+    const ok = await saveTypographyTheme(typography);
+    setTypographySaving(false);
+    if (!ok) return;
+    const fresh = await getSiteTheme();
+    if (fresh?.typography) setTypography(normalizeTypography(fresh.typography));
   };
 
   return (
@@ -236,6 +279,31 @@ export default function SiteWideColor() {
                     </button>
                   </div>
                 </form>
+              )}
+            </div>
+
+            <div className="mt-10 bg-white shadow rounded-lg overflow-hidden">
+              <div className="px-6 py-5 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-gray-900">Typography</h2>
+                <p className="mt-1 text-sm text-gray-600">
+                  Controls global heading and body fonts on the public Next.js site (SSR, no free-text
+                  fonts).
+                </p>
+              </div>
+              {loading ? (
+                <div className="px-6 py-12 text-center">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  <p className="mt-4 text-gray-600">Loading…</p>
+                </div>
+              ) : (
+                <div className="px-6 py-6">
+                  <TypographySettingsForm
+                    typography={typography}
+                    onChange={setTypography}
+                    onSave={handleSaveTypography}
+                    saving={typographySaving}
+                  />
+                </div>
               )}
             </div>
           </div>

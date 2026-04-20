@@ -97,6 +97,26 @@ export function blockHasValidContent(block) {
   if (
     block.type === "widget" &&
     block.content &&
+    block.content.widgetType === "activeDeals"
+  ) {
+    return true;
+  }
+  if (
+    block.type === "widget" &&
+    block.content &&
+    block.content.widgetType === "dealsDiscountCards" &&
+    Array.isArray(block.content.items)
+  ) {
+    return block.content.items.some((it) => {
+      const title = it?.title && String(it.title).trim().length > 0;
+      const desc = it?.desc && String(it.desc).trim().length > 0;
+      const emoji = it?.emoji && String(it.emoji).trim().length > 0;
+      return title || desc || emoji;
+    });
+  }
+  if (
+    block.type === "widget" &&
+    block.content &&
     block.content.widgetType === "htmlCss"
   ) {
     const h = block.content.html;

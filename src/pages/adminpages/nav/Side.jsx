@@ -204,7 +204,12 @@ export default function Side({
       "product-central-main",
     ];
 
-    const contentPages = ["blogs", "media", "reviews"];
+    const contentPages = [
+      "blogs",
+      "media",
+      "reviews",
+      ...footerPagesList,
+    ];
 
     const rolesPages = ["manage-roles", "permissions", "users", "subscribers"];
 
@@ -257,7 +262,7 @@ export default function Side({
     } else if (settingsPages.includes(selectedPage)) {
       setIsOpenSettings(true);
     }
-    // Dashboard, Messages, Visitor Messages, Pages, Profile are standalone links
+    // Dashboard, Messages, Visitor Messages, Profile are standalone links
   }, [selectedPage]);
 
   /**
@@ -595,6 +600,31 @@ export default function Side({
             </svg>
           ),
         },
+        {
+          label: "Pages",
+          to: "/admin/footer-pages",
+          selectedKey: "footer-pages",
+          icon: (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className={`h-5 w-5 shrink-0 ${
+                footerPagesList.includes(selectedPage)
+                  ? "text-primary"
+                  : "text-gray-400 group-hover:text-primary"
+              } my-auto`}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
+              />
+            </svg>
+          ),
+        },
       ],
     },
     {
@@ -816,6 +846,7 @@ export default function Side({
             </svg>
           ),
         },
+        /* Category Cards — hidden from sidebar; routes still work if needed
         {
           label: "Category Cards",
           to: "/admin/category-cards",
@@ -842,6 +873,7 @@ export default function Side({
             </svg>
           ),
         },
+        */
         {
           label: "Homepage",
           to: "/admin/settings/homepage-data",
@@ -868,6 +900,7 @@ export default function Side({
             </svg>
           ),
         },
+        /* Promotional Sections — hidden from sidebar; routes still work if needed
         {
           label: "Promotional Sections",
           to: "/admin/promotional-sections",
@@ -894,6 +927,7 @@ export default function Side({
             </svg>
           ),
         },
+        */
       ],
     },
     {
@@ -1317,7 +1351,9 @@ export default function Side({
               const isActive =
                 link.selectedKey === "new-products"
                   ? productTabPages.includes(selectedPage)
-                  : selectedPage === link.selectedKey;
+                  : link.selectedKey === "footer-pages"
+                    ? footerPagesList.includes(selectedPage)
+                    : selectedPage === link.selectedKey;
 
               return (
                 <SidebarLink
@@ -1439,30 +1475,6 @@ export default function Side({
               </li>
               {/* Collapsible Sections */}
               {renderSidebarSections()}
-              {/* Footer Pages Link */}
-              <li>
-                <SidebarLink
-                  to="/admin/footer-pages"
-                  icon={
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      strokeWidth={1.5}
-                      stroke="currentColor"
-                      className="h-5 w-5"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
-                      />
-                    </svg>
-                  }
-                  label="Pages"
-                  isActive={footerPagesList.includes(selectedPage)}
-                />
-              </li>
               {/* Profile - Bottom standalone link */}
               <li className="mt-auto pt-4 border-t border-gray-200">
                 <SidebarLink
@@ -1583,30 +1595,6 @@ export default function Side({
             </li>
             {/* Collapsible Sections */}
             {renderSidebarSections()}
-            {/* Footer Pages Link */}
-            <li>
-              <SidebarLink
-                to="/admin/footer-pages"
-                icon={
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                    className="h-5 w-5"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"
-                    />
-                  </svg>
-                }
-                label="Pages"
-                isActive={footerPagesList.includes(selectedPage)}
-              />
-            </li>
             {/* Profile - Bottom standalone link */}
             <li className="mt-auto pt-4 border-t border-gray-200">
               <SidebarLink

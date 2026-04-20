@@ -10,6 +10,8 @@ export default function ProductEditForm({
   conditions,
   selectedConditions,
   handleConditionChange,
+  isCustomCondition = false,
+  onCustomConditionChange = () => {},
   tags,
   selectedTags,
   handleTagsChange,
@@ -315,9 +317,34 @@ export default function ProductEditForm({
                     options={conditions}
                     value={selectedConditions}
                     onChange={handleConditionChange}
+                    isClearable
+                    placeholder="Select condition"
                     className="block w-full rounded-md border-0 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 aa"
                   />
                 </div>
+                {isCustomCondition ? (
+                  <div className="mt-3">
+                    <label
+                      htmlFor="condition-custom-text"
+                      className="block text-sm font-medium leading-6 text-gray-900"
+                    >
+                      Custom condition text
+                    </label>
+                    <input
+                      id="condition-custom-text"
+                      name="condition-custom-text"
+                      type="text"
+                      value={product?.condition ?? ""}
+                      onChange={(e) => onCustomConditionChange(e.target.value)}
+                      placeholder="e.g. Open box — tested, 99% battery health"
+                      className="mt-2 block w-full rounded-md border-0 py-1.5 pl-3 pr-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      This text is saved as the product condition instead of a
+                      preset from the list.
+                    </p>
+                  </div>
+                ) : null}
               </div>
 
               <div className="">
@@ -374,9 +401,11 @@ ProductEditForm.propTypes = {
   conditions: PropTypes.array.isRequired,
   selectedConditions: PropTypes.object,
   handleConditionChange: PropTypes.func.isRequired,
+  isCustomCondition: PropTypes.bool,
+  onCustomConditionChange: PropTypes.func,
   tags: PropTypes.array.isRequired,
   selectedTags: PropTypes.array,
   handleTagsChange: PropTypes.func.isRequired,
   productApi: PropTypes.object.isRequired,
   brands: PropTypes.array,
-}
+};

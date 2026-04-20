@@ -30,6 +30,9 @@ import EditProductService from "./service/editProductService";
 import ProductApi from "./api/productApi";
 import { compressProductImages } from "../../../utils/imageCompression";
 
+/** Sentinel value for the extra "Custom" row in the condition react-select (not saved to DB). */
+const CONDITION_SELECT_CUSTOM = "__condition_custom__";
+
 // Tab definitions with slugs for URL
 const TABS = [
   { name: "Basic Information", slug: "basic-information" },
@@ -199,6 +202,7 @@ export default function EditProduct() {
 
   const [conditions, setConditions] = useState([]);
   const [selectedConditions, setSelectedConditions] = useState(null);
+  const [isCustomCondition, setIsCustomCondition] = useState(false);
 
   useEffect(() => {
     getCondition();
@@ -206,22 +210,61 @@ export default function EditProduct() {
   }, []);
 
   useEffect(() => {
-    const defaultCondition = product?.condition?.split(",").map((con) => ({
-      label: con,
-      value: con,
-    }));
-    setSelectedConditions(defaultCondition ? defaultCondition[0] : null);
-  }, [product?.condition]);
+    const raw = (product?.condition ?? "").trim();
+    if (!raw) {
+      /* Don't reset the select while admin chose "Custom" and the field is still empty */
+      if (isCustomCondition) return;
+      setSelectedConditions(null);
+      setIsCustomCondition(false);
+      return;
+    }
+    /* Avoid misclassifying a preset as "custom" before variant options have loaded */
+    if (!conditions.length) return;
+
+    const predefined = conditions.find(
+      (c) => c.value === raw && c.value !== CONDITION_SELECT_CUSTOM
+    );
+    if (predefined) {
+      setSelectedConditions(predefined);
+      setIsCustomCondition(false);
+    } else {
+      setSelectedConditions({
+        label: "Custom",
+        value: CONDITION_SELECT_CUSTOM,
+      });
+      setIsCustomCondition(true);
+    }
+  }, [product?.condition, conditions, isCustomCondition]);
 
   const handleConditionChange = (selectedOption) => {
+    if (!selectedOption) {
+      setSelectedConditions(null);
+      setIsCustomCondition(false);
+      setProduct((prev) => ({ ...prev, condition: "" }));
+      return;
+    }
+    if (selectedOption.value === CONDITION_SELECT_CUSTOM) {
+      setSelectedConditions(selectedOption);
+      setIsCustomCondition(true);
+      setProduct((prev) => {
+        const matchesList = conditions.some(
+          (c) => c.value === prev.condition && c.value !== CONDITION_SELECT_CUSTOM
+        );
+        if (matchesList) {
+          return { ...prev, condition: "" };
+        }
+        return prev;
+      });
+      return;
+    }
+    setIsCustomCondition(false);
     setSelectedConditions(selectedOption);
-
-    // Update the product condition
-    setProduct((prevProduct) => ({
-      ...prevProduct,
-      condition: selectedOption ? selectedOption.value : "",
-    }));
+    setProduct((prev) => ({ ...prev, condition: selectedOption.value }));
   };
+
+  const handleCustomConditionChange = useCallback((value) => {
+    setProduct((prev) => ({ ...prev, condition: value }));
+  }, []);
 
   async function getCondition() {
     setProgress(50);
@@ -243,8 +286,15 @@ export default function EditProduct() {
                 label: cond.name,
                 value: cond.name,
               }));
-            setConditions(filteredConditions);
+            setConditions([
+              ...filteredConditions,
+              { label: "Custom", value: CONDITION_SELECT_CUSTOM },
+            ]);
+          } else {
+            setConditions([{ label: "Custom", value: CONDITION_SELECT_CUSTOM }]);
           }
+        } else {
+          setConditions([{ label: "Custom", value: CONDITION_SELECT_CUSTOM }]);
         }
         setProgress(100);
       } else {
@@ -254,6 +304,7 @@ export default function EditProduct() {
     } catch (error) {
       console.error("Error fetching conditions:", error);
       toast.error("Error fetching conditions");
+      setConditions([{ label: "Custom", value: CONDITION_SELECT_CUSTOM }]);
       setProgress(100);
     }
   }
@@ -1018,6 +1069,8 @@ export default function EditProduct() {
                         conditions={conditions}
                         selectedConditions={selectedConditions}
                         handleConditionChange={handleConditionChange}
+                        isCustomCondition={isCustomCondition}
+                        onCustomConditionChange={handleCustomConditionChange}
                         tags={tags}
                         selectedTags={selectedTags}
                         handleTagsChange={handleTagsChange}

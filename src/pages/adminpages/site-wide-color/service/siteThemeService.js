@@ -17,6 +17,7 @@ export const getSiteTheme = async () => {
       return {
         primaryColor: response.data.data?.primaryColor || "#16a34a",
         secondaryColor: response.data.data?.secondaryColor || "#15803d",
+        typography: response.data.data?.typography || null,
         updatedAt: response.data.data?.updatedAt || null,
       };
     }
@@ -35,7 +36,8 @@ export const saveSiteTheme = async (primaryColor, secondaryColor) => {
       { headers: getHeaders() }
     );
     if (response.data.success) {
-      toast.success("Site colors saved");      return true;
+      toast.success("Site colors saved");
+      return true;
     }
     toast.error(response.data.message || "Failed to save");
     return false;
@@ -43,6 +45,29 @@ export const saveSiteTheme = async (primaryColor, secondaryColor) => {
     console.error("Error saving site theme:", error);
     toast.error(
       error.response?.data?.message || "Failed to save site colors"
+    );
+    return false;
+  }
+};
+
+/** CMS typography — `PUT /api/theme` (admin). */
+export const saveTypographyTheme = async (typography) => {
+  try {
+    const response = await axios.put(
+      `${API_BASE_URL}api/theme`,
+      { typography },
+      { headers: getHeaders() }
+    );
+    if (response.data.success) {
+      toast.success("Typography saved");
+      return true;
+    }
+    toast.error(response.data.message || "Failed to save typography");
+    return false;
+  } catch (error) {
+    console.error("Error saving typography:", error);
+    toast.error(
+      error.response?.data?.message || "Failed to save typography"
     );
     return false;
   }

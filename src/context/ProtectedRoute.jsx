@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useState } from "react";
-import PropTypes from 'prop-types';
+import PropTypes from 'prop-types';   
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "./Auth";
 import { hasAnyPermission } from "../utils/permissions";
