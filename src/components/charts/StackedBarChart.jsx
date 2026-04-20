@@ -8,10 +8,10 @@ Chart.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 const StackedBarChart = () => {
   const data = {
     labels: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
-    datasets: [
+    datasets: [  
       {
         label: 'Sales',
-        data: [40, 60, 50, 70, 20, 60, 70], 
+        data: [40, 60, 50, 70, 20, 60, 70],   
         backgroundColor: 'rgba(54, 162, 235, 0.8)', 
       },
       {
