@@ -1,4 +1,4 @@
-/**
+ /**
  * ProtectedRoute Component
  * Wraps routes with authentication and permission checking
  */
@@ -18,7 +18,7 @@ const ProtectedRoute = ({ children, requiredPermissions = [], requireAll = false
     // Check if the user is authenticated
     if (!auth.user) {
       setLoading(false);
-    } else {
+    } else {  
       // If authenticated, finish loading
       setLoading(false);
     }
