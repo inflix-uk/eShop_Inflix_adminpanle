@@ -227,6 +227,7 @@ export default function Side({
       "trustpilot-settings",
       "scripts-settings",
       "email-template-settings",
+      "smtp-settings",
       "site-wide-schema-settings",
       "widgets-settings",
       "announcement-banner-settings",
@@ -942,7 +943,7 @@ export default function Side({
           strokeWidth={1.5}
           stroke="currentColor"
           className={`h-5 w-5 shrink-0 ${
-            selectedPage === "stripe-settings" || selectedPage === "shipping-settings" || selectedPage === "trustpilot-settings" || selectedPage === "scripts-settings" || selectedPage === "email-template-settings" || selectedPage === "site-wide-schema-settings" || selectedPage === "widgets-settings" || selectedPage === "announcement-banner-settings" || selectedPage === "deals-modal-settings" || selectedPage === "footer-settings" || selectedPage === "google-search-console" || selectedPage === "logo" || selectedPage === "site-wide-color"
+            selectedPage === "stripe-settings" || selectedPage === "shipping-settings" || selectedPage === "trustpilot-settings" || selectedPage === "scripts-settings" || selectedPage === "email-template-settings" || selectedPage === "smtp-settings" || selectedPage === "site-wide-schema-settings" || selectedPage === "widgets-settings" || selectedPage === "announcement-banner-settings" || selectedPage === "deals-modal-settings" || selectedPage === "footer-settings" || selectedPage === "google-search-console" || selectedPage === "logo" || selectedPage === "site-wide-color"
               ? "text-primary"
               : "text-gray-400 group-hover:text-primary"
           } my-auto`}
@@ -1192,6 +1193,32 @@ export default function Side({
               stroke="currentColor"
               className={`h-5 w-5 shrink-0 ${
                 selectedPage === "email-template-settings"
+                  ? "text-primary"
+                  : "text-gray-400 group-hover:text-primary"
+              } my-auto`}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
+              />
+            </svg>
+          ),
+        },
+        {
+          label: "SMTP",
+          to: "/admin/settings/smtp",
+          selectedKey: "smtp-settings",
+          permissionCheck: (p) => p?.zextons?.view_blogs || true,
+          icon: (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className={`h-5 w-5 shrink-0 ${
+                selectedPage === "smtp-settings"
                   ? "text-primary"
                   : "text-gray-400 group-hover:text-primary"
               } my-auto`}

@@ -6,6 +6,7 @@ import {
   fetchSiteWidgetSettings,
   putSiteWidgetSettings,
 } from "./service/siteWidgetSettingsService";
+import ContactWidgetSettingsPanel from "./components/ContactWidgetSettingsPanel";
 
 const AVAILABLE_WIDGETS = [
   {
@@ -106,6 +107,13 @@ const AVAILABLE_WIDGETS = [
       "Fragment HTML and CSS; CSS scoped with @scope, markup server-rendered on the public site. Add via Add content row → Add Widget.",
     settingKey: "htmlCssEnabled",
   },
+  {
+    id: "contactUs",
+    title: "Contact form (block)",
+    description:
+      "Configurable contact form for any page (Add Widget → Contact form). Separate from the dedicated /contact-us global widget below.",
+    settingKey: "contactUsEnabled",
+  },
 ];
 
 const PLACEHOLDER_WIDGETS = [];
@@ -130,6 +138,7 @@ export default function HomepageWidgets() {
     promotionalSectionsEnabled: true,
     latestBlogsEnabled: true,
     htmlCssEnabled: true,
+    contactUsEnabled: true,
   });
   const [updatedAt, setUpdatedAt] = useState(null);
 
@@ -155,6 +164,7 @@ export default function HomepageWidgets() {
         promotionalSectionsEnabled: data.promotionalSectionsEnabled,
         latestBlogsEnabled: data.latestBlogsEnabled,
         htmlCssEnabled: data.htmlCssEnabled,
+        contactUsEnabled: data.contactUsEnabled,
       });
       setUpdatedAt(data.updatedAt);
     }
@@ -186,6 +196,7 @@ export default function HomepageWidgets() {
         promotionalSectionsEnabled: result.promotionalSectionsEnabled,
         latestBlogsEnabled: result.latestBlogsEnabled,
         htmlCssEnabled: result.htmlCssEnabled,
+        contactUsEnabled: result.contactUsEnabled,
       });
       setUpdatedAt(result.updatedAt);
     }
@@ -221,7 +232,9 @@ export default function HomepageWidgets() {
                 Widget types your team can insert with <strong>Add content row</strong> →{" "}
                 <strong>Add Widget</strong>. Use the switches below to show or hide each type on the{" "}
                 <strong>public website</strong> (including inside blog posts and homepage content
-                blocks).
+                blocks). The <strong>Contact form</strong> widget is also in <strong>Add Widget</strong> on
+                any page that uses the block editor; use the switches for site-wide on/off. The dedicated{" "}
+                <strong>/contact-us</strong> route is configured in the section at the bottom of this page.
               </p>
               {updatedAt && !loading && (
                 <p className="mt-1 text-xs text-gray-500">
@@ -293,6 +306,8 @@ export default function HomepageWidgets() {
                 )}
               </div>
             )}
+
+            <ContactWidgetSettingsPanel />
           </div>
         </main>
       </div>

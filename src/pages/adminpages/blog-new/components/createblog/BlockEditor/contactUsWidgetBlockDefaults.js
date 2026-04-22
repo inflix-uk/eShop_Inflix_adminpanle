@@ -1,0 +1,77 @@
+/**
+ * Default block payload for Contact Us widget (admin block editor).
+ * Mirrors backend `defaultWidgetPayload` in contactUsWidgetService.
+ */
+export function createDefaultContactUsWidgetContent() {
+  return {
+    widgetType: "contactUs",
+    isActive: true,
+    title: "Contact us",
+    description:
+      "We would love to speak with you. Fill in the form below and we will get back to you.",
+    submitButtonLabel: "Send",
+    successMessage: "Your message has been sent. We will get back to you soon.",
+    fields: [
+      {
+        name: "full_name",
+        label: "Name",
+        type: "text",
+        placeholder: "Your name",
+        required: true,
+        minLength: 2,
+        maxLength: 200,
+        pattern: "",
+        helpText: "",
+        options: [],
+        showWhenField: "",
+        showWhenValue: "",
+        sortOrder: 0,
+      },
+      {
+        name: "email",
+        label: "Email",
+        type: "email",
+        placeholder: "you@example.com",
+        required: true,
+        minLength: null,
+        maxLength: 320,
+        pattern: "",
+        helpText: "",
+        options: [],
+        showWhenField: "",
+        showWhenValue: "",
+        sortOrder: 1,
+      },
+      {
+        name: "subject",
+        label: "Subject",
+        type: "text",
+        placeholder: "How can we help?",
+        required: true,
+        minLength: 2,
+        maxLength: 300,
+        pattern: "",
+        helpText: "",
+        options: [],
+        showWhenField: "",
+        showWhenValue: "",
+        sortOrder: 2,
+      },
+      {
+        name: "message",
+        label: "Message",
+        type: "textarea",
+        placeholder: "Your message",
+        required: true,
+        minLength: 10,
+        maxLength: 10000,
+        pattern: "",
+        helpText: "",
+        options: [],
+        showWhenField: "",
+        showWhenValue: "",
+        sortOrder: 3,
+      },
+    ],
+  };
+}

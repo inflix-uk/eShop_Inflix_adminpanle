@@ -8,17 +8,34 @@ import Top from "../../nav/Top";
 import {
   getNewsletterEmailTemplates,
   saveNewsletterEmailTemplates,
+  getOrderEmailTemplates,
+  saveOrderEmailTemplates,
 } from "./service/emailTemplatesService";
 
-function FieldEditor({ fieldKey, label, value, onChange }) {
-  const isLong =
+function isMultilineField(fieldKey) {
+  return (
     fieldKey === "subject" ||
     fieldKey === "bodyParagraph1" ||
     fieldKey.startsWith("bodyLine") ||
     fieldKey === "sectionHeading" ||
     fieldKey === "headerSubtitle" ||
     fieldKey === "headerTitle" ||
-    fieldKey === "urgencyLine";
+    fieldKey === "urgencyLine" ||
+    fieldKey === "emailSubject" ||
+    fieldKey === "emailSubjectPattern" ||
+    fieldKey === "htmlPageTitle" ||
+    fieldKey.startsWith("hero") ||
+    fieldKey === "heroSubtext" ||
+    fieldKey.startsWith("help") ||
+    fieldKey.includes("footer") ||
+    fieldKey === "footerAddressLine" ||
+    fieldKey === "footerLine1" ||
+    fieldKey === "footerLine2"
+  );
+}
+
+function FieldEditor({ fieldKey, label, value, onChange }) {
+  const isLong = isMultilineField(fieldKey);
   return (
     <div className="mb-4">
       <label
@@ -62,29 +79,87 @@ export default function EmailTemplatesSettings() {
   const [welcome, setWelcome] = useState({});
   const [hotUk, setHotUk] = useState({});
 
+  const [orderConfLabels, setOrderConfLabels] = useState({});
+  const [orderStatusCustLabels, setOrderStatusCustLabels] = useState({});
+  const [orderStatusAdminLabels, setOrderStatusAdminLabels] = useState({});
+  const [orderConfirmation, setOrderConfirmation] = useState({});
+  const [orderStatusCustomer, setOrderStatusCustomer] = useState({});
+  const [orderStatusAdmin, setOrderStatusAdmin] = useState({});
+
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notice, setNotice] = useState({ show: false, message: "", type: "success" });
 
   const welcomeKeys = useMemo(() => Object.keys(welcomeLabels), [welcomeLabels]);
   const hotKeys = useMemo(() => Object.keys(hotLabels), [hotLabels]);
+  const orderConfKeys = useMemo(() => Object.keys(orderConfLabels), [orderConfLabels]);
+  const orderStatusCustKeys = useMemo(
+    () => Object.keys(orderStatusCustLabels),
+    [orderStatusCustLabels]
+  );
+  const orderStatusAdminKeys = useMemo(
+    () => Object.keys(orderStatusAdminLabels),
+    [orderStatusAdminLabels]
+  );
 
   const loadData = async () => {
     setLoading(true);
     setProgress(30);
+    const errors = [];
     try {
-      const data = await getNewsletterEmailTemplates();
-      if (data?.definitions?.welcome?.fieldLabels) {
-        setWelcomeLabels(data.definitions.welcome.fieldLabels);
+      const [nlResult, orderResult] = await Promise.allSettled([
+        getNewsletterEmailTemplates(),
+        getOrderEmailTemplates(),
+      ]);
+
+      if (nlResult.status === "fulfilled" && nlResult.value) {
+        const data = nlResult.value;
+        if (data?.definitions?.welcome?.fieldLabels) {
+          setWelcomeLabels(data.definitions.welcome.fieldLabels);
+        }
+        if (data?.definitions?.hotUkDeals?.fieldLabels) {
+          setHotLabels(data.definitions.hotUkDeals.fieldLabels);
+        }
+        if (data?.templates?.welcome) {
+          setWelcome({ ...data.templates.welcome });
+        }
+        if (data?.templates?.hotUkDeals) {
+          setHotUk({ ...data.templates.hotUkDeals });
+        }
+      } else {
+        errors.push("Newsletter templates could not be loaded.");
       }
-      if (data?.definitions?.hotUkDeals?.fieldLabels) {
-        setHotLabels(data.definitions.hotUkDeals.fieldLabels);
+
+      if (orderResult.status === "fulfilled" && orderResult.value) {
+        const o = orderResult.value;
+        if (o?.definitions?.orderConfirmation?.fieldLabels) {
+          setOrderConfLabels(o.definitions.orderConfirmation.fieldLabels);
+        }
+        if (o?.definitions?.orderStatusCustomer?.fieldLabels) {
+          setOrderStatusCustLabels(o.definitions.orderStatusCustomer.fieldLabels);
+        }
+        if (o?.definitions?.orderStatusAdmin?.fieldLabels) {
+          setOrderStatusAdminLabels(o.definitions.orderStatusAdmin.fieldLabels);
+        }
+        if (o?.templates?.orderConfirmation) {
+          setOrderConfirmation({ ...o.templates.orderConfirmation });
+        }
+        if (o?.templates?.orderStatusCustomer) {
+          setOrderStatusCustomer({ ...o.templates.orderStatusCustomer });
+        }
+        if (o?.templates?.orderStatusAdmin) {
+          setOrderStatusAdmin({ ...o.templates.orderStatusAdmin });
+        }
+      } else {
+        errors.push("Order email templates could not be loaded.");
       }
-      if (data?.templates?.welcome) {
-        setWelcome({ ...data.templates.welcome });
-      }
-      if (data?.templates?.hotUkDeals) {
-        setHotUk({ ...data.templates.hotUkDeals });
+
+      if (errors.length) {
+        setNotice({
+          show: true,
+          message: errors.join(" "),
+          type: "error",
+        });
       }
     } catch (e) {
       console.error(e);
@@ -111,16 +186,33 @@ export default function EmailTemplatesSettings() {
     setHotUk((prev) => ({ ...prev, [key]: val }));
   };
 
+  const patchOrderConf = (key, val) => {
+    setOrderConfirmation((prev) => ({ ...prev, [key]: val }));
+  };
+
+  const patchOrderStatusCust = (key, val) => {
+    setOrderStatusCustomer((prev) => ({ ...prev, [key]: val }));
+  };
+
+  const patchOrderStatusAdmin = (key, val) => {
+    setOrderStatusAdmin((prev) => ({ ...prev, [key]: val }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
     setProgress(40);
     try {
       await saveNewsletterEmailTemplates({ welcome, hotUkDeals: hotUk });
+      await saveOrderEmailTemplates({
+        orderConfirmation,
+        orderStatusCustomer,
+        orderStatusAdmin,
+      });
       await loadData();
       setNotice({
         show: true,
-        message: "Email templates saved.",
+        message: "All email templates saved.",
         type: "success",
       });
       setTimeout(() => setNotice((n) => ({ ...n, show: false })), 3500);
@@ -135,6 +227,21 @@ export default function EmailTemplatesSettings() {
       setProgress(100);
     }
   };
+
+  const tabBtn = (id, label) => (
+    <button
+      type="button"
+      key={id}
+      onClick={() => setActiveTab(id)}
+      className={`shrink-0 px-3 py-2 rounded-lg text-sm font-medium whitespace-nowrap ${
+        activeTab === id
+          ? "bg-primary text-white"
+          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+      }`}
+    >
+      {label}
+    </button>
+  );
 
   return (
     <>
@@ -166,8 +273,8 @@ export default function EmailTemplatesSettings() {
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-gray-900">Email templates</h1>
               <p className="mt-2 text-gray-600 text-sm">
-                Newsletter emails only: edit wording here. Design and HTML structure stay
-                in the backend.
+                Edit static wording for newsletter and order emails. Layout, styles, and
+                dynamic order data stay in the backend HTML templates.
               </p>
             </div>
 
@@ -192,29 +299,14 @@ export default function EmailTemplatesSettings() {
                 onSubmit={handleSubmit}
                 className="bg-white shadow rounded-lg overflow-hidden px-6 py-6"
               >
-                <div className="flex flex-wrap gap-2 border-b border-gray-200 pb-4 mb-6">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("welcome")}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                      activeTab === "welcome"
-                        ? "bg-primary text-white"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                  >
-                    Welcome (5% off)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("hotUk")}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                      activeTab === "hotUk"
-                        ? "bg-primary text-white"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                  >
-                    Hot UK Deals
-                  </button>
+                <div className="overflow-x-auto border-b border-gray-200 pb-4 mb-6 -mx-1 px-1">
+                  <div className="flex flex-wrap gap-2 min-w-0">
+                    {tabBtn("welcome", "Newsletter · Welcome")}
+                    {tabBtn("hotUk", "Newsletter · Hot UK")}
+                    {tabBtn("orderConfirmation", "Order · Confirmation")}
+                    {tabBtn("orderStatusCustomer", "Order · Status (customer)")}
+                    {tabBtn("orderStatusAdmin", "Order · Status (admin)")}
+                  </div>
                 </div>
 
                 {activeTab === "welcome" && (
@@ -242,6 +334,60 @@ export default function EmailTemplatesSettings() {
                         onChange={patchHot}
                       />
                     ))}
+                  </div>
+                )}
+
+                {activeTab === "orderConfirmation" && (
+                  <div>
+                    {orderConfKeys.length === 0 ? (
+                      <p className="text-sm text-gray-500">No fields loaded.</p>
+                    ) : (
+                      orderConfKeys.map((key) => (
+                        <FieldEditor
+                          key={key}
+                          fieldKey={key}
+                          label={orderConfLabels[key] || key}
+                          value={orderConfirmation[key] ?? ""}
+                          onChange={patchOrderConf}
+                        />
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {activeTab === "orderStatusCustomer" && (
+                  <div>
+                    {orderStatusCustKeys.length === 0 ? (
+                      <p className="text-sm text-gray-500">No fields loaded.</p>
+                    ) : (
+                      orderStatusCustKeys.map((key) => (
+                        <FieldEditor
+                          key={key}
+                          fieldKey={key}
+                          label={orderStatusCustLabels[key] || key}
+                          value={orderStatusCustomer[key] ?? ""}
+                          onChange={patchOrderStatusCust}
+                        />
+                      ))
+                    )}
+                  </div>
+                )}
+
+                {activeTab === "orderStatusAdmin" && (
+                  <div>
+                    {orderStatusAdminKeys.length === 0 ? (
+                      <p className="text-sm text-gray-500">No fields loaded.</p>
+                    ) : (
+                      orderStatusAdminKeys.map((key) => (
+                        <FieldEditor
+                          key={key}
+                          fieldKey={key}
+                          label={orderStatusAdminLabels[key] || key}
+                          value={orderStatusAdmin[key] ?? ""}
+                          onChange={patchOrderStatusAdmin}
+                        />
+                      ))
+                    )}
                   </div>
                 )}
 

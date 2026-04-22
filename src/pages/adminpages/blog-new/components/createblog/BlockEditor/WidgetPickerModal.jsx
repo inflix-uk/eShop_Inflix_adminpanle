@@ -19,6 +19,7 @@ import {
   Code2,
   Percent,
   Gift,
+  Contact,
 } from "lucide-react";
 
 const WIDGET_OPTIONS = [
@@ -125,6 +126,13 @@ const WIDGET_OPTIONS = [
     description:
       "Fragment HTML and CSS in separate tabs; CSS is scoped with @scope on the live site. Markup is server-rendered (visible in page HTML).",
     Icon: Code2,
+  },
+  {
+    id: "contactUs",
+    title: "Contact form",
+    description:
+      "Configurable fields, validation, and email to your inbox (same pipeline as /contact-us). Schema is stored in this page’s blocks.",
+    Icon: Contact,
   },
 ];
 

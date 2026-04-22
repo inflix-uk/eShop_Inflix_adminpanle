@@ -12,36 +12,11 @@ import {
   deleteFavicon,
 } from "./service/logoService";
 import ImageUploader from "../banners/components/ImageUploader";
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-
-const getImageUrl = (imagePath) => {
-  if (!imagePath) return null;
-
-  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
-    return imagePath;
-  }
-
-  if (imagePath.startsWith('data:')) {
-    return imagePath;
-  }
-
-  const baseUrl = BACKEND_URL?.endsWith('/') ? BACKEND_URL.slice(0, -1) : BACKEND_URL;
-  let path = imagePath.startsWith('/') ? imagePath : `/${imagePath}`;
-
-  // If path doesn't start with /uploads/ but is a logo path, prepend /uploads/
-  if (!path.startsWith('/uploads/')) {
-    if (path.startsWith('/logo/') || path.startsWith('/favicon/')) {
-      path = `/uploads${path}`;
-    } else if (path.startsWith('/uploads/logo/')) {
-      // Already correct
-    } else if (!path.startsWith('/uploads/')) {
-      path = `/uploads${path}`;
-    }
-  }
-
-  return `${baseUrl}${path}`;
-};
+import {
+  resolveBackendAssetUrl,
+  withCacheBust,
+} from "../../../utils/backendAssetUrl";
+import { setFavicon, clearFavicon } from "../../../utils/faviconManager";
 
 export default function Logo() {
   const [selectedPage, setSelectedPage] = useState("logo");
@@ -59,6 +34,8 @@ export default function Logo() {
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFaviconSubmitting, setIsFaviconSubmitting] = useState(false);
+  /** API `faviconVersion` (ms) or fallback for preview cache-bust */
+  const [assetUpdatedAt, setAssetUpdatedAt] = useState(null);
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -78,11 +55,15 @@ export default function Logo() {
     setProgress(30);
     try {
       const data = await getLogo();
+      const version =
+        data.faviconVersion ??
+        (data.updatedAt ? new Date(data.updatedAt).getTime() : null);
+      setAssetUpdatedAt(version ?? null);
+
       if (data.logoUrl) {
         setCurrentLogoUrl(data.logoUrl);
-        const fullUrl = getImageUrl(data.logoUrl);
-        setLogoPreview(fullUrl);
-        console.log('Logo loaded:', { original: data.logoUrl, fullUrl });
+        const resolved = resolveBackendAssetUrl(data.logoUrl);
+        setLogoPreview(version ? withCacheBust(resolved, version) : resolved);
       } else {
         setCurrentLogoUrl("");
         setLogoPreview(null);
@@ -90,10 +71,13 @@ export default function Logo() {
       setAltText(data.altText || "Logo");
       if (data.faviconUrl) {
         setCurrentFaviconUrl(data.faviconUrl);
-        setFaviconPreview(getImageUrl(data.faviconUrl));
+        const resolved = resolveBackendAssetUrl(data.faviconUrl);
+        setFaviconPreview(version ? withCacheBust(resolved, version) : resolved);
+        setFavicon(data.faviconUrl);
       } else {
         setCurrentFaviconUrl("");
         setFaviconPreview(null);
+        clearFavicon();
       }
       setFaviconFile(null);
     } catch (error) {
@@ -113,7 +97,14 @@ export default function Logo() {
       };
       reader.readAsDataURL(file);
     } else {
-      setLogoPreview(currentLogoUrl ? getImageUrl(currentLogoUrl) : null);
+      if (!currentLogoUrl) {
+        setLogoPreview(null);
+      } else {
+        const resolved = resolveBackendAssetUrl(currentLogoUrl);
+        setLogoPreview(
+          assetUpdatedAt ? withCacheBust(resolved, assetUpdatedAt) : resolved
+        );
+      }
     }
   };
 
@@ -126,9 +117,14 @@ export default function Logo() {
       };
       reader.readAsDataURL(file);
     } else {
-      setFaviconPreview(
-        currentFaviconUrl ? getImageUrl(currentFaviconUrl) : null
-      );
+      if (!currentFaviconUrl) {
+        setFaviconPreview(null);
+      } else {
+        const resolved = resolveBackendAssetUrl(currentFaviconUrl);
+        setFaviconPreview(
+          assetUpdatedAt ? withCacheBust(resolved, assetUpdatedAt) : resolved
+        );
+      }
     }
   };
 
@@ -141,8 +137,9 @@ export default function Logo() {
     setIsFaviconSubmitting(true);
     setProgress(50);
     try {
-      const ok = await updateFavicon(faviconFile);
-      if (ok) {
+      const payload = await updateFavicon(faviconFile);
+      if (payload?.faviconUrl) {
+        setFavicon(payload.faviconUrl);
         setFaviconFile(null);
         await loadLogo();
       }
@@ -164,9 +161,11 @@ export default function Logo() {
     try {
       const ok = await deleteFavicon();
       if (ok) {
+        clearFavicon();
         setCurrentFaviconUrl("");
         setFaviconPreview(null);
         setFaviconFile(null);
+        setAssetUpdatedAt(null);
         await loadLogo();
       }
     } finally {
@@ -307,7 +306,16 @@ export default function Logo() {
                         </label>
                         <div className="flex items-center justify-center bg-white p-3 rounded border border-gray-300">
                           <img
-                            src={logoPreview || getImageUrl(currentLogoUrl)}
+                            key={logoPreview || currentLogoUrl || "logo"}
+                            src={
+                              logoPreview ||
+                              (currentLogoUrl
+                                ? withCacheBust(
+                                    resolveBackendAssetUrl(currentLogoUrl),
+                                    assetUpdatedAt
+                                  )
+                                : "")
+                            }
                             alt={altText}
                             className="max-w-[200px] max-h-20 object-contain"
                             onError={(e) => {
@@ -402,9 +410,15 @@ export default function Logo() {
                         </label>
                         <div className="flex items-center justify-center bg-white p-3 rounded border border-gray-300">
                           <img
+                            key={faviconPreview || currentFaviconUrl || "favicon"}
                             src={
                               faviconPreview ||
-                              getImageUrl(currentFaviconUrl)
+                              (currentFaviconUrl
+                                ? withCacheBust(
+                                    resolveBackendAssetUrl(currentFaviconUrl),
+                                    assetUpdatedAt
+                                  )
+                                : "")
                             }
                             alt="Favicon preview"
                             className="max-w-[64px] max-h-[64px] w-16 h-16 object-contain"
@@ -483,8 +497,8 @@ export default function Logo() {
                   For best results, use a high-quality image with transparent background
                 </li>
                 <li>
-                  The favicon appears after save; allow a short time for CDN or
-                  cache to refresh
+                  Favicon previews use the server file version so re-uploads show
+                  immediately without a stale cached image
                 </li>
               </ul>
             </div>
