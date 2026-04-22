@@ -32,6 +32,7 @@ export async function fetchSiteWidgetSettings() {
       promotionalSectionsEnabled: d.promotionalSectionsEnabled !== false,
       latestBlogsEnabled: d.latestBlogsEnabled !== false,
       htmlCssEnabled: d.htmlCssEnabled !== false,
+      contactUsEnabled: d.contactUsEnabled !== false,
       updatedAt: d.updatedAt || null,
     };
   } catch (error) {
@@ -74,6 +75,7 @@ export async function putSiteWidgetSettings(body) {
       promotionalSectionsEnabled: d.promotionalSectionsEnabled !== false,
       latestBlogsEnabled: d.latestBlogsEnabled !== false,
       htmlCssEnabled: d.htmlCssEnabled !== false,
+      contactUsEnabled: d.contactUsEnabled !== false,
       updatedAt: d.updatedAt || null,
     };
   } catch (error) {

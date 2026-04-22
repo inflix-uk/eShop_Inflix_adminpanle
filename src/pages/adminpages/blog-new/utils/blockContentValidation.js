@@ -129,6 +129,20 @@ export function blockHasValidContent(block) {
   if (
     block.type === "widget" &&
     block.content &&
+    block.content.widgetType === "contactUs" &&
+    Array.isArray(block.content.fields)
+  ) {
+    return block.content.fields.some(
+      (f) =>
+        f?.name &&
+        String(f.name).trim().length > 0 &&
+        f?.label &&
+        String(f.label).trim().length > 0
+    );
+  }
+  if (
+    block.type === "widget" &&
+    block.content &&
     block.content.widgetType === "trustpilot"
   ) {
     const s = block.content.embedScript;

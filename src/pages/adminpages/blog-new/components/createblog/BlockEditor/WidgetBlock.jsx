@@ -26,6 +26,7 @@ import {
   Code2,
   Percent,
   Gift,
+  Contact,
 } from "lucide-react";
 import { DynamicIcon } from "lucide-react/dynamic";
 import { API_BASE_URL } from "../../../service/blogService";
@@ -37,6 +38,8 @@ import {
   createCategoryCardWidgetItem,
   DEFAULT_CATEGORY_CARDS_SECTION,
 } from "./categoryCardWidgetDefaults";
+import ContactWidgetEditor from "../../../../homepage-widgets/components/ContactWidgetEditor";
+import { createDefaultContactUsWidgetContent } from "./contactUsWidgetBlockDefaults";
 
 const MAX_SLIDES = 10;
 const MAX_SITE_BANNER_ITEMS = 8;
@@ -317,6 +320,67 @@ export default function WidgetBlock({
             </div>
           </div>
         </div>
+      </div>
+    );
+  }
+
+  if (widgetType === "contactUs") {
+    const base = createDefaultContactUsWidgetContent();
+    const merged = {
+      ...base,
+      ...content,
+      widgetType: "contactUs",
+      fields:
+        Array.isArray(content?.fields) && content.fields.length > 0
+          ? content.fields
+          : base.fields,
+    };
+
+    return (
+      <div className="border-2 border-violet-200 rounded-lg p-3 mb-4 bg-violet-50/40">
+        <div className="flex justify-between items-center mb-3 pb-2 border-b border-violet-200">
+          <div className="flex items-center gap-2" aria-label="Contact form widget">
+            <Grip className="text-violet-600" size={18} />
+            <Contact className="text-violet-700" size={18} />
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={onMoveUp}
+              className="p-1.5 text-gray-600 hover:bg-white rounded-full"
+              title="Move up"
+            >
+              <ChevronUp size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={onMoveDown}
+              className="p-1.5 text-gray-600 hover:bg-white rounded-full"
+              title="Move down"
+            >
+              <ChevronDown size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={() => onDelete(id)}
+              className="p-1.5 text-red-500 hover:bg-red-50 rounded-full"
+              title="Remove widget"
+            >
+              <Trash2 size={18} />
+            </button>
+          </div>
+        </div>
+        <ContactWidgetEditor
+          initialData={merged}
+          onSave={(body) =>
+            onChange(id, {
+              widgetType: "contactUs",
+              ...body,
+            })
+          }
+          loading={false}
+          saving={false}
+        />
       </div>
     );
   }

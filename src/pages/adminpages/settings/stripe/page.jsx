@@ -434,147 +434,6 @@ export default function StripeSettings() {
                       </p>
                     </div>
 
-                    {/* Required Webhook Events */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Required Webhook Events
-                      </label>
-                      <div className="border border-gray-200 rounded-md bg-gray-50 p-4">
-                        <p className="text-sm text-gray-600 mb-3">
-                          When creating the webhook endpoint in Stripe, select{" "}
-                          <strong>only</strong> these events:
-                        </p>
-                        <ul className="space-y-2">
-                          <li className="flex items-start">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-800 mr-2 mt-0.5 shrink-0">
-                              REQUIRED
-                            </span>
-                            <div className="flex-1">
-                              <code className="text-sm font-mono font-semibold text-gray-900">
-                                payment_intent.succeeded
-                              </code>
-                              <p className="text-xs text-gray-600 mt-0.5">
-                                Marks order as <strong>Pending</strong> and saves
-                                card / Klarna / PayPal / Link payment details.
-                              </p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                navigator.clipboard.writeText(
-                                  "payment_intent.succeeded"
-                                );
-                                toast.success("Event name copied!");
-                              }}
-                              className="ml-2 text-gray-400 hover:text-gray-600"
-                              title="Copy event name"
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                strokeWidth={1.5}
-                                stroke="currentColor"
-                                className="w-4 h-4"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184"
-                                />
-                              </svg>
-                            </button>
-                          </li>
-                          <li className="flex items-start">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-800 mr-2 mt-0.5 shrink-0">
-                              REQUIRED
-                            </span>
-                            <div className="flex-1">
-                              <code className="text-sm font-mono font-semibold text-gray-900">
-                                payment_intent.payment_failed
-                              </code>
-                              <p className="text-xs text-gray-600 mt-0.5">
-                                Marks order as <strong>Failed</strong> and
-                                records the payment error message.
-                              </p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                navigator.clipboard.writeText(
-                                  "payment_intent.payment_failed"
-                                );
-                                toast.success("Event name copied!");
-                              }}
-                              className="ml-2 text-gray-400 hover:text-gray-600"
-                              title="Copy event name"
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                strokeWidth={1.5}
-                                stroke="currentColor"
-                                className="w-4 h-4"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184"
-                                />
-                              </svg>
-                            </button>
-                          </li>
-                          <li className="flex items-start">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-red-100 text-red-800 mr-2 mt-0.5 shrink-0">
-                              REQUIRED
-                            </span>
-                            <div className="flex-1">
-                              <code className="text-sm font-mono font-semibold text-gray-900">
-                                checkout.session.completed
-                              </code>
-                              <p className="text-xs text-gray-600 mt-0.5">
-                                Confirms Stripe Checkout session completion for
-                                redirect-based payment flows.
-                              </p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                navigator.clipboard.writeText(
-                                  "checkout.session.completed"
-                                );
-                                toast.success("Event name copied!");
-                              }}
-                              className="ml-2 text-gray-400 hover:text-gray-600"
-                              title="Copy event name"
-                            >
-                              <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                strokeWidth={1.5}
-                                stroke="currentColor"
-                                className="w-4 h-4"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184"
-                                />
-                              </svg>
-                            </button>
-                          </li>
-                        </ul>
-                        <div className="mt-3 pt-3 border-t border-gray-200">
-                          <p className="text-xs text-gray-500">
-                            <strong>Events from:</strong> Your account &nbsp;·&nbsp;{" "}
-                            <strong>API version:</strong> default
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
                     {/* Action Buttons */}
                     <div className="flex items-center justify-between pt-4 border-t border-gray-200">
                       <button
@@ -624,6 +483,29 @@ export default function StripeSettings() {
               )}
             </div>
 
+            {/* Warning Card */}
+            <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+              <h3 className="text-sm font-semibold text-yellow-900 mb-2">
+                Security Notice:
+              </h3>
+              <ul className="list-disc list-inside space-y-1 text-sm text-yellow-800">
+                <li>
+                  Keys stored here will override environment variables
+                </li>
+                <li>
+                  Never share your secret key with anyone
+                </li>
+                <li>
+                  Use test keys (sk_test_/pk_test_) for development
+                </li>
+                <li>
+                  Use live keys (sk_live_/pk_live_) only in production
+                </li>
+                <li>
+                  Changes take effect immediately on all new payments
+                </li>
+              </ul>
+            </div>
           </div>
         </main>
       </div>

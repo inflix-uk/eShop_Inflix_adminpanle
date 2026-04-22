@@ -25,10 +25,10 @@ const getUploadHeaders = () => ({
  */
 export const getLogo = async () => {
   try {
-    const response = await axios.get(
-      `${API_BASE_URL}get/logo`,
-      { headers: getHeaders() }
-    );
+    const response = await axios.get(`${API_BASE_URL}get/logo`, {
+      headers: getHeaders(),
+      params: { _: Date.now() },
+    });
 
     if (response.data.success) {
       return {
@@ -36,6 +36,7 @@ export const getLogo = async () => {
         altText: response.data.data?.altText || 'Logo',
         faviconUrl: response.data.data?.faviconUrl || '',
         updatedAt: response.data.data?.updatedAt || null,
+        faviconVersion: response.data.data?.faviconVersion ?? null,
       };
     } else {
       toast.error('Failed to load logo');
@@ -44,6 +45,7 @@ export const getLogo = async () => {
         altText: 'Logo',
         faviconUrl: '',
         updatedAt: null,
+        faviconVersion: null,
       };
     }
   } catch (error) {
@@ -52,7 +54,13 @@ export const getLogo = async () => {
     if (error.response?.status !== 404) {
       toast.error('Failed to load logo');
     }
-    return { logoUrl: '', altText: 'Logo', faviconUrl: '', updatedAt: null };
+    return {
+      logoUrl: '',
+      altText: 'Logo',
+      faviconUrl: '',
+      updatedAt: null,
+      faviconVersion: null,
+    };
   }
 };
 
@@ -126,6 +134,9 @@ export const deleteLogo = async () => {
  * @param {File} faviconFile
  * @returns {Promise<boolean>}
  */
+/**
+ * @returns {Promise<{ faviconUrl: string; updatedAt: number; faviconVersion?: number } | null>}
+ */
 export const updateFavicon = async (faviconFile) => {
   try {
     const formData = new FormData();
@@ -141,17 +152,17 @@ export const updateFavicon = async (faviconFile) => {
 
     if (response.data.success) {
       toast.success('Favicon updated successfully');
-      return true;
+      return response.data.data || null;
     } else {
       toast.error(response.data.message || 'Failed to update favicon');
-      return false;
+      return null;
     }
   } catch (error) {
     console.error('Error updating favicon:', error);
     toast.error(
       error.response?.data?.message || 'Failed to update favicon'
     );
-    return false;
+    return null;
   }
 };
 

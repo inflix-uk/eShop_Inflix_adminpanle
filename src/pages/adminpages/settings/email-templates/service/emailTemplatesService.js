@@ -29,3 +29,28 @@ export async function saveNewsletterEmailTemplates(payload) {
   }
   return res.json();
 }
+
+export async function getOrderEmailTemplates() {
+  const res = await fetch(`${BACKEND_URL}order-email-templates`, {
+    method: "GET",
+    headers: getHeaders(),
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Failed to load order email templates");
+  const json = await res.json();
+  return json.data || null;
+}
+
+export async function saveOrderEmailTemplates(payload) {
+  const res = await fetch(`${BACKEND_URL}order-email-templates`, {
+    method: "PUT",
+    headers: getHeaders(),
+    credentials: "include",
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || "Failed to save order email templates");
+  }
+  return res.json();
+}

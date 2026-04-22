@@ -11,6 +11,7 @@ import WidgetBlock from './WidgetBlock';
 import WidgetPickerModal from './WidgetPickerModal';
 import ProductsBlock from './ProductsBlock';
 import { createBannerWidgetItem } from './bannerWidgetDefaults';
+import { createDefaultContactUsWidgetContent } from './contactUsWidgetBlockDefaults';
 import {
   createCategoryCardWidgetItem,
   DEFAULT_CATEGORY_CARDS_SECTION,
@@ -213,6 +214,8 @@ export default function BlockEditor({ blocks, setBlocks, className, collapsibleR
           html: '',
           css: '',
         };
+      } else if (widgetSubtype === 'contactUs') {
+        newBlock.content = createDefaultContactUsWidgetContent();
       } else {
         newBlock.content = {
           widgetType: 'slider',
@@ -565,7 +568,8 @@ export default function BlockEditor({ blocks, setBlocks, className, collapsibleR
             widgetType === "latestBlogs" ||
             widgetType === "activeDeals" ||
             widgetType === "dealsDiscountCards" ||
-            widgetType === "htmlCss"
+            widgetType === "htmlCss" ||
+            widgetType === "contactUs"
           ) {
             addBlock(rowIndex, columnIndex, "widget", widgetType);
           }

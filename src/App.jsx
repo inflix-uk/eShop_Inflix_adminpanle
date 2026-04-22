@@ -6,6 +6,7 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import PrivateRoute from "./context/PrivateRoute";
 import PermissionRoute from "./context/PermissionRoute";
+import AdminTabFavicon from "./components/AdminTabFavicon.jsx";
 const Login = lazy(() => import("./pages/Login"));
 const ForgotPassword = lazy(() =>
   import("./pages/adminpages/profile/ForgotPassword")
@@ -199,6 +200,9 @@ const ScriptsSettings = lazy(() =>
 const EmailTemplatesSettings = lazy(() =>
   import("./pages/adminpages/settings/email-templates/page")
 );
+const SmtpSettings = lazy(() =>
+  import("./pages/adminpages/settings/smtp/page")
+);
 const SiteWideSchemaSettings = lazy(() =>
   import("./pages/adminpages/settings/site-wide-schema/page")
 );
@@ -256,6 +260,7 @@ function App() {
       <HelmetProvider>
         <AuthProvider>
           <PermissionLogger />
+          <AdminTabFavicon />
           <Routes>
             <Route
               path="/resetpassword/:token"
@@ -1262,6 +1267,24 @@ function App() {
                     </ErrorBoundary>
                   </>
                 }
+              />
+              <Route
+                path="/admin/settings/smtp"
+                element={
+                  <>
+                    <ErrorBoundary fallback={<div>Error</div>}>
+                      <Suspense fallback={<div>Loading...</div>}>
+                        <PermissionRoute>
+                          <SmtpSettings />
+                        </PermissionRoute>
+                      </Suspense>
+                    </ErrorBoundary>
+                  </>
+                }
+              />
+              <Route
+                path="/admin/settings/contact-widget"
+                element={<Navigate to="/admin/settings/widgets" replace />}
               />
               <Route
                 path="/admin/settings/site-wide-schema"
