@@ -1,5 +1,12 @@
 /** Keep in sync with backend `typographyConstants.js` + Next `app/lib/fonts.ts`. */
-export const ALLOWED_FONTS = ["Inter", "Poppins", "Roboto", "Montserrat", "Georgia"];
+export const ALLOWED_FONTS = [
+  "Inter",
+  "Poppins",
+  "Roboto",
+  "Montserrat",
+  "Cormorant Garamond",
+  "Georgia",
+];
 
 export const ALLOWED_WEIGHTS = [400, 500, 600, 700];
 

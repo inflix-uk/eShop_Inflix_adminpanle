@@ -2,7 +2,20 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/inflix_logo.png" sizes="32x32" />
+    <script>
+      (function () {
+        try {
+          var href = localStorage.getItem("favicon");
+          if (!href) return;
+          ["icon", "shortcut icon", "apple-touch-icon"].forEach(function (rel) {
+            var l = document.createElement("link");
+            l.rel = rel;
+            l.href = href;
+            document.head.appendChild(l);
+          });
+        } catch (e) {}
+      })();
+    </script>
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
