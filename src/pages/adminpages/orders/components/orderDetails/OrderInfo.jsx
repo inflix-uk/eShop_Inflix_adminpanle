@@ -35,7 +35,10 @@ const OrderInfo = ({
 
       <p>
         <span className="font-semibold">Payment:</span>{" "}
-        {orderDetail?.paymentDetails?.cardDetails?.brand ?? "Failed"}
+        {orderDetail?.paymentDetails?.cardDetails?.brand
+          || orderDetail?.paymentDetails?.cardDetails?.payment_type
+          || orderDetail?.paymentDetails?.paymentType
+          || (orderDetail?.paymentDetails?.status === "succeeded" ? "Paid" : "Failed")}
       </p>
 
       <p>

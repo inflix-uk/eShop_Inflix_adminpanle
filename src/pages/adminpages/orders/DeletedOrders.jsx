@@ -522,7 +522,7 @@ export default function DeletedOrders() {
 
 
                                                                 <td className="whitespace-nowrap px-6 py-3 max-w-60 text-sm text-gray-500">
-                                                                    {order.paymentDetails?.cardDetails?.brand || 'N/A'} <br></br>
+                                                                    {order.paymentDetails?.cardDetails?.brand || order.paymentDetails?.cardDetails?.payment_type || order.paymentDetails?.paymentType || 'N/A'} <br></br>
                                                                     {order.paymentDetails?.cardDetails?.country || ''}
                                                                 </td>
                                                                 <td className="whitespace-nowrap px-6 py-3 max-w-60 text-sm text-gray-500">
