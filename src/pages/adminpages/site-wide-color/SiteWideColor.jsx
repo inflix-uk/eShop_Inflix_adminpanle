@@ -7,8 +7,12 @@ import TypographySettingsForm from "./components/TypographySettingsForm";
 import { DEFAULT_TYPOGRAPHY, ALLOWED_FONTS, ALLOWED_WEIGHTS } from "./typographyDefaults";
 import { getSiteTheme, saveSiteTheme, saveTypographyTheme } from "./service/siteThemeService";
 
-const DEFAULT_PRIMARY = "#16a34a";
-const DEFAULT_SECONDARY = "#15803d";
+/** Matches storefront / API when no CMS hex is set — no green fallbacks. */
+const DEFAULT_PRIMARY = "transparent";
+const DEFAULT_SECONDARY = "transparent";
+
+/** Native `<input type="color">` only accepts #rrggbb; use neutral when value is transparent. */
+const COLOR_PICKER_FALLBACK = "#9ca3af";
 
 function normalizeTypography(raw) {
   const base = DEFAULT_TYPOGRAPHY;
@@ -51,6 +55,8 @@ const normalizeHex = (value) => {
   return null;
 };
 
+const hexForColorInput = (value) => normalizeHex(value) ?? COLOR_PICKER_FALLBACK;
+
 export default function SiteWideColor() {
   const [selectedPage] = useState("site-wide-color");
   const [progress, setProgress] = useState(0);
@@ -73,8 +79,14 @@ export default function SiteWideColor() {
       setProgress(30);
       const data = await getSiteTheme();
       if (!cancelled && data) {
-        setPrimaryColor(data.primaryColor || DEFAULT_PRIMARY);
-        setSecondaryColor(data.secondaryColor || DEFAULT_SECONDARY);
+        const p = (data.primaryColor || "").trim();
+        const s = (data.secondaryColor || "").trim();
+        setPrimaryColor(
+          !p || p.toLowerCase() === "transparent" ? DEFAULT_PRIMARY : p
+        );
+        setSecondaryColor(
+          !s || s.toLowerCase() === "transparent" ? DEFAULT_SECONDARY : s
+        );
         setTypography(normalizeTypography(data.typography));
       }
       if (!cancelled) {
@@ -88,11 +100,21 @@ export default function SiteWideColor() {
   }, []);
 
   const handlePrimaryText = (e) => {
+    const raw = e.target.value.trim();
+    if (raw.toLowerCase() === "transparent") {
+      setPrimaryColor("transparent");
+      return;
+    }
     const hex = normalizeHex(e.target.value);
     if (hex) setPrimaryColor(hex);
   };
 
   const handleSecondaryText = (e) => {
+    const raw = e.target.value.trim();
+    if (raw.toLowerCase() === "transparent") {
+      setSecondaryColor("transparent");
+      return;
+    }
     const hex = normalizeHex(e.target.value);
     if (hex) setSecondaryColor(hex);
   };
@@ -171,12 +193,12 @@ export default function SiteWideColor() {
                   <div className="grid gap-6 sm:grid-cols-2">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Primary (main green → your brand)
+                        Primary (brand)
                       </label>
                       <div className="flex items-center gap-3">
                         <input
                           type="color"
-                          value={primaryColor}
+                          value={hexForColorInput(primaryColor)}
                           onChange={(e) => setPrimaryColor(e.target.value)}
                           className="h-10 w-14 cursor-pointer rounded border border-gray-300 bg-white p-0.5"
                           aria-label="Primary color"
@@ -192,12 +214,12 @@ export default function SiteWideColor() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Secondary (darker green → hovers / accents)
+                        Secondary (hovers / accents)
                       </label>
                       <div className="flex items-center gap-3">
                         <input
                           type="color"
-                          value={secondaryColor}
+                          value={hexForColorInput(secondaryColor)}
                           onChange={(e) => setSecondaryColor(e.target.value)}
                           className="h-10 w-14 cursor-pointer rounded border border-gray-300 bg-white p-0.5"
                           aria-label="Secondary color"
@@ -216,21 +238,22 @@ export default function SiteWideColor() {
                   <div>
                     <p className="text-sm font-medium text-gray-700 mb-1">Preview</p>
                     <p className="text-xs text-gray-500 mb-3">
-                      Uses the primary and secondary hex values above (including as you type a
-                      valid code).
+                      Type <span className="font-mono">transparent</span> in the text fields for no
+                      site tint. The square swatch uses gray when the value is transparent (browser
+                      limitation).
                     </p>
                     <div
                       className="rounded-lg border border-gray-200 p-6 space-y-4"
                       style={{
-                        background: `linear-gradient(135deg, ${primaryColor}22 0%, ${secondaryColor}18 100%)`,
+                        background: `linear-gradient(135deg, ${hexForColorInput(primaryColor)}22 0%, ${hexForColorInput(secondaryColor)}18 100%)`,
                       }}
                     >
                       <div className="flex flex-wrap gap-3 items-center">
                         <span
                           className="inline-flex px-3 py-1 rounded-full text-sm font-medium"
                           style={{
-                            background: `color-mix(in srgb, ${primaryColor} 15%, white)`,
-                            color: secondaryColor,
+                            background: `color-mix(in srgb, ${hexForColorInput(primaryColor)} 15%, white)`,
+                            color: hexForColorInput(secondaryColor),
                           }}
                         >
                           Example tag
@@ -240,8 +263,8 @@ export default function SiteWideColor() {
                           className="px-4 py-2 rounded-md text-sm font-semibold text-white shadow-sm transition-colors duration-150"
                           style={{
                             backgroundColor: previewMainHover
-                              ? secondaryColor
-                              : primaryColor,
+                              ? hexForColorInput(secondaryColor)
+                              : hexForColorInput(primaryColor),
                           }}
                           onMouseEnter={() => setPreviewMainHover(true)}
                           onMouseLeave={() => setPreviewMainHover(false)}
@@ -251,12 +274,12 @@ export default function SiteWideColor() {
                         <button
                           type="button"
                           className="px-4 py-2 rounded-md text-sm font-semibold text-white shadow-sm"
-                          style={{ backgroundColor: secondaryColor }}
+                          style={{ backgroundColor: hexForColorInput(secondaryColor) }}
                         >
                           Secondary button
                         </button>
                       </div>
-                      <p className="text-sm" style={{ color: secondaryColor }}>
+                      <p className="text-sm" style={{ color: hexForColorInput(secondaryColor) }}>
                         Example supporting text.
                       </p>
                     </div>

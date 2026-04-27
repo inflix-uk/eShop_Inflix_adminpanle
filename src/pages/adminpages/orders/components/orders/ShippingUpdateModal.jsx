@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import ordersService from '../../service/ordersService';
+import { getOrderLineItemImageUrl } from '../../utils/orderItemImageUrl';
 
 const STATUS_OPTIONS = [
   { value: 'Pending', label: 'Pending' },
@@ -277,7 +278,9 @@ const ShippingUpdateModal = ({
                       </div>
                     ) : (
                       <div className="space-y-3 max-h-64 overflow-y-auto">
-                        {(cartDetails.length > 0 ? cartDetails : orderDetails.cart || []).map((item, index) => (
+                        {(cartDetails.length > 0 ? cartDetails : orderDetails.cart || []).map((item, index) => {
+                          const lineImageUrl = getOrderLineItemImageUrl(item, BACKEND_URL);
+                          return (
                           <div
                             key={item._id || index}
                             className={`p-3 rounded-lg border shadow-sm ${
@@ -300,9 +303,9 @@ const ShippingUpdateModal = ({
 
                             <div className="flex items-start gap-3">
                               {/* Product Image */}
-                              {(item.image || item.productImage || item.tradeInData?.deviceImage) ? (
+                              {lineImageUrl ? (
                                 <img
-                                  src={`${BACKEND_URL}${item.image || item.productImage || item.tradeInData?.deviceImage}`}
+                                  src={lineImageUrl}
                                   alt={item.productName}
                                   className={`w-16 h-16 object-cover rounded-md border ${
                                     item.isTradeIn ? 'border-orange-200' : 'border-gray-100'
@@ -407,7 +410,8 @@ const ShippingUpdateModal = ({
                               </div>
                             </div>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>

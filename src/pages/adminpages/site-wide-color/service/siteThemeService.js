@@ -14,9 +14,14 @@ export const getSiteTheme = async () => {
       headers: getHeaders(),
     });
     if (response.data.success) {
+      const pick = (v) => {
+        const s = typeof v === "string" ? v.trim() : "";
+        if (!s || s.toLowerCase() === "transparent") return "transparent";
+        return s;
+      };
       return {
-        primaryColor: response.data.data?.primaryColor || "#16a34a",
-        secondaryColor: response.data.data?.secondaryColor || "#15803d",
+        primaryColor: pick(response.data.data?.primaryColor),
+        secondaryColor: pick(response.data.data?.secondaryColor),
         typography: response.data.data?.typography || null,
         updatedAt: response.data.data?.updatedAt || null,
       };

@@ -7,23 +7,32 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
+# ------------------------------------------------------------------------------
+# Dependencies
+# ------------------------------------------------------------------------------
+node_modules/
+
+# Vite / build
 .next
 dist
 dist-ssr
-*.local
 
 # ------------------------------------------------------------------------------
-# Environment variables & secrets (do not commit)
+# Environment variables & secrets (all common variants — do not commit)
+# Covers: .env, .env.local, .env.*, .env.development(.local), .env.production(.local), etc.
 # ------------------------------------------------------------------------------
 .env
 .env.*
 !.env.example
 !.env.sample
+!.env.template
 .envrc
 .direnv
 
-#Config file 
+# Local overrides
+*.local
+
+#Config file
 # src/context/Auth.jsx
 
 # Editor directories and files
@@ -36,4 +45,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-

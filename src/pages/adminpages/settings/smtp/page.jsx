@@ -93,6 +93,8 @@ export default function SmtpSettings() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [hasPassword, setHasPassword] = useState(false);
+  /** After user edits the password field, save sends `password` (empty string clears on server). */
+  const [passwordTouched, setPasswordTouched] = useState(false);
   const [updatedAt, setUpdatedAt] = useState(null);
 
   const isConfigured = useMemo(
@@ -116,7 +118,9 @@ export default function SmtpSettings() {
         setSmtpHost(data.host || "");
         setSmtpPort(data.port != null ? String(data.port) : "");
         setUsername(data.username || "");
-        setPassword(data.password || "");
+        // Never put API mask (•••• + last4) in the field — it looks "hardcoded" and cannot be cleared meaningfully.
+        setPassword("");
+        setPasswordTouched(false);
         setFromEmail(data.fromEmail || "");
         setFromName(data.fromName || "");
         setUseSsl(data.secure !== false);
@@ -143,8 +147,14 @@ export default function SmtpSettings() {
       fromEmail: fromEmail.trim(),
       fromName: fromName.trim(),
     };
-    if (includePassword && password && !password.startsWith("••••")) {
-      payload.password = password;
+    if (!includePassword) return payload;
+    if (pendingRemovePassword) {
+      payload.removePassword = true;
+      return payload;
+    }
+    const trimmed = password.trim();
+    if (trimmed && !trimmed.startsWith("••••")) {
+      payload.password = trimmed;
     }
     return payload;
   };
@@ -287,14 +297,22 @@ export default function SmtpSettings() {
                         <IconLock />
                         Password
                       </label>
+                      {hasPassword && (
+                        <p className="text-xs text-gray-500 mb-1.5">
+                          A password is stored (not shown). Edit this field to set a new password or clear it, then save.
+                        </p>
+                      )}
                       <div className="relative">
                         <input
                           id="smtpPass"
                           type={showPassword ? "text" : "password"}
                           value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          placeholder="SMTP password or app password"
+                          onChange={(e) => {
+                            setPassword(e.target.value);
+                            setPasswordTouched(true);
+                          }}
                           disabled={loading}
+                          autoComplete="new-password"
                           className="block w-full rounded-md border border-gray-300 py-2 pl-3 pr-10 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:bg-gray-50"
                         />
                         <button
@@ -340,8 +358,8 @@ export default function SmtpSettings() {
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-1 border-t border-gray-200 bg-gray-50 px-6 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8">
-                  <div>
+                <div className="flex items-start justify-between gap-4 border-t border-gray-200 bg-gray-50 px-6 py-5 sm:px-8">
+                  <div className="text-start max-w-xl">
                     <p className="text-sm font-semibold text-gray-900">Use SSL/TLS</p>
                     <p className="text-xs text-gray-500 mt-0.5">Enable for implicit SSL on port 465. Turn off for STARTTLS on 587.</p>
                   </div>
@@ -351,13 +369,14 @@ export default function SmtpSettings() {
                     aria-checked={useSsl}
                     onClick={() => setUseSsl((v) => !v)}
                     disabled={loading}
-                    className={`relative mt-3 inline-flex h-6 w-11 shrink-0 cursor-pointer self-end rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 sm:mt-0 sm:self-auto ${
+                    className={`relative inline-block h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
                       useSsl ? "bg-green-500" : "bg-gray-300"
                     } disabled:opacity-50`}
                   >
                     <span
-                      className={`pointer-events-none inline-block h-5 w-5 translate-y-0.5 transform rounded-full bg-white shadow ring-0 transition ${
-                        useSsl ? "translate-x-5" : "translate-x-0.5"
+                      aria-hidden
+                      className={`pointer-events-none absolute left-0.5 top-1/2 h-5 w-5 -translate-y-1/2 rounded-full bg-white shadow ring-0 transition-transform duration-200 ease-out ${
+                        useSsl ? "translate-x-5" : "translate-x-0"
                       }`}
                     />
                   </button>
@@ -368,7 +387,7 @@ export default function SmtpSettings() {
                     type="button"
                     onClick={handleTestConnection}
                     disabled={loading || isTesting || isSubmitting}
-                    className="inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:opacity-50"
+                    className="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:opacity-50"
                   >
                     <IconBolt className="text-gray-800" />
                     {isTesting ? "Testing…" : "Test Connection"}

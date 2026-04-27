@@ -15,6 +15,7 @@ import {
   BannersTable,
   BannerModal,
   DeleteConfirmationModal,
+  HeroSocialSettingsCard,
 } from "./components";
 import BannerPreviewModal from "./components/BannerPreviewModal";
 
@@ -355,6 +356,8 @@ export default function Banners() {
                 </button>
               </div>
             </div>
+
+            <HeroSocialSettingsCard />
 
             {/* Search Bar */}
             <div className="mb-6">

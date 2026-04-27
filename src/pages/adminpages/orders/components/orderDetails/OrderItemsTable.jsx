@@ -1,4 +1,6 @@
 import PropTypes from 'prop-types';
+import { getOrderLineItemImageUrl } from '../../utils/orderItemImageUrl';
+
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const OrderItemsTable = ({ orderDetail }) => {
@@ -20,9 +22,7 @@ const OrderItemsTable = ({ orderDetail }) => {
                     </thead>
                     <tbody>
                         {orderDetail.cart && Array.isArray(orderDetail.cart) && orderDetail.cart.map((item, index) => {
-                            const imageUrl = (item.variantImages && item.variantImages.length > 0)
-                                ? `${BACKEND_URL}${item?.variantImages[0]?.path}`
-                                : `${BACKEND_URL}${item?.productthumbnail?.path}`;
+                            const imageUrl = getOrderLineItemImageUrl(item, BACKEND_URL);
                             const productName = item.name;
                             const color = item.name.split('-')[1]
                             const modifiedProductName = productName.replace(/\s*\([^)]+\)/, '');
@@ -31,7 +31,11 @@ const OrderItemsTable = ({ orderDetail }) => {
                             return (
                                 <tr key={index} className="border-b border-gray-300">
                                     <td className="px-4 py-2">
-                                        <img src={imageUrl} alt={item.name} className="w-20 h-20 rounded-lg" />
+                                        {imageUrl ? (
+                                            <img src={imageUrl} alt={item.name} className="w-20 h-20 rounded-lg object-cover" />
+                                        ) : (
+                                            <div className="w-20 h-20 rounded-lg bg-gray-100 text-gray-400 text-xs flex items-center justify-center">No image</div>
+                                        )}
                                     </td>
                                     <td className="px-4 py-2 text-left font-medium text-gray-900">
                                         {item.productName} - {modifiedProductName}
