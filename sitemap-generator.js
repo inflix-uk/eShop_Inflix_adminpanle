@@ -24,7 +24,9 @@ const generateSitemap = async () => {
     }
 
     // Use SitemapStream to create a valid XML format
-    const stream = new SitemapStream({ hostname: import.meta.env.VITE_FRONTEND_URL });
+    const stream = new SitemapStream({
+        hostname: import.meta.env.VITE_FRONTEND_URL || 'https://aromadesire.com',
+    });
     
     try {
         const sitemap = await streamToPromise(Readable.from(links).pipe(stream));

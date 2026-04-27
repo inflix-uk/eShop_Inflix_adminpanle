@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import ordersService from "../../service/ordersService";
+import { getOrderLineItemImageUrl } from "../../utils/orderItemImageUrl";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -63,19 +64,7 @@ const OrderDetailsCell = ({ orderId }) => {
           const cleanVariantName =
             item.name?.replace(/\s*\(#[0-9a-fA-F]+\)/g, "") || "";
 
-          // Determine image URL
-          let imageUrl = null;
-          if (isTradeIn && item.tradeInData?.deviceImage) {
-            imageUrl = `${BACKEND_URL}${item.tradeInData.deviceImage}`;
-          } else if (item.image) {
-            imageUrl = `${BACKEND_URL}${item.image}`;
-          } else if (item.variantImages && item.variantImages.length > 0) {
-            imageUrl = `${BACKEND_URL}${item.variantImages[0].path}`;
-          } else if (item.productthumbnail?.path) {
-            imageUrl = `${BACKEND_URL}${item.productthumbnail.path}`;
-          } else if (item.metaImage?.path) {
-            imageUrl = `${BACKEND_URL}${item.metaImage.path}`;
-          }
+          const imageUrl = getOrderLineItemImageUrl(item, BACKEND_URL);
 
           return (
             <div

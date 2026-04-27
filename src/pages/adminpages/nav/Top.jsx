@@ -4,6 +4,11 @@ import { useAuth } from "../../../context/Auth";
 import { Link, useNavigate } from "react-router-dom";
 import Side from "./Side";
 
+/** Public storefront (sitemap generation + “Open sitemap” link). Override with VITE_PUBLIC_SITE_URL. */
+function getPublicStoreBaseUrl() {
+  return (import.meta.env.VITE_PUBLIC_SITE_URL || "https://aromadesire.com").replace(/\/$/, "");
+}
+
 const generateImageFromInitial = (initial) => {
   const canvas = document.createElement('canvas');
   canvas.width = 100;
@@ -40,7 +45,7 @@ export default function Top({ toggleSidebar, isSidebarOpen, selectedPage = 'dash
   };
 
   const handleGenerateSitemap = async () => {
-    const siteUrl = (import.meta.env.VITE_PUBLIC_SITE_URL || 'https://zextons.co.uk').replace(/\/$/, '');
+    const siteUrl = getPublicStoreBaseUrl();
     
     try {
       setIsGenerating(true);
@@ -240,7 +245,7 @@ export default function Top({ toggleSidebar, isSidebarOpen, selectedPage = 'dash
                 Close
               </button>
               <a
-                href={sitemapUrl || `${(import.meta.env.VITE_PUBLIC_SITE_URL || 'https://zextons.co.uk').replace(/\/$/, '')}/sitemap.xml`}
+                href={sitemapUrl || `${getPublicStoreBaseUrl()}/sitemap.xml`}
                 target="_blank"
                 rel="noreferrer"
                 className="px-3 py-2 text-sm rounded-md bg-primary text-white hover:opacity-90"

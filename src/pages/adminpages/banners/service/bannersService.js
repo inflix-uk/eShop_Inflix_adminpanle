@@ -219,6 +219,47 @@ export const toggleBannerStatus = async (id) => {
  * @param {Array} reorderData - Array of {id, order} objects
  * @returns {Promise<Object>} Response data
  */
+/**
+ * Hero social links (top-right on storefront hero) — Admin → Banners
+ */
+export const fetchHeroSocialSettings = async () => {
+  try {
+    const response = await axios.get(
+      `${API_BASE_URL}get/admin/banners/hero-social`,
+      { headers: getHeaders() }
+    );
+    if (response.data?.success && response.data?.data) {
+      return response.data.data;
+    }
+    toast.error(response.data?.message || 'Failed to load hero social settings');
+    return null;
+  } catch (error) {
+    console.error('Error fetchHeroSocialSettings:', error);
+    toast.error('Failed to load hero social settings');
+    return null;
+  }
+};
+
+export const saveHeroSocialSettings = async (payload) => {
+  try {
+    const response = await axios.put(
+      `${API_BASE_URL}update/banners/hero-social`,
+      payload,
+      { headers: getHeaders() }
+    );
+    if (response.data?.success) {
+      toast.success(response.data.message || 'Hero social links saved');
+      return response.data.data;
+    }
+    toast.error(response.data?.message || 'Failed to save');
+    return null;
+  } catch (error) {
+    console.error('Error saveHeroSocialSettings:', error);
+    toast.error(error.response?.data?.message || 'Failed to save hero social settings');
+    return null;
+  }
+};
+
 export const reorderBanners = async (reorderData) => {
   try {
     const response = await axios.put(`${API_BASE_URL}reorder/banners`, { banners: reorderData }, {

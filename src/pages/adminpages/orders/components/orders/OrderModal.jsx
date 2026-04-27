@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import ordersService from '../../service/ordersService';
+import { getOrderLineItemImageUrl } from '../../utils/orderItemImageUrl';
+
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const OrderModal = ({ isModalOpen, handleCloseModal, selectedOrderId, orders }) => {
   const [cart, setCart] = useState([]);
@@ -118,9 +121,7 @@ const OrderModal = ({ isModalOpen, handleCloseModal, selectedOrderId, orders }) 
                     const isTradeIn = item.isTradeIn === true;
                     const tradeInCondition = item.tradeInData?.conditionName || '-';
                     const cleanVariantName = item.name?.replace(/\s*\(#[0-9a-fA-F]+\)/g, '') || '';
-                    const imageUrl = item.image
-                      ? `${import.meta.env.VITE_BACKEND_URL}${item.image}`
-                      : null;
+                    const imageUrl = getOrderLineItemImageUrl(item, BACKEND_URL);
 
                     return (
                       <tr key={index} className="border-b border-gray-300">

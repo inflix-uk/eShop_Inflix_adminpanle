@@ -5,6 +5,7 @@ import { Helmet } from 'react-helmet-async';
 import { useAuth } from '../../../context/Auth.jsx';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { getOrderLineItemImageUrl } from '../orders/utils/orderItemImageUrl';
 
 
 const Dash2 = () => {
@@ -80,7 +81,7 @@ const Dash2 = () => {
             .catch((error) => {
                 console.log("Error fetching top selling products:", error);
             });
-    }, []);
+    }, [auth.ip]);
     const icons = [
         // Pending Orders icon
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-6 w-6 text-blue-500">
@@ -188,23 +189,19 @@ const Dash2 = () => {
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {topProducts && topProducts.length > 0 ? (
-                                    topProducts.map((product) => (
+                                    topProducts.map((product) => {
+                                        const topProductImageUrl = getOrderLineItemImageUrl(product, auth.ip);
+                                        return (
                                         <div key={product._id}
                                             className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden transform hover:-translate-y-1 h-full"
                                         >
                                             <div className="p-3 flex flex-col h-full">
                                                 <div className='flex items-center  border-2 border-gray-100 rounded-md p-1'>
-                                                    {/* Product Image Section */}
+                                                    {/* Product Image Section — same resolution as order line items (url, path, string thumbnail) */}
                                                     <div className="h-28 w-28 relative overflow-hidden rounded-lg mb-4">
-                                                        {product.variantImages && product.variantImages.length > 0 ? (
+                                                        {topProductImageUrl ? (
                                                             <img
-                                                                src={`${auth.ip}${product.variantImages[0].path}`}
-                                                                alt={product.productName}
-                                                                className="h-full w-full object-contain hover:scale-105 transition-transform duration-300"
-                                                            />
-                                                        ) : product.productthumbnail ? (
-                                                            <img
-                                                                src={`${auth.ip}${product.productthumbnail.path}`}
+                                                                src={topProductImageUrl}
                                                                 alt={product.productName}
                                                                 className="h-full w-full object-contain hover:scale-105 transition-transform duration-300"
                                                             />
@@ -326,7 +323,8 @@ const Dash2 = () => {
                                                 </div>
                                             </div>
                                         </div>
-                                    ))
+                                    );
+                                    })
                                 ) : (
                                     <div className="col-span-full bg-white rounded-xl shadow-lg p-12">
                                         <div className="flex flex-col items-center">
