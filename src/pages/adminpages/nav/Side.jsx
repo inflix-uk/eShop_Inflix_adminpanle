@@ -229,6 +229,7 @@ export default function Side({
       "email-template-settings",
       "smtp-settings",
       "site-wide-schema-settings",
+      "robots-settings",
       "widgets-settings",
       "announcement-banner-settings",
       "deals-modal-settings",
@@ -943,7 +944,7 @@ export default function Side({
           strokeWidth={1.5}
           stroke="currentColor"
           className={`h-5 w-5 shrink-0 ${
-            selectedPage === "stripe-settings" || selectedPage === "shipping-settings" || selectedPage === "trustpilot-settings" || selectedPage === "scripts-settings" || selectedPage === "email-template-settings" || selectedPage === "smtp-settings" || selectedPage === "site-wide-schema-settings" || selectedPage === "widgets-settings" || selectedPage === "announcement-banner-settings" || selectedPage === "deals-modal-settings" || selectedPage === "footer-settings" || selectedPage === "google-search-console" || selectedPage === "logo" || selectedPage === "site-wide-color"
+            selectedPage === "stripe-settings" || selectedPage === "shipping-settings" || selectedPage === "trustpilot-settings" || selectedPage === "scripts-settings" || selectedPage === "email-template-settings" || selectedPage === "smtp-settings" || selectedPage === "site-wide-schema-settings" || selectedPage === "robots-settings" || selectedPage === "widgets-settings" || selectedPage === "announcement-banner-settings" || selectedPage === "deals-modal-settings" || selectedPage === "footer-settings" || selectedPage === "google-search-console" || selectedPage === "logo" || selectedPage === "site-wide-color"
               ? "text-primary"
               : "text-gray-400 group-hover:text-primary"
           } my-auto`}
@@ -1092,6 +1093,32 @@ export default function Side({
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 d="M6 6h.008v.008H6V6z"
+              />
+            </svg>
+          ),
+        },
+        {
+          label: "Robots.txt",
+          to: "/admin/settings/robots",
+          selectedKey: "robots-settings",
+          permissionCheck: (p) => p?.zextons?.view_blogs || true,
+          icon: (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className={`h-5 w-5 shrink-0 ${
+                selectedPage === "robots-settings"
+                  ? "text-primary"
+                  : "text-gray-400 group-hover:text-primary"
+              } my-auto`}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M19.5 14.25v-8.625a2.625 2.625 0 0 0-2.625-2.625H7.125A2.625 2.625 0 0 0 4.5 5.625v12.75A2.625 2.625 0 0 0 7.125 21h9.75a2.625 2.625 0 0 0 2.625-2.625V14.25M8.25 7.5h7.5M8.25 11.25h7.5M8.25 15h4.5"
               />
             </svg>
           ),

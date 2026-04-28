@@ -206,6 +206,9 @@ const SmtpSettings = lazy(() =>
 const SiteWideSchemaSettings = lazy(() =>
   import("./pages/adminpages/settings/site-wide-schema/page")
 );
+const RobotsSettings = lazy(() =>
+  import("./pages/adminpages/settings/robots/page")
+);
 // Roles and Permissions
 import ManageRoles from "./pages/adminpages/roles/ManageRoles";
 import RoleUsers from "./pages/adminpages/roles/RoleUsers";
@@ -1294,6 +1297,20 @@ function App() {
                       <Suspense fallback={<div>Loading...</div>}>
                         <PermissionRoute>
                           <SiteWideSchemaSettings />
+                        </PermissionRoute>
+                      </Suspense>
+                    </ErrorBoundary>
+                  </>
+                }
+              />
+              <Route
+                path="/admin/settings/robots"
+                element={
+                  <>
+                    <ErrorBoundary fallback={<div>Error</div>}>
+                      <Suspense fallback={<div>Loading...</div>}>
+                        <PermissionRoute>
+                          <RobotsSettings />
                         </PermissionRoute>
                       </Suspense>
                     </ErrorBoundary>

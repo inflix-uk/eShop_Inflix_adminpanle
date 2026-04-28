@@ -4,4 +4,3 @@ export { default as SliderSlidesSidebar } from "./SliderSlidesSidebar";
 export { default as SliderSlideFormPanel } from "./SliderSlideFormPanel";
 export { default as SliderWidgetPreview } from "./SliderWidgetPreview";
 export { default as ContactWidgetEditor } from "./ContactWidgetEditor";
-export { default as ContactWidgetSettingsPanel } from "./ContactWidgetSettingsPanel";
