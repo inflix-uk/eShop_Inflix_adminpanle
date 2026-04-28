@@ -6,7 +6,6 @@ import {
   fetchSiteWidgetSettings,
   putSiteWidgetSettings,
 } from "./service/siteWidgetSettingsService";
-import ContactWidgetSettingsPanel from "./components/ContactWidgetSettingsPanel";
 
 const AVAILABLE_WIDGETS = [
   {
@@ -111,7 +110,7 @@ const AVAILABLE_WIDGETS = [
     id: "contactUs",
     title: "Contact form (block)",
     description:
-      "Configurable contact form for any page (Add Widget → Contact form). Separate from the dedicated /contact-us global widget below.",
+      "Configurable contact form for any page (Add Widget → Contact form) in the block editor.",
     settingKey: "contactUsEnabled",
   },
 ];
@@ -232,9 +231,8 @@ export default function HomepageWidgets() {
                 Widget types your team can insert with <strong>Add content row</strong> →{" "}
                 <strong>Add Widget</strong>. Use the switches below to show or hide each type on the{" "}
                 <strong>public website</strong> (including inside blog posts and homepage content
-                blocks). The <strong>Contact form</strong> widget is also in <strong>Add Widget</strong> on
-                any page that uses the block editor; use the switches for site-wide on/off. The dedicated{" "}
-                <strong>/contact-us</strong> route is configured in the section at the bottom of this page.
+                blocks). The <strong>Contact form</strong> block uses the same visibility switch as other
+                widget types when it is added via the block editor.
               </p>
               {updatedAt && !loading && (
                 <p className="mt-1 text-xs text-gray-500">
@@ -306,8 +304,6 @@ export default function HomepageWidgets() {
                 )}
               </div>
             )}
-
-            <ContactWidgetSettingsPanel />
           </div>
         </main>
       </div>
