@@ -28,6 +28,103 @@ export const getFiles = async (backendUrl) => {
 };
 
 /**
+ * Admin Media — S3 / DigitalOcean Spaces objects (same `contents` shape as Vercel Blob list).
+ */
+export const getSpacesFiles = async (backendUrl) => {
+  try {
+    const response = await axios.get(`${backendUrl}get/files/spaces`);
+    return {
+      success: true,
+      data: response.data,
+      contents: response.data.contents || [],
+      status: response.data.status,
+      spacesConfigured: Boolean(response.data.spacesConfigured)
+    };
+  } catch (error) {
+    console.error('Error fetching Spaces files:', error);
+    return {
+      success: false,
+      error: error.response?.data?.error || error.response?.data?.message || error.message || 'Failed to fetch Spaces files',
+      spacesConfigured: false
+    };
+  }
+};
+
+export const uploadFileSpaces = async (backendUrl, directory, files, altText = '') => {
+  try {
+    const formData = new FormData();
+    formData.append('directory', directory);
+    if (altText && altText.trim()) {
+      formData.append('altText', altText.trim());
+    }
+    if (Array.isArray(files)) {
+      files.forEach((file) => {
+        formData.append('files', file);
+      });
+    } else {
+      formData.append('files', files);
+    }
+
+    const response = await axios.post(`${backendUrl}upload/file/spaces`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    return {
+      success: response.data.success || false,
+      data: response.data,
+      message: response.data.message,
+      error: response.data.error
+    };
+  } catch (error) {
+    console.error('Error uploading to Spaces:', error);
+    return {
+      success: false,
+      error: error.response?.data?.error || error.message || 'Failed to upload to Spaces'
+    };
+  }
+};
+
+export const updateFileSpaces = async (backendUrl, payload) => {
+  try {
+    const response = await axios.patch(`${backendUrl}update/file/spaces`, payload);
+    return {
+      success: response.data.success || false,
+      data: response.data,
+      message: response.data.message,
+      error: response.data.error
+    };
+  } catch (error) {
+    console.error('Error updating Spaces file:', error);
+    return {
+      success: false,
+      error: error.response?.data?.error || error.message || 'Failed to update Spaces file'
+    };
+  }
+};
+
+export const deleteSpacesFile = async (backendUrl, key) => {
+  try {
+    const response = await axios.delete(`${backendUrl}delete/file/spaces`, {
+      data: { key }
+    });
+    return {
+      success: response.data.success || false,
+      data: response.data,
+      message: response.data.message,
+      error: response.data.error
+    };
+  } catch (error) {
+    console.error('Error deleting Spaces file:', error);
+    return {
+      success: false,
+      error: error.response?.data?.error || error.message || 'Failed to delete Spaces file'
+    };
+  }
+};
+
+/**
  * Update file (filename, title, or altText)
  * @param {string} backendUrl - The backend URL from auth context
  * @param {Object} updateData - Object containing directory, oldFileName, newFileName, filePath, and optional title/altText
@@ -139,9 +236,13 @@ export const deleteFile = async (backendUrl, directory, fileName, filePath) => {
 // Default export containing all service methods
 const mediaService = {
   getFiles,
+  getSpacesFiles,
   updateFile,
+  updateFileSpaces,
   uploadFile,
-  deleteFile
+  uploadFileSpaces,
+  deleteFile,
+  deleteSpacesFile
 };
 
 export default mediaService;

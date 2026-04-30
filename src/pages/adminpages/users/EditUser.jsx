@@ -10,8 +10,9 @@ import { toast } from 'react-toastify';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import Side from '../nav/Side';
 import Top from '../nav/Top';
-import { getUserById, updateUser, buildUserUpdatePayload, resetUserPassword } from './services/usersService';
+import { getUserById, updateUser, buildUserUpdatePayload, resetUserPassword, assignPricingGroupToUser } from './services/usersService';
 import { getAllRoles } from '../roles/services/rolesService';
+import { fetchPricingGroups } from '../pricing-groups/api/groupsApi';
 
 const EditUser = () => {
     const { userId } = useParams();
@@ -22,6 +23,7 @@ const EditUser = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [userData, setUserData] = useState(null);
     const [roles, setRoles] = useState([]);
+    const [pricingGroups, setPricingGroups] = useState([]);
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [isResettingPassword, setIsResettingPassword] = useState(false);
@@ -41,6 +43,13 @@ const EditUser = () => {
                 return;
             }
             setRoles(rolesResult.data);
+
+            try {
+                const groups = await fetchPricingGroups(import.meta.env.VITE_BACKEND_URL);
+                setPricingGroups(groups);
+            } catch {
+                setPricingGroups([]);
+            }
 
             // Fetch user
             const userResult = await getUserById(userId);
@@ -102,6 +111,15 @@ const EditUser = () => {
         const result = await updateUser(userId, payload);
 
         if (result.success) {
+            const assignResult = await assignPricingGroupToUser(
+                userId,
+                userData.pricingGroup || null
+            );
+            if (!assignResult.success) {
+                toast.error(assignResult.message);
+                setIsSaving(false);
+                return;
+            }
             toast.success(result.message);
             navigate('/admin/users');
         } else {
@@ -406,6 +424,23 @@ const EditUser = () => {
                                                     Select &rdquo;Admin&rdquo; role to enable User Type
                                                 </p>
                                             )}
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                Pricing Group
+                                            </label>
+                                            <select
+                                                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary focus:border-primary"
+                                                value={userData.pricingGroup || ''}
+                                                onChange={(e) => handleInputChange('pricingGroup', e.target.value)}
+                                            >
+                                                <option value="">No Group</option>
+                                                {pricingGroups.map((group) => (
+                                                    <option key={group.id} value={group.id}>
+                                                        {group.name}
+                                                    </option>
+                                                ))}
+                                            </select>
                                         </div>
                                     </div>
                                 </div>

@@ -177,10 +177,32 @@ export const resetUserPassword = async (userId, newPassword, confirmPassword) =>
     }
 };
 
+export const assignPricingGroupToUser = async (userId, pricingGroup) => {
+    try {
+        const response = await axios.put(
+            `${BACKEND_URL}api/users/${userId}/assign-group`,
+            { pricingGroup: pricingGroup || null },
+            { headers: { "x-user-role": "admin" } }
+        );
+        return {
+            success: true,
+            data: response.data,
+            message: response.data.message || "Pricing group assigned"
+        };
+    } catch (error) {
+        return {
+            success: false,
+            data: null,
+            message: error.response?.data?.message || error.message || "Failed to assign pricing group"
+        };
+    }
+};
+
 export default {
     getAllUsers,
     getUserById,
     updateUser,
     buildUserUpdatePayload,
-    resetUserPassword
+    resetUserPassword,
+    assignPricingGroupToUser
 };

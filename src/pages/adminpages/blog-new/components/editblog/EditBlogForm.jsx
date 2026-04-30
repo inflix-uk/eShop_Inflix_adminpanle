@@ -12,6 +12,7 @@ import PublishSettings from "../createblog/PublishSettings";
 import FeaturedImage from "../createblog/FeaturedImage";
 import CategoriesSelector from "../createblog/CategoriesSelector";
 import Notification from "../createblog/Notification";
+import { getStoredAuthors } from "../../../author/service/authorLocalService";
 import {
   blocksHaveRenderableContent,
   extractWidgetSlideDataUrls,
@@ -40,6 +41,13 @@ export default function EditBlogForm({ blogData = {}, availableCategories = [] }
     blogData?.categories?.map(cat => typeof cat === 'object' ? cat._id : cat) || []
   );
   const [tags, setTags] = useState(blogData?.tags || []);
+  const [availableAuthors, setAvailableAuthors] = useState([]);
+  const [authorId, setAuthorId] = useState(
+    blogData?.author?.id || blogData?.author?._id || blogData?.author || ""
+  );
+  const [reviewerId, setReviewerId] = useState(
+    blogData?.reviewer?.id || blogData?.reviewer?._id || blogData?.reviewer || ""
+  );
   const [currentTag, setCurrentTag] = useState("");
   const [featuredImage, setFeaturedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(blogData?.featuredImage || null);
@@ -284,6 +292,24 @@ export default function EditBlogForm({ blogData = {}, availableCategories = [] }
       console.log("Initial blocks structure:", JSON.stringify(blocks, null, 2));
     }
   }, [bannerPreview, blocks, getFullImageUrl, imagePreview, processBlockImages]);
+
+  useEffect(() => {
+    setAvailableAuthors(getStoredAuthors());
+  }, []);
+
+  const authorOptions = availableAuthors.filter(
+    (person) => (person?.role || "author") === "author"
+  );
+  const reviewerOptions = availableAuthors.filter(
+    (person) => person?.role === "reviewer"
+  );
+
+  const selectedAuthor = authorOptions.find(
+    (person) => String(person.id) === String(authorId)
+  );
+  const selectedReviewer = reviewerOptions.find(
+    (person) => String(person.id) === String(reviewerId)
+  );
   const getDateString = (date) => {
     if (!date) return "";
     // If already yyyy-mm-dd
@@ -534,6 +560,8 @@ export default function EditBlogForm({ blogData = {}, availableCategories = [] }
         excerpt,
         blocks: processedBlocks,
         categories,
+        author: selectedAuthor || null,
+        reviewer: selectedReviewer || null,
         tags,
         publishStatus,
         publishDate,
@@ -718,6 +746,44 @@ export default function EditBlogForm({ blogData = {}, availableCategories = [] }
                 availableCategories={availableCategories}
                 errors={errors}
               />
+              <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+                <div className="px-4 py-5 sm:p-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    Author
+                  </h3>
+                  <select
+                    value={authorId}
+                    onChange={(e) => setAuthorId(e.target.value)}
+                    className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm"
+                  >
+                    <option value="">Select author</option>
+                    {authorOptions.map((author) => (
+                      <option key={author.id} value={author.id}>
+                        {author.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
+                <div className="px-4 py-5 sm:p-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">
+                    Reviewer
+                  </h3>
+                  <select
+                    value={reviewerId}
+                    onChange={(e) => setReviewerId(e.target.value)}
+                    className="block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm"
+                  >
+                    <option value="">Select reviewer</option>
+                    {reviewerOptions.map((reviewer) => (
+                      <option key={reviewer.id} value={reviewer.id}>
+                        {reviewer.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -746,6 +812,20 @@ EditBlogForm.propTypes = {
       ])
     ),
     tags: PropTypes.arrayOf(PropTypes.string),
+    author: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.shape({
+        _id: PropTypes.string,
+        name: PropTypes.string,
+      }),
+    ]),
+    reviewer: PropTypes.oneOfType([
+      PropTypes.string,
+      PropTypes.shape({
+        _id: PropTypes.string,
+        name: PropTypes.string,
+      }),
+    ]),
     featuredImage: PropTypes.string,
     featuredImageAlt: PropTypes.string,
     featuredImageDescription: PropTypes.string,
