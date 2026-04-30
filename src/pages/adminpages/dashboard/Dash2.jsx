@@ -75,8 +75,7 @@ const Dash2 = () => {
     useEffect(() => {
         axios.get(`${auth.ip}top/product/sold`)
             .then((response) => {
-                console.log("Top selling products:", response);
-                setTopProducts(response.data.topProducts);
+                setTopProducts(Array.isArray(response.data?.topProducts) ? response.data.topProducts : []);
             })
             .catch((error) => {
                 console.log("Error fetching top selling products:", error);
@@ -190,7 +189,9 @@ const Dash2 = () => {
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {topProducts && topProducts.length > 0 ? (
                                     topProducts.map((product) => {
-                                        const topProductImageUrl = getOrderLineItemImageUrl(product, auth.ip);
+                                        const topProductImageUrl =
+                                            product.displayImageUrl ||
+                                            getOrderLineItemImageUrl(product, auth.ip);
                                         return (
                                         <div key={product._id}
                                             className="bg-white rounded-xl shadow-lg hover:shadow-2xl transition-all duration-300 overflow-hidden transform hover:-translate-y-1 h-full"

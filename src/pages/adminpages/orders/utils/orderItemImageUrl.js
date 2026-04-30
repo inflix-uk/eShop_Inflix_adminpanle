@@ -10,8 +10,13 @@ function normalizeOrigin(rawBackendUrl) {
 function absoluteFromOrigin(origin, pathOrUrl) {
   if (pathOrUrl == null) return "";
   const p = String(pathOrUrl).trim();
-  if (!p) return "";
+  if (!p || p === "undefined" || p === "null") return "";
   if (p.startsWith("http://") || p.startsWith("https://")) return p;
+  if (p.startsWith("//")) {
+    const base = normalizeOrigin(origin);
+    const proto = base.startsWith("https") ? "https:" : "http:";
+    return `${proto}${p}`;
+  }
   const base = normalizeOrigin(origin);
   if (!base) return p.startsWith("/") ? p : `/${p}`;
   let segment = p.startsWith("/") ? p : `/${p}`;
@@ -20,6 +25,24 @@ function absoluteFromOrigin(origin, pathOrUrl) {
     segment = `/uploads${segment}`;
   }
   return `${base}${segment}`;
+}
+
+/** First usable URL from a variant/gallery slot (object or plain string). */
+function resolveSlot(origin, raw) {
+  if (raw == null) return "";
+  if (typeof raw === "string") {
+    return absoluteFromOrigin(origin, raw);
+  }
+  if (typeof raw === "object") {
+    if (raw.url != null && String(raw.url).trim() !== "") {
+      const u = absoluteFromOrigin(origin, raw.url);
+      if (u) return u;
+    }
+    if (raw.path != null && String(raw.path).trim() !== "") {
+      return absoluteFromOrigin(origin, raw.path);
+    }
+  }
+  return "";
 }
 
 /**
@@ -37,15 +60,13 @@ export function getOrderLineItemImageUrl(item, backendUrl) {
   }
 
   if (item.variantImages?.length > 0) {
-    const img = item.variantImages[0];
-    if (img?.url) return img.url;
-    if (img?.path) return absoluteFromOrigin(origin, img.path);
+    const u = resolveSlot(origin, item.variantImages[0]);
+    if (u) return u;
   }
 
   if (item.galleryImages?.length > 0) {
-    const img = item.galleryImages[0];
-    if (img?.url) return img.url;
-    if (img?.path) return absoluteFromOrigin(origin, img.path);
+    const u = resolveSlot(origin, item.galleryImages[0]);
+    if (u) return u;
   }
 
   if (item.productthumbnail) {
@@ -53,15 +74,19 @@ export function getOrderLineItemImageUrl(item, backendUrl) {
     if (typeof t === "string") {
       const s = t.trim();
       if (!s) return "";
-      if (s.startsWith("http://") || s.startsWith("https://")) return s;
-      if (s.startsWith("/")) return absoluteFromOrigin(origin, s);
-      return absoluteFromOrigin(origin, `uploads/products/${s}`);
+      return absoluteFromOrigin(origin, s.startsWith("/") ? s : `uploads/products/${s}`);
     }
-    if (t.url) return t.url;
+    if (t.url) {
+      const u = absoluteFromOrigin(origin, t.url);
+      if (u) return u;
+    }
     if (t.path) return absoluteFromOrigin(origin, t.path);
   }
 
-  if (item.metaImage?.url) return item.metaImage.url;
+  if (item.metaImage?.url) {
+    const u = absoluteFromOrigin(origin, item.metaImage.url);
+    if (u) return u;
+  }
   if (item.metaImage?.path) {
     return absoluteFromOrigin(origin, item.metaImage.path);
   }

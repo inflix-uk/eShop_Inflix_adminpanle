@@ -5,6 +5,7 @@ import { FiCopy, FiEdit2, FiCheck, FiX, FiTrash2 } from "react-icons/fi";
 const MediaCard = ({
   file,
   directoryName,
+  readOnlyMetadata = false,
   imageUrl,
   uniqueFileId,
   editingFileId,
@@ -199,13 +200,15 @@ const MediaCard = ({
                     )}
                   </p>
                 </div>
-                <button
-                  onClick={() => onStartEditTitle(file, directoryName)}
-                  className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                  title="Edit title"
-                >
-                  <FiEdit2 className="w-4 h-4" />
-                </button>
+                {!readOnlyMetadata && (
+                  <button
+                    onClick={() => onStartEditTitle(file, directoryName)}
+                    className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                    title="Edit title"
+                  >
+                    <FiEdit2 className="w-4 h-4" />
+                  </button>
+                )}
               </>
             )}
           </div>
@@ -263,13 +266,15 @@ const MediaCard = ({
                     )}
                   </p>
                 </div>
-                <button
-                  onClick={() => onStartEditAltText(file, directoryName)}
-                  className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                  title="Edit alt text"
-                >
-                  <FiEdit2 className="w-4 h-4" />
-                </button>
+                {!readOnlyMetadata && (
+                  <button
+                    onClick={() => onStartEditAltText(file, directoryName)}
+                    className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+                    title="Edit alt text"
+                  >
+                    <FiEdit2 className="w-4 h-4" />
+                  </button>
+                )}
               </>
             )}
           </div>
@@ -301,6 +306,7 @@ const MediaCard = ({
 MediaCard.propTypes = {
   file: PropTypes.object.isRequired,
   directoryName: PropTypes.string.isRequired,
+  readOnlyMetadata: PropTypes.bool,
   imageUrl: PropTypes.string.isRequired,
   uniqueFileId: PropTypes.string.isRequired,
   editingFileId: PropTypes.string,

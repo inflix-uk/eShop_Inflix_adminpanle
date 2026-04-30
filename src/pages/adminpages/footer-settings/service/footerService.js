@@ -136,6 +136,7 @@ export const getDefaultFooterSettings = () => {
     section1: {
       logo: {
         image: "/assets/ZEXTONS-LOGO-WHITE1.png",
+        altText: "Zextons Tech Store Logo",
         link: "/"
       },
       description: "",
@@ -249,7 +250,7 @@ export const getDefaultFooterSettings = () => {
       title: "Our Climate Impact",
       text: "We plant a tree with every order",
       ecologiLogo: "/assets/ecologinewlogo.png",
-      ecologiLink: "https://ecologi.com/zextons",
+      ecologiLink: "",
       paymentMethods: {
         heading: "We accept the following payment methods:",
         logos: [

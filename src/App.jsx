@@ -15,6 +15,15 @@ const ForgotPassword = lazy(() =>
 const Profile = lazy(() => import("./pages/adminpages/profile/Profile"));
 const Orders = lazy(() => import("./pages/adminpages/orders/Orders"));
 const Users = lazy(() => import("./pages/adminpages/users/Users"));
+const PricingGroups = lazy(() =>
+  import("./pages/adminpages/pricing-groups/PricingGroups")
+);
+const PricingGroupProducts = lazy(() =>
+  import("./pages/adminpages/pricing-groups/PricingGroupProducts")
+);
+const PricingGroupCustomers = lazy(() =>
+  import("./pages/adminpages/pricing-groups/PricingGroupCustomers")
+);
 const EditUser = lazy(() => import("./pages/adminpages/users/EditUser"));
 const ProductCentral = lazy(() =>
   import("./pages/adminpages/ProductCentral/ProductCentral")
@@ -181,6 +190,7 @@ const FooterPagePreview = lazy(() =>
 const FooterSettings = lazy(() =>
   import("./pages/adminpages/footer-settings/FooterSettings")
 );
+const Author = lazy(() => import("./pages/adminpages/author/Author"));
 // Settings Pages
 const StripeSettings = lazy(() =>
   import("./pages/adminpages/settings/stripe/page")
@@ -431,6 +441,48 @@ function App() {
               }
             />
             <Route
+              path="/admin/pricing-groups"
+              element={
+                <>
+                  <ErrorBoundary fallback={<div>Error</div>}>
+                    <Suspense fallback={<div>Loading...</div>}>
+                      <PermissionRoute permission="zextons.view_users">
+                        <PricingGroups />
+                      </PermissionRoute>
+                    </Suspense>
+                  </ErrorBoundary>
+                </>
+              }
+            />
+            <Route
+              path="/admin/pricing-groups/:groupId"
+              element={
+                <>
+                  <ErrorBoundary fallback={<div>Error</div>}>
+                    <Suspense fallback={<div>Loading...</div>}>
+                      <PermissionRoute permission="zextons.view_users">
+                        <PricingGroupProducts />
+                      </PermissionRoute>
+                    </Suspense>
+                  </ErrorBoundary>
+                </>
+              }
+            />
+            <Route
+              path="/admin/pricing-groups/:groupId/customers"
+              element={
+                <>
+                  <ErrorBoundary fallback={<div>Error</div>}>
+                    <Suspense fallback={<div>Loading...</div>}>
+                      <PermissionRoute permission="zextons.view_users">
+                        <PricingGroupCustomers />
+                      </PermissionRoute>
+                    </Suspense>
+                  </ErrorBoundary>
+                </>
+              }
+            />
+            <Route
               path="/admin/subscribers"
               element={
                 <>
@@ -632,6 +684,20 @@ function App() {
                     <Suspense fallback={<div>Loading...</div>}>
                       <PermissionRoute permission="zextons.view_blogs">
                         <FooterSettings />
+                      </PermissionRoute>
+                    </Suspense>
+                  </ErrorBoundary>
+                </>
+              }
+            />
+            <Route
+              path="/admin/author"
+              element={
+                <>
+                  <ErrorBoundary fallback={<div>Error</div>}>
+                    <Suspense fallback={<div>Loading...</div>}>
+                      <PermissionRoute permission="zextons.view_blogs">
+                        <Author />
                       </PermissionRoute>
                     </Suspense>
                   </ErrorBoundary>

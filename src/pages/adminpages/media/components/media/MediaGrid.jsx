@@ -5,6 +5,7 @@ const MediaGrid = ({
   files,
   directoryName,
   auth,
+  readOnlyMetadata = false,
   editingFileId,
   editingTitleId,
   editingAltTextId,
@@ -48,6 +49,7 @@ const MediaGrid = ({
             key={uniqueFileId}
             file={file}
             directoryName={directoryName}
+            readOnlyMetadata={readOnlyMetadata}
             imageUrl={imageUrl}
             uniqueFileId={uniqueFileId}
             editingFileId={editingFileId}
@@ -84,6 +86,7 @@ MediaGrid.propTypes = {
   files: PropTypes.array.isRequired,
   directoryName: PropTypes.string.isRequired,
   auth: PropTypes.object.isRequired,
+  readOnlyMetadata: PropTypes.bool,
   editingFileId: PropTypes.string,
   editingTitleId: PropTypes.string,
   editingAltTextId: PropTypes.string,

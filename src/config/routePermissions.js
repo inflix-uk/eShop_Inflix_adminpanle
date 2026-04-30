@@ -43,6 +43,7 @@ export const ROUTE_PERMISSIONS = {
     '/admin/blog-categories': ['manage_blogs'],
     '/admin/blog/preview/:slug': ['view_blogs'],
     '/admin/blog/editblog': ['manage_blogs'],
+    '/admin/author': ['view_blogs'],
 
     // Coupons
     '/admin/coupons': ['view_coupons'],
