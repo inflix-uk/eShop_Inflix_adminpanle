@@ -6,6 +6,7 @@ const Section1Editor = ({ data, onSave, onUploadImage, backendUrl, isSaving }) =
   const [formData, setFormData] = useState({
     logo: {
       image: "",
+      altText: "",
       link: "/",
     },
     description: "",
@@ -15,7 +16,7 @@ const Section1Editor = ({ data, onSave, onUploadImage, backendUrl, isSaving }) =
   useEffect(() => {
     if (data) {
       setFormData({
-        logo: data.logo || { image: "", link: "/" },
+        logo: data.logo || { image: "", altText: "", link: "/" },
         description: data.description ?? "",
         socialMedia: data.socialMedia || [],
       });
@@ -66,6 +67,16 @@ const Section1Editor = ({ data, onSave, onUploadImage, backendUrl, isSaving }) =
       logo: {
         ...prev.logo,
         link: e.target.value,
+      },
+    }));
+  };
+
+  const handleLogoAltTextChange = (e) => {
+    setFormData((prev) => ({
+      ...prev,
+      logo: {
+        ...prev.logo,
+        altText: e.target.value,
       },
     }));
   };
@@ -231,6 +242,22 @@ const Section1Editor = ({ data, onSave, onUploadImage, backendUrl, isSaving }) =
               placeholder="/"
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
             />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Logo Alt Text
+            </label>
+            <input
+              type="text"
+              value={formData.logo.altText || ""}
+              onChange={handleLogoAltTextChange}
+              placeholder="Describe the logo for accessibility"
+              maxLength={200}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+            />
+            <p className="text-xs text-gray-400 mt-1">
+              {(formData.logo.altText || "").length} / 200 characters
+            </p>
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">

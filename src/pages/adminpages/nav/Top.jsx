@@ -4,6 +4,12 @@ import { useAuth } from "../../../context/Auth";
 import { Link, useNavigate } from "react-router-dom";
 import Side from "./Side";
 
+/** Public storefront (sitemap generation + “Open sitemap” link). Override with VITE_PUBLIC_SITE_URL. */
+function getPublicStoreBaseUrl() {
+  const fallback = import.meta.env.DEV ? "http://localhost:3000" : "https://www.aromadesire.com";
+  return (import.meta.env.VITE_PUBLIC_SITE_URL || fallback).replace(/\/$/, "");
+}
+
 const generateImageFromInitial = (initial) => {
   const canvas = document.createElement('canvas');
   canvas.width = 100;
@@ -31,7 +37,6 @@ export default function Top({ toggleSidebar, isSidebarOpen, selectedPage = 'dash
   const [isOpen, setIsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showSitemapModal, setShowSitemapModal] = useState(false);
-  const [sitemapCount, setSitemapCount] = useState(null);
   const [sitemapUrl, setSitemapUrl] = useState('');
 
   const handleLogout = async () => {
@@ -39,35 +44,17 @@ export default function Top({ toggleSidebar, isSidebarOpen, selectedPage = 'dash
     navigate("/");
   };
 
-  const handleGenerateSitemap = async () => {
-    const siteUrl = (import.meta.env.VITE_PUBLIC_SITE_URL || 'https://zextons.co.uk').replace(/\/$/, '');
+  const handleGenerateSitemap = () => {
+    const siteUrl = getPublicStoreBaseUrl();
+    const url = `${siteUrl}/sitemap.xml`;
     
     try {
       setIsGenerating(true);
-      setSitemapCount(null);
-      setSitemapUrl(`${siteUrl}/sitemap.xml`);
-      
-      try {
-        const res = await fetch(`${siteUrl}/api/generate-sitemap`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          mode: 'cors',
-        });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data = await res.json().catch(() => ({}));
-        if (data && typeof data.count === 'number') {
-          setSitemapCount(data.count);
-        }
-        setShowSitemapModal(true);
-      } catch (corsErr) {
-        // Likely a CORS/preflight issue in local dev. Fallback to a no-cors request.
-        await fetch(`${siteUrl}/api/generate-sitemap`, {
-          method: 'GET',
-          mode: 'no-cors',
-        });
-        // We cannot read the response (opaque), but the server will process it.
-        setShowSitemapModal(true);
-      }
+      setSitemapUrl(url);
+      // Prepare refresh URL, but don't open a new tab here.
+      // User can open sitemap explicitly from the modal button.
+      setSitemapUrl(`${url}?refresh=${Date.now()}`);
+      setShowSitemapModal(true);
     } catch (err) {
       console.error('Generate sitemap error:', err);
       alert('Failed to generate sitemap. Please try again.');
@@ -228,9 +215,6 @@ export default function Top({ toggleSidebar, isSidebarOpen, selectedPage = 'dash
           <div className="relative z-50 w-full max-w-sm rounded-lg bg-white shadow-lg p-6 mx-4">
             <h3 className="text-lg font-semibold text-gray-900">Sitemap generated</h3>
             <p className="mt-2 text-sm text-gray-600">Your sitemap has been generated successfully.</p>
-            {sitemapCount !== null && (
-              <p className="mt-1 text-sm text-gray-700">Total URLs: {Number(sitemapCount).toLocaleString()}</p>
-            )}
             <div className="mt-5 flex items-center justify-end gap-3">
               <button
                 type="button"
@@ -240,7 +224,7 @@ export default function Top({ toggleSidebar, isSidebarOpen, selectedPage = 'dash
                 Close
               </button>
               <a
-                href={sitemapUrl || `${(import.meta.env.VITE_PUBLIC_SITE_URL || 'https://zextons.co.uk').replace(/\/$/, '')}/sitemap.xml`}
+                href={sitemapUrl || `${getPublicStoreBaseUrl()}/sitemap.xml?refresh=${Date.now()}`}
                 target="_blank"
                 rel="noreferrer"
                 className="px-3 py-2 text-sm rounded-md bg-primary text-white hover:opacity-90"

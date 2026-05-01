@@ -6,7 +6,16 @@ import { Helmet } from "react-helmet-async";
 import { toast } from "react-toastify";
 
 // Import service
-import { getFiles, updateFile, uploadFile, deleteFile } from "./service";
+import {
+  getFiles,
+  getSpacesFiles,
+  updateFile,
+  updateFileSpaces,
+  uploadFile,
+  uploadFileSpaces,
+  deleteFile,
+  deleteSpacesFile,
+} from "./service";
 
 // Import components
 import {
@@ -20,6 +29,9 @@ import {
 
 export default function Media() {
   const [selectedPage, setSelectedPage] = useState("media");
+  /** `blob` = Vercel Blob (or disk fallback from API). `spaces` = S3 / DO Spaces listing. */
+  const [storageModule, setStorageModule] = useState("blob");
+  const [spacesConfigured, setSpacesConfigured] = useState(true);
   const [directories, setDirectories] = useState([]); // State to store the directories with files
   const [loading, setLoading] = useState(true); // State for loading
   const [selectedTab, setSelectedTab] = useState(null); // State for currently selected tab
@@ -41,8 +53,18 @@ export default function Media() {
   const auth = useAuth();
 
   const fetchFiles = async () => {
+    setLoading(true);
     try {
-      const result = await getFiles(auth.ip);
+      const result =
+        storageModule === "spaces"
+          ? await getSpacesFiles(auth.ip)
+          : await getFiles(auth.ip);
+
+      if (storageModule === "spaces") {
+        setSpacesConfigured(Boolean(result.spacesConfigured));
+      } else {
+        setSpacesConfigured(true);
+      }
 
       if (result.success) {
         // Filter out the 'images' and 'feed' directories
@@ -69,7 +91,8 @@ export default function Media() {
 
   useEffect(() => {
     fetchFiles();
-  }, [auth.ip]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch when switching Blob vs Spaces
+  }, [auth.ip, storageModule]);
 
   const getImagePathAfterUploads = (filePath) => {
     // Check if filePath exists and contains 'uploads/'
@@ -83,6 +106,17 @@ export default function Media() {
   const handleTabChange = (tabName) => {
     setSelectedTab(tabName);
     setCurrentPage(1); // Reset to the first page when changing tabs
+  };
+
+  const handleStorageModuleChange = (next) => {
+    if (next === storageModule) return;
+    setStorageModule(next);
+    setSelectedTab(null);
+    setCurrentPage(1);
+    setSearchTerm("");
+    setEditingFileId(null);
+    setEditingTitleId(null);
+    setEditingAltTextId(null);
   };
 
   // Handle search input change
@@ -177,7 +211,7 @@ export default function Media() {
 
   // Create unique identifier for a file
   const getFileUniqueId = (file, directoryName) => {
-    return `${directoryName}-${file.path || file._id || file.name}`;
+    return `${directoryName}-${file.spacesKey || file.path || file._id || file.name}`;
   };
 
   // Helper function to sanitize filename (replace spaces with hyphens)
@@ -293,8 +327,16 @@ export default function Media() {
         title: sanitizedTitle, // Title is the sanitized version
       };
 
-      // API call to update title
-      const result = await updateFile(auth.ip, updateData);
+      const result =
+        storageModule === "spaces" && file.spacesKey
+          ? await updateFileSpaces(auth.ip, {
+              key: file.spacesKey,
+              directory: directoryName,
+              oldFileName: file.name,
+              newFileName,
+              title: sanitizedTitle,
+            })
+          : await updateFile(auth.ip, updateData);
 
       if (result.success) {
         toast.success("Title updated successfully!");
@@ -339,8 +381,16 @@ export default function Media() {
         altText: editedAltText.trim(),
       };
 
-      // API call to update alt text
-      const result = await updateFile(auth.ip, updateData);
+      const result =
+        storageModule === "spaces" && file.spacesKey
+          ? await updateFileSpaces(auth.ip, {
+              key: file.spacesKey,
+              directory: directoryName,
+              oldFileName: file.name,
+              newFileName: file.name,
+              altText: editedAltText.trim(),
+            })
+          : await updateFile(auth.ip, updateData);
 
       if (result.success) {
         toast.success("Alt text updated successfully!");
@@ -372,7 +422,10 @@ export default function Media() {
     try {
       // Title is automatically generated from filename (filename = title)
       // Filenames are already sanitized (spaces replaced with hyphens) in UploadImageModal
-      const result = await uploadFile(auth.ip, selectedTab, files, altText);
+      const result =
+        storageModule === "spaces"
+          ? await uploadFileSpaces(auth.ip, selectedTab, files, altText)
+          : await uploadFile(auth.ip, selectedTab, files, altText);
 
       if (result.success) {
         toast.success(`Successfully uploaded ${files.length} image(s)!`);
@@ -401,6 +454,17 @@ export default function Media() {
 
     setIsUpdating(true);
     try {
+      if (storageModule === "spaces" && file.spacesKey) {
+        const result = await deleteSpacesFile(auth.ip, file.spacesKey);
+        if (result.success) {
+          toast.success("Object deleted from Spaces.");
+          await fetchFiles();
+        } else {
+          toast.error(result.error || "Failed to delete Spaces object");
+        }
+        return;
+      }
+
       // Construct the file path
       const filePath = getImagePathAfterUploads(file.path);
 
@@ -458,7 +522,15 @@ export default function Media() {
       };
 
       // API call to update filename
-      const result = await updateFile(auth.ip, updateData);
+      const result =
+        storageModule === "spaces" && file.spacesKey
+          ? await updateFileSpaces(auth.ip, {
+              key: file.spacesKey,
+              directory: directoryName,
+              oldFileName: file.name,
+              newFileName,
+            })
+          : await updateFile(auth.ip, updateData);
 
       if (result.success) {
         toast.success("Filename updated successfully!");
@@ -499,6 +571,61 @@ export default function Media() {
               <div>Loading media...</div>
             ) : (
               <div className="space-y-10">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-gray-200 pb-4">
+                  <div>
+                    <h1 className="text-xl font-bold text-gray-900">
+                      Media library
+                    </h1>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Switch between Vercel Blob and S3 / DigitalOcean Spaces.
+                    </p>
+                  </div>
+                  <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1">
+                    <button
+                      type="button"
+                      onClick={() => handleStorageModuleChange("blob")}
+                      className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                        storageModule === "blob"
+                          ? "bg-white text-blue-700 shadow-sm"
+                          : "text-gray-600 hover:text-gray-900"
+                      }`}
+                    >
+                      Vercel Blob
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleStorageModuleChange("spaces")}
+                      className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                        storageModule === "spaces"
+                          ? "bg-white text-blue-700 shadow-sm"
+                          : "text-gray-600 hover:text-gray-900"
+                      }`}
+                    >
+                      S3 / Spaces
+                    </button>
+                  </div>
+                </div>
+
+                {storageModule === "spaces" && !spacesConfigured && (
+                  <div
+                    className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+                    role="status"
+                  >
+                    Spaces is not configured on the server (set{" "}
+                    <code className="text-xs">DO_SPACES_*</code> and{" "}
+                    <code className="text-xs">MAIN_FOLDER</code>). This tab will
+                    stay empty until those env vars are set.
+                  </div>
+                )}
+
+                {storageModule === "spaces" && spacesConfigured && (
+                  <p className="text-sm text-gray-600 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
+                    S3 / Spaces: upload, title, and alt text are stored in your
+                    bucket and Media library records. Use the{" "}
+                    <strong>Vercel Blob</strong> tab for Blob-only assets.
+                  </p>
+                )}
+
                 {/* Search Bar */}
                 <SearchBar
                   searchTerm={searchTerm}
@@ -523,7 +650,8 @@ export default function Media() {
                         </h2>
                         <button
                           onClick={() => setIsUploadModalOpen(true)}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2"
+                          disabled={storageModule === "spaces" && !spacesConfigured}
+                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <svg
                             className="w-5 h-5"
@@ -590,7 +718,9 @@ export default function Media() {
             )}
 
             {/* Upload Image Modal */}
-            {selectedTab && (
+            {selectedTab &&
+              (storageModule === "blob" ||
+                (storageModule === "spaces" && spacesConfigured)) && (
               <UploadImageModal
                 isOpen={isUploadModalOpen}
                 onClose={() => setIsUploadModalOpen(false)}

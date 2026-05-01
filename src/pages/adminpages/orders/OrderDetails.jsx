@@ -21,6 +21,7 @@ import {
 import ShippingUpdateModal from "./components/orders/ShippingUpdateModal";
 import ReturnItemModal from "./components/orders/ReturnItemModal";
 import OrderChatModal from "./components/orders/OrderChatModal";
+import { getOrderLineItemImageUrl } from "./utils/orderItemImageUrl";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -675,22 +676,10 @@ const OrderDetails = () => {
                           // Check if it's a trade-in product
                           const isTradeIn = item.isTradeIn === true;
 
-                          // Determine image URL
-                          let imageUrl;
-                          if (isTradeIn && item.tradeInData?.deviceImage) {
-                            imageUrl = `${BACKEND_URL}${item.tradeInData.deviceImage}`;
-                          } else if (
-                            item.variantImages &&
-                            item.variantImages.length > 0
-                          ) {
-                            imageUrl = `${BACKEND_URL}${item?.variantImages[0]?.path}`;
-                          } else if (item.productthumbnail?.path) {
-                            imageUrl = `${BACKEND_URL}${item?.productthumbnail?.path}`;
-                          } else if (item.metaImage?.path) {
-                            imageUrl = `${BACKEND_URL}${item?.metaImage?.path}`;
-                          } else {
-                            imageUrl = null;
-                          }
+                          const imageUrl = getOrderLineItemImageUrl(
+                            item,
+                            BACKEND_URL
+                          );
 
                           // Check if it's a variant product (has '-' separators) or single product
                           const isVariantProduct =
@@ -1305,25 +1294,10 @@ const OrderDetails = () => {
                                   // Check if it's a trade-in product
                                   const isTradeIn = item.isTradeIn === true;
 
-                                  // Determine image URL
-                                  let imageUrl;
-                                  if (
-                                    isTradeIn &&
-                                    item.tradeInData?.deviceImage
-                                  ) {
-                                    imageUrl = `${BACKEND_URL}${item.tradeInData.deviceImage}`;
-                                  } else if (
-                                    item.variantImages &&
-                                    item.variantImages.length > 0
-                                  ) {
-                                    imageUrl = `${BACKEND_URL}${item?.variantImages[0]?.path}`;
-                                  } else if (item.productthumbnail?.path) {
-                                    imageUrl = `${BACKEND_URL}${item?.productthumbnail?.path}`;
-                                  } else if (item.metaImage?.path) {
-                                    imageUrl = `${BACKEND_URL}${item?.metaImage?.path}`;
-                                  } else {
-                                    imageUrl = null;
-                                  }
+                                  const imageUrl = getOrderLineItemImageUrl(
+                                    item,
+                                    BACKEND_URL
+                                  );
 
                                   // Check if it's a variant product (has '-' separators) or single product
                                   const isVariantProduct =
@@ -1579,22 +1553,10 @@ const OrderDetails = () => {
                               // Check if it's a trade-in product
                               const isTradeIn = item.isTradeIn === true;
 
-                              // Determine image URL
-                              let imageUrl;
-                              if (isTradeIn && item.tradeInData?.deviceImage) {
-                                imageUrl = `${BACKEND_URL}${item.tradeInData.deviceImage}`;
-                              } else if (
-                                item.variantImages &&
-                                item.variantImages.length > 0
-                              ) {
-                                imageUrl = `${BACKEND_URL}${item?.variantImages[0]?.path}`;
-                              } else if (item.productthumbnail?.path) {
-                                imageUrl = `${BACKEND_URL}${item?.productthumbnail?.path}`;
-                              } else if (item.metaImage?.path) {
-                                imageUrl = `${BACKEND_URL}${item?.metaImage?.path}`;
-                              } else {
-                                imageUrl = null;
-                              }
+                              const imageUrl = getOrderLineItemImageUrl(
+                                item,
+                                BACKEND_URL
+                              );
 
                               // Check if it's a variant product (has '-' separators) or single product
                               const isVariantProduct =

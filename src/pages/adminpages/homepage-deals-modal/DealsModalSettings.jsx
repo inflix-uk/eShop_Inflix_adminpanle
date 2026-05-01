@@ -46,6 +46,7 @@ export default function DealsModalSettings() {
     discountViewDescription: "",
     discountViewLabel: "",
     discountViewThankYou: "",
+    privacyDisclaimerText: "",
     rightPanelImageAlt: "",
     bannerImageUrl: "",
   });
@@ -79,6 +80,7 @@ export default function DealsModalSettings() {
         discountViewDescription: d.discountViewDescription || "",
         discountViewLabel: d.discountViewLabel || "",
         discountViewThankYou: d.discountViewThankYou || "",
+        privacyDisclaimerText: d.privacyDisclaimerText || "",
         rightPanelImageAlt: d.rightPanelImageAlt || "",
         bannerImageUrl: d.bannerImageUrl || "",
       });
@@ -128,6 +130,7 @@ export default function DealsModalSettings() {
         discountViewDescription: form.discountViewDescription,
         discountViewLabel: form.discountViewLabel,
         discountViewThankYou: form.discountViewThankYou,
+        privacyDisclaimerText: form.privacyDisclaimerText,
         rightPanelImageAlt: form.rightPanelImageAlt,
         bannerImageUrl: form.bannerImageUrl,
       };
@@ -173,10 +176,10 @@ export default function DealsModalSettings() {
               Hot UK Deals popup
             </h1>
             <p className="text-gray-600 text-sm mb-8">
-              Edit the storefront Hot UK Deals popup and bottom-left launcher:
+              Edit the storefront popup and bottom-left launcher:
               timing, countdown, copy, discount code, and right-hand image. If
-              the API is
-              offline, the site keeps safe default text and images.
+              the API is offline, placeholder copy is used until admin content
+              is saved.
             </p>
 
             {loading ? (
@@ -269,7 +272,7 @@ export default function DealsModalSettings() {
                     value={form.discountCode}
                     onChange={(e) => setField("discountCode", e.target.value)}
                     className="w-full border rounded-md px-3 py-2 text-sm"
-                    placeholder="e.g. HOTDEALS"
+                    placeholder="e.g. LOREM123"
                   />
                 </div>
 
@@ -296,7 +299,7 @@ export default function DealsModalSettings() {
                         setField("collapsedBannerText", e.target.value)
                       }
                       className="w-full border rounded-md px-3 py-2 text-sm"
-                      placeholder="e.g. HOT UK DEALS"
+                      placeholder="e.g. Lorem ipsum"
                     />
                   </div>
                 </fieldset>
@@ -436,6 +439,24 @@ export default function DealsModalSettings() {
                         setField("successSubscribeMessage", e.target.value)
                       }
                       className="w-full border rounded-md px-3 py-2 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="deals-privacy-disclaimer"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
+                      Privacy disclaimer text (before Privacy Policy link)
+                    </label>
+                    <textarea
+                      id="deals-privacy-disclaimer"
+                      value={form.privacyDisclaimerText}
+                      onChange={(e) =>
+                        setField("privacyDisclaimerText", e.target.value)
+                      }
+                      rows={3}
+                      className="w-full border rounded-md px-3 py-2 text-sm"
+                      placeholder="Lorem ipsum dolor sit amet, consectetur adipiscing elit..."
                     />
                   </div>
                 </fieldset>

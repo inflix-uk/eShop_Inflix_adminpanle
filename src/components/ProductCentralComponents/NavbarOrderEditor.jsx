@@ -94,8 +94,9 @@ export default function NavbarOrderEditor() {
   const [customPath, setCustomPath] = useState("");
   const [dragOverIndex, setDragOverIndex] = useState(null);
   const dragFromIndexRef = useRef(null);
-  const [supportPhone, setSupportPhone] = useState("0333 344 8541");
-  const [phoneSaving, setPhoneSaving] = useState(false);
+  const [supportPhone, setSupportPhone] = useState("");
+  const [supportEmail, setSupportEmail] = useState("");
+  const [contactSaving, setContactSaving] = useState(false);
 
   const adminJsonHeaders = {
     "x-user-role": "admin",
@@ -126,8 +127,9 @@ export default function NavbarOrderEditor() {
     ])
       .then(([navRes, allRes, phoneRes]) => {
         if (cancelled) return;
-        if (phoneRes?.data?.success && phoneRes.data.data?.supportPhone) {
-          setSupportPhone(String(phoneRes.data.data.supportPhone));
+        if (phoneRes?.data?.success && phoneRes.data.data != null) {
+          setSupportPhone(String(phoneRes.data.data.supportPhone ?? ""));
+          setSupportEmail(String(phoneRes.data.data.supportEmail ?? ""));
         }
         const nav = normalizeNavbarRows(navRes);
         const all = normalizeProductCategories(allRes);
@@ -337,23 +339,21 @@ export default function NavbarOrderEditor() {
     );
   };
 
-  const handleSaveSupportPhone = () => {
-    const trimmed = supportPhone.trim();
-    if (!trimmed) {
-      toast.error("Enter a phone number.");
-      return;
-    }
-    setPhoneSaving(true);
+  const handleSaveHeaderContact = () => {
+    const trimmedPhone = supportPhone.trim();
+    const trimmedEmail = supportEmail.trim();
+    setContactSaving(true);
     axios
       .post(
         `${apiBase()}navbar-header`,
-        { supportPhone: trimmed },
+        { supportPhone: trimmedPhone, supportEmail: trimmedEmail },
         { headers: adminJsonHeaders }
       )
       .then((response) => {
-        if (response.data?.success && response.data.data?.supportPhone) {
-          setSupportPhone(String(response.data.data.supportPhone));
-          toast.success(response.data.message || "Header phone saved");
+        if (response.data?.success) {
+          setSupportPhone(String(response.data.data?.supportPhone ?? ""));
+          setSupportEmail(String(response.data.data?.supportEmail ?? ""));
+          toast.success(response.data.message || "Header contact saved");
         } else {
           toast.error(
             response.data?.message || response.data?.error || "Save failed."
@@ -364,10 +364,10 @@ export default function NavbarOrderEditor() {
         toast.error(
           error.response?.data?.message ||
             error.response?.data?.error ||
-            "Failed to save phone."
+            "Failed to save contact."
         );
       })
-      .finally(() => setPhoneSaving(false));
+      .finally(() => setContactSaving(false));
   };
 
   const handleSaveOrder = () => {
@@ -443,15 +443,18 @@ export default function NavbarOrderEditor() {
     <div className="space-y-6">
       <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <h2 className="text-sm font-semibold text-gray-900 mb-1">
-          Header help phone number
+          Storefront header &amp; search contact
         </h2>
         <p className="text-sm text-gray-500 mb-3">
-          Shown next to &quot;Need Help?&quot; on the storefront top bar (desktop).
-          Digits, spaces, and <code className="text-xs bg-gray-100 px-1 rounded">+</code>{" "}
-          are allowed.
+          Phone is shown next to &quot;Need Help?&quot; on the top bar (desktop) when set.
+          Email and phone are also used on the search results page when no products
+          are found (&quot;Can&apos;t find what you&apos;re looking for?&quot;). Leave a field
+          blank to hide it there; invalid email addresses are rejected on save.
+          Phone: digits, spaces, and{" "}
+          <code className="text-xs bg-gray-100 px-1 rounded">+</code> are allowed.
         </p>
-        <div className="flex flex-col gap-3 max-w-xl sm:flex-row sm:items-end">
-          <div className="flex-1">
+        <div className="flex flex-col gap-4 max-w-xl">
+          <div>
             <label
               htmlFor="navbar-support-phone"
               className="block text-xs font-medium text-gray-600 mb-1"
@@ -463,18 +466,35 @@ export default function NavbarOrderEditor() {
               type="text"
               value={supportPhone}
               onChange={(e) => setSupportPhone(e.target.value)}
-              placeholder="0333 344 8541"
+              placeholder="Optional — e.g. 0333 344 8541"
               className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
               autoComplete="tel"
             />
           </div>
+          <div>
+            <label
+              htmlFor="navbar-support-email"
+              className="block text-xs font-medium text-gray-600 mb-1"
+            >
+              Support email
+            </label>
+            <input
+              id="navbar-support-email"
+              type="email"
+              value={supportEmail}
+              onChange={(e) => setSupportEmail(e.target.value)}
+              placeholder="Optional — e.g. hello@example.com"
+              className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
+              autoComplete="email"
+            />
+          </div>
           <button
             type="button"
-            onClick={handleSaveSupportPhone}
-            disabled={phoneSaving}
-            className="rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-900 disabled:opacity-50 shrink-0"
+            onClick={handleSaveHeaderContact}
+            disabled={contactSaving}
+            className="self-start rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-900 disabled:opacity-50 shrink-0"
           >
-            {phoneSaving ? "Saving…" : "Save phone"}
+            {contactSaving ? "Saving…" : "Save contact"}
           </button>
         </div>
       </section>

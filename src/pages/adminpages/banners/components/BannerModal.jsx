@@ -322,7 +322,7 @@ const BannerModal = ({
                                 ? "border-red-300"
                                 : "border-gray-300"
                             }`}
-                            placeholder="https://zextons.co.uk/..."
+                            placeholder=""
                           />
                           {errors.buttonLink && (
                             <p className="mt-1 text-sm text-red-600">
