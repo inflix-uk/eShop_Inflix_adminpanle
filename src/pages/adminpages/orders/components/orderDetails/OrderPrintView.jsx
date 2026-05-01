@@ -149,7 +149,7 @@ const OrderPrintView = ({
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 mb-0.5">PAYMENT</p>
-                    <p className="font-semibold text-xs">{orderDetails.paymentDetails?.cardDetails?.brand || "N/A"}</p>
+                    <p className="font-semibold text-xs">{orderDetails.paymentDetails?.cardDetails?.brand || orderDetails.paymentDetails?.cardDetails?.payment_type || orderDetails.paymentDetails?.paymentType || "N/A"}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500 mb-0.5">STATUS</p>
