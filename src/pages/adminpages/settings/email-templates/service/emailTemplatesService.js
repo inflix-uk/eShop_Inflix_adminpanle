@@ -54,3 +54,16 @@ export async function saveOrderEmailTemplates(payload) {
   }
   return res.json();
 }
+
+/** Same resolved branding as server `getEmailBranding()` — logo, colors, fonts, store URL. */
+export async function getEmailBrandingPreview() {
+  const res = await fetch(`${BACKEND_URL}email-branding/preview`, {
+    method: "GET",
+    headers: getHeaders(),
+    credentials: "include",
+  });
+  if (!res.ok) return null;
+  const json = await res.json();
+  if (!json.success || !json.data) return null;
+  return json.data;
+}

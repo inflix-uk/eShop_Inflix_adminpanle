@@ -129,7 +129,7 @@ export default function PricingGroupCustomers() {
               </div>
               <Link
                 to={`/admin/pricing-groups/${groupId}`}
-                className="rounded-md border px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
               >
                 Back to Products
               </Link>
@@ -196,8 +196,9 @@ export default function PricingGroupCustomers() {
                             </td>
                             <td className="px-4 py-3 text-right">
                               <button
+                                type="button"
                                 onClick={() => addUser(user)}
-                                className="rounded-md bg-black px-3 py-1.5 text-xs font-medium text-white hover:bg-gray-800"
+                                className="inline-flex items-center justify-center rounded-md border border-transparent bg-primary px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
                               >
                                 Add
                               </button>
@@ -254,8 +255,9 @@ export default function PricingGroupCustomers() {
                           </td>
                           <td className="px-4 py-3 text-right">
                             <button
+                              type="button"
                               onClick={() => removeUser(user.id)}
-                              className="rounded-md border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+                              className="inline-flex items-center justify-center rounded-md border border-red-200 bg-white px-3 py-1.5 text-xs font-medium text-red-600 shadow-sm hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-200 focus:ring-offset-2"
                             >
                               Remove from Group
                             </button>

@@ -86,6 +86,9 @@ export default function SmtpSettings() {
   const [password, setPassword] = useState("");
   const [fromEmail, setFromEmail] = useState("");
   const [fromName, setFromName] = useState("");
+  const [orderNotifyEmail, setOrderNotifyEmail] = useState("");
+  const [orderConfirmationCc, setOrderConfirmationCc] = useState("");
+  const [orderConfirmationBcc, setOrderConfirmationBcc] = useState("");
   const [useSsl, setUseSsl] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -123,7 +126,13 @@ export default function SmtpSettings() {
         setPasswordTouched(false);
         setFromEmail(data.fromEmail || "");
         setFromName(data.fromName || "");
-        setUseSsl(data.secure !== false);
+        setOrderNotifyEmail(data.orderNotifyEmail || "");
+        setOrderConfirmationCc(data.orderConfirmationCc || "");
+        setOrderConfirmationBcc(data.orderConfirmationBcc || "");
+        const loadedPort = parseInt(String(data.port ?? "").trim(), 10);
+        if (loadedPort === 587) setUseSsl(false);
+        else if (loadedPort === 465) setUseSsl(true);
+        else setUseSsl(data.secure !== false);
         setHasPassword(!!data.hasPassword);
         setUpdatedAt(data.updatedAt || null);
       }
@@ -146,9 +155,15 @@ export default function SmtpSettings() {
       username: username.trim(),
       fromEmail: fromEmail.trim(),
       fromName: fromName.trim(),
+      orderNotifyEmail: orderNotifyEmail.trim(),
+      orderConfirmationCc: orderConfirmationCc.trim(),
+      orderConfirmationBcc: orderConfirmationBcc.trim(),
     };
     if (!includePassword) return payload;
-    if (pendingRemovePassword) {
+    /** User cleared the password field after load — save removes stored secret; test still uses DB password. */
+    const wantsRemoveStoredPassword =
+      passwordTouched && password.trim() === "" && hasPassword;
+    if (wantsRemoveStoredPassword) {
       payload.removePassword = true;
       return payload;
     }
@@ -176,6 +191,12 @@ export default function SmtpSettings() {
   };
 
   const handleTestConnection = async () => {
+    if (!isConfigured) {
+      toast.error(
+        "Enter the SMTP password in the field (or save settings first if a password is already stored). Host, port, username, and password are all required to test."
+      );
+      return;
+    }
     setIsTesting(true);
     setProgress(40);
     try {
@@ -210,7 +231,7 @@ export default function SmtpSettings() {
         />
 
         <main className="py-10">
-          <div className="px-4 sm:px-6 lg:px-8 max-w-3xl">
+          <div className="px-4 sm:px-6 lg:px-8 w-full">
             <div className="mb-6 flex items-start gap-3">
               <IconMailHeader className="h-6 w-6 text-primary shrink-0 mt-1.5" />
               <div>
@@ -245,7 +266,9 @@ export default function SmtpSettings() {
             <form onSubmit={handleSave}>
               <div className="bg-white shadow rounded-lg overflow-hidden border border-gray-200">
                 <div className="px-6 py-7 sm:px-8">
-                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 sm:gap-x-8 sm:gap-y-6">
+                  <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-10 lg:items-start">
+                    {/* Column 1 — server & sender (one field per row) */}
+                    <div className="flex flex-col gap-6 min-w-0">
                     <div>
                       <label htmlFor="smtpHost" className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
                         <IconServer />
@@ -271,7 +294,13 @@ export default function SmtpSettings() {
                         type="text"
                         inputMode="numeric"
                         value={smtpPort}
-                        onChange={(e) => setSmtpPort(e.target.value)}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          setSmtpPort(v);
+                          const n = parseInt(String(v).trim(), 10);
+                          if (n === 587) setUseSsl(false);
+                          else if (n === 465) setUseSsl(true);
+                        }}
                         placeholder="587"
                         disabled={loading}
                         className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:bg-gray-50"
@@ -297,9 +326,13 @@ export default function SmtpSettings() {
                         <IconLock />
                         Password
                       </label>
-                      {hasPassword && (
+                      {hasPassword ? (
                         <p className="text-xs text-gray-500 mb-1.5">
                           A password is stored (not shown). Edit this field to set a new password or clear it, then save.
+                        </p>
+                      ) : (
+                        <p className="text-xs text-amber-800/90 mb-1.5">
+                          Enter your SMTP password here to test or save. It is not loaded from the server for security.
                         </p>
                       )}
                       <div className="relative">
@@ -355,13 +388,75 @@ export default function SmtpSettings() {
                         className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:bg-gray-50"
                       />
                     </div>
+                    <div>
+                      <label htmlFor="orderNotifyEmail" className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
+                        <IconEnvelope />
+                        New order notifications (admin)
+                      </label>
+                      <input
+                        id="orderNotifyEmail"
+                        type="email"
+                        value={orderNotifyEmail}
+                        onChange={(e) => setOrderNotifyEmail(e.target.value)}
+                        placeholder="you@example.com — receives “New order” emails (not the customer receipt)"
+                        disabled={loading}
+                        className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:bg-gray-50"
+                      />
+                    </div>
+                    </div>
+
+                    {/* Column 2 — customer order confirmation only */}
+                    <div className="rounded-xl px-4 py-5 sm:px-5 sm:py-6 space-y-5 lg:sticky lg:top-6 shadow-sm min-w-0">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">Customer order confirmation</p>
+                        <p className="mt-1 text-xs text-gray-600 leading-relaxed">
+                          Optional CC/BCC on the email sent to the customer after checkout.
+                        </p>
+                      </div>
+                      <div>
+                        <label htmlFor="orderConfirmationCc" className="block text-sm font-medium text-gray-700 mb-1">
+                          CC — carbon copy (optional)
+                        </label>
+                        <input
+                          id="orderConfirmationCc"
+                          type="text"
+                          value={orderConfirmationCc}
+                          onChange={(e) => setOrderConfirmationCc(e.target.value)}
+                          placeholder="ops@store.com, finance@store.com"
+                          disabled={loading}
+                          autoComplete="off"
+                          className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:bg-gray-50"
+                        />
+                        <p className="mt-1 text-xs text-gray-500">
+                          One or more addresses, separated by commas. Visible to the customer on most mail clients.
+                        </p>
+                      </div>
+                      <div>
+                        <label htmlFor="orderConfirmationBcc" className="block text-sm font-medium text-gray-700 mb-1">
+                          BCC — blind carbon copy (optional)
+                        </label>
+                        <input
+                          id="orderConfirmationBcc"
+                          type="text"
+                          value={orderConfirmationBcc}
+                          onChange={(e) => setOrderConfirmationBcc(e.target.value)}
+                          placeholder="Trustpilot AFS, archiving, or internal inbox"
+                          disabled={loading}
+                          autoComplete="off"
+                          className="block w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:bg-gray-50"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
                 <div className="flex items-start justify-between gap-4 border-t border-gray-200 bg-gray-50 px-6 py-5 sm:px-8">
                   <div className="text-start max-w-xl">
                     <p className="text-sm font-semibold text-gray-900">Use SSL/TLS</p>
-                    <p className="text-xs text-gray-500 mt-0.5">Enable for implicit SSL on port 465. Turn off for STARTTLS on 587.</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Port <strong className="font-medium text-gray-700">465</strong>: keep on (implicit SSL). Port{" "}
+                      <strong className="font-medium text-gray-700">587</strong>: turn off (STARTTLS); the server upgrades the connection after connect.
+                    </p>
                   </div>
                   <button
                     type="button"
@@ -386,7 +481,12 @@ export default function SmtpSettings() {
                   <button
                     type="button"
                     onClick={handleTestConnection}
-                    disabled={loading || isTesting || isSubmitting}
+                    disabled={loading || isTesting || isSubmitting || !isConfigured}
+                    title={
+                      !isConfigured
+                        ? "Fill host, port, username, and password (or load saved settings with a stored password)"
+                        : undefined
+                    }
                     className="inline-flex shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:opacity-50"
                   >
                     <IconBolt className="text-gray-800" />

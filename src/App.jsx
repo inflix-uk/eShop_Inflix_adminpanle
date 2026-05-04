@@ -187,6 +187,9 @@ const EditFooterPage = lazy(() =>
 const FooterPagePreview = lazy(() =>
   import("./pages/adminpages/footer-pages/preview/[slug]/page")
 );
+const PagesCategories = lazy(() =>
+  import("./pages/adminpages/pages-categories/page")
+);
 const FooterSettings = lazy(() =>
   import("./pages/adminpages/footer-settings/FooterSettings")
 );
@@ -670,6 +673,20 @@ function App() {
                     <Suspense fallback={<div>Loading preview...</div>}>
                       <PermissionRoute permission="zextons.view_blogs">
                         <FooterPagePreview />
+                      </PermissionRoute>
+                    </Suspense>
+                  </ErrorBoundary>
+                </>
+              }
+            />
+            <Route
+              path="/admin/pages-categories"
+              element={
+                <>
+                  <ErrorBoundary fallback={<div>Error</div>}>
+                    <Suspense fallback={<div>Loading...</div>}>
+                      <PermissionRoute permission="zextons.view_blogs">
+                        <PagesCategories />
                       </PermissionRoute>
                     </Suspense>
                   </ErrorBoundary>

@@ -10,7 +10,10 @@ import {
   saveNewsletterEmailTemplates,
   getOrderEmailTemplates,
   saveOrderEmailTemplates,
+  getEmailBrandingPreview,
 } from "./service/emailTemplatesService";
+import { openEmailPreviewInNewTab } from "./emailTemplatesPreview";
+import { getSiteTheme } from "../../site-wide-color/service/siteThemeService";
 
 function isMultilineField(fieldKey) {
   return (
@@ -41,7 +44,7 @@ function isMultilineField(fieldKey) {
 const SECTION_META = {
   welcome: {
     label: "Welcome email",
-    hint: "Copy for the newsletter welcome flow.",
+    hint: "Newsletter welcome flow",
   },
   hotUk: {
     label: "Hot UK deals",
@@ -389,6 +392,10 @@ export default function EmailTemplatesSettings() {
   const [orderStatusAdmin, setOrderStatusAdmin] = useState({});
   const [orderShippedCustomer, setOrderShippedCustomer] = useState({});
   const [orderNumberPrefix, setOrderNumberPrefix] = useState("Z");
+  /** Primary / secondary / typography — fallback when live email branding API is unavailable. */
+  const [siteTheme, setSiteTheme] = useState(null);
+  /** Logo + exact tints from backend `getEmailBranding()` (matches sent mail). */
+  const [emailBranding, setEmailBranding] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -417,10 +424,17 @@ export default function EmailTemplatesSettings() {
     setProgress(30);
     const errors = [];
     try {
-      const [nlResult, orderResult] = await Promise.allSettled([
-        getNewsletterEmailTemplates(),
-        getOrderEmailTemplates(),
+      const [templateSettled, themeData, brandingData] = await Promise.all([
+        Promise.allSettled([
+          getNewsletterEmailTemplates(),
+          getOrderEmailTemplates(),
+        ]),
+        getSiteTheme(),
+        getEmailBrandingPreview().catch(() => null),
       ]);
+      setSiteTheme(themeData);
+      setEmailBranding(brandingData);
+      const [nlResult, orderResult] = templateSettled;
 
       if (nlResult.status === "fulfilled" && nlResult.value) {
         const data = nlResult.value;
@@ -521,6 +535,20 @@ export default function EmailTemplatesSettings() {
 
   const patchOrderShippedCustomer = (key, val) => {
     setOrderShippedCustomer((prev) => ({ ...prev, [key]: val }));
+  };
+
+  const handleOpenPreview = () => {
+    openEmailPreviewInNewTab(activeTab, {
+      welcome,
+      hotUk,
+      orderConfirmation,
+      orderStatusCustomer,
+      orderStatusAdmin,
+      orderShippedCustomer,
+      previewOrderExample,
+      siteTheme,
+      emailBranding,
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -691,12 +719,43 @@ export default function EmailTemplatesSettings() {
 
                 {/* Tabs + fields */}
                 <section aria-labelledby="section-heading">
-                  <h2
-                    id="section-heading"
-                    className="text-xs font-semibold uppercase tracking-wide text-gray-400"
-                  >
-                    Email copy
-                  </h2>
+                  <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <h2
+                      id="section-heading"
+                      className="text-xs font-semibold uppercase tracking-wide text-gray-400"
+                    >
+                      Email copy
+                    </h2>
+                    <button
+                      type="button"
+                      onClick={handleOpenPreview}
+                      disabled={loading}
+                      aria-label="Open email preview for the selected tab in a new tab"
+                      className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-800 shadow-sm transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        strokeWidth={1.5}
+                        stroke="currentColor"
+                        className="h-5 w-5"
+                        aria-hidden
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                      </svg>
+                      Preview current tab
+                    </button>
+                  </div>
                   <div
                     role="tablist"
                     aria-label="Template sections"

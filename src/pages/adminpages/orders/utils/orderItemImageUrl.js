@@ -1,10 +1,33 @@
 /**
  * Build absolute image URL for order cart line items (admin + storefront cart shapes).
+ * Prefer `lineImageUrl` from the API when present (server-resolved Blob / Spaces / disk).
  * @param {string} rawBackendUrl - e.g. import.meta.env.VITE_BACKEND_URL (with or without trailing slash)
  * @returns {string} empty string when nothing usable is present
+ *
+ * Fallback: Vercel Blob pathname-only keys need `VITE_BLOB_PUBLIC_BASE_URL` if API did not attach `lineImageUrl`.
  */
 function normalizeOrigin(rawBackendUrl) {
   return String(rawBackendUrl || "").replace(/\/+$/, "");
+}
+
+function getBlobPublicBase() {
+  return String(
+    import.meta.env.VITE_BLOB_PUBLIC_BASE_URL ||
+      import.meta.env.VITE_VERCEL_BLOB_PUBLIC_BASE_URL ||
+      ""
+  ).replace(/\/+$/, "");
+}
+
+function isVercelBlobHttpUrl(p) {
+  const s = String(p).toLowerCase();
+  return s.includes("blob.vercel-storage.com") || s.includes("public.blob.vercel-storage.com");
+}
+
+/** Blob object pathname (not disk uploads/): products/…, blogs/…, or aroma/products/…. */
+function looksLikeBlobPathname(p) {
+  const s = String(p || "").replace(/^\/+/, "").toLowerCase();
+  if (!s || s.startsWith("uploads/")) return false;
+  return /^(?:[a-z0-9_-]+\/)?(products|blogs|banners)\//.test(s);
 }
 
 function absoluteFromOrigin(origin, pathOrUrl) {
@@ -16,6 +39,10 @@ function absoluteFromOrigin(origin, pathOrUrl) {
     const base = normalizeOrigin(origin);
     const proto = base.startsWith("https") ? "https:" : "http:";
     return `${proto}${p}`;
+  }
+  const blobBase = getBlobPublicBase();
+  if (blobBase && looksLikeBlobPathname(p)) {
+    return `${blobBase}/${p.replace(/^\/+/, "")}`;
   }
   const base = normalizeOrigin(origin);
   if (!base) return p.startsWith("/") ? p : `/${p}`;
@@ -34,11 +61,15 @@ function resolveSlot(origin, raw) {
     return absoluteFromOrigin(origin, raw);
   }
   if (typeof raw === "object") {
-    if (raw.url != null && String(raw.url).trim() !== "") {
+    const urlStr = raw.url != null ? String(raw.url).trim() : "";
+    const pathStr = raw.path != null ? String(raw.path).trim() : "";
+    if (urlStr && isVercelBlobHttpUrl(urlStr)) return urlStr;
+    if (pathStr && isVercelBlobHttpUrl(pathStr)) return pathStr;
+    if (urlStr) {
       const u = absoluteFromOrigin(origin, raw.url);
       if (u) return u;
     }
-    if (raw.path != null && String(raw.path).trim() !== "") {
+    if (pathStr) {
       return absoluteFromOrigin(origin, raw.path);
     }
   }
@@ -52,6 +83,10 @@ function resolveSlot(origin, raw) {
  */
 export function getOrderLineItemImageUrl(item, backendUrl) {
   if (!item) return "";
+  if (item.lineImageUrl != null) {
+    const pre = String(item.lineImageUrl).trim();
+    if (pre) return pre;
+  }
   const origin = normalizeOrigin(backendUrl);
 
   const isTradeIn = item.isTradeIn === true;
@@ -74,7 +109,11 @@ export function getOrderLineItemImageUrl(item, backendUrl) {
     if (typeof t === "string") {
       const s = t.trim();
       if (!s) return "";
-      return absoluteFromOrigin(origin, s.startsWith("/") ? s : `uploads/products/${s}`);
+      if (isVercelBlobHttpUrl(s)) return s;
+      if (looksLikeBlobPathname(s) || s.includes("/")) {
+        return absoluteFromOrigin(origin, s.startsWith("/") ? s : s);
+      }
+      return absoluteFromOrigin(origin, `uploads/products/${s}`);
     }
     if (t.url) {
       const u = absoluteFromOrigin(origin, t.url);

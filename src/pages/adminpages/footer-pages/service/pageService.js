@@ -129,8 +129,13 @@ export const updateFooterPage = async (id, pageData) => {
       }
     }
     
+    // Server uses URL id param; strip client id so Mongoose update applies all fields (e.g. categorySlug)
+    const payload = { ...pageData };
+    delete payload.id;
+    delete payload._id;
+
     // Add all other page data as JSON string
-    formData.append('pageData', JSON.stringify(pageData));
+    formData.append('pageData', JSON.stringify(payload));
     
     console.log('Sending updated page data with files to API');
     
@@ -168,9 +173,16 @@ export const getFooterPageById = async (id) => {
  * @param {string} slug - The slug of the page to get
  * @returns {Promise<Object>} - The page
  */
-export const getFooterPageBySlug = async (slug) => {
+export const getFooterPageBySlug = async (slug, categorySlug = null) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/footer-pages/pagesBySlug/${slug}`);
+    const encoded = encodeURIComponent(slug);
+    const qs =
+      categorySlug != null && String(categorySlug).trim()
+        ? `?categorySlug=${encodeURIComponent(String(categorySlug).trim())}`
+        : '';
+    const response = await fetch(
+      `${API_BASE_URL}/footer-pages/pagesBySlug/${encoded}${qs}`
+    );
     const data = await handleResponse(response);
     return data.data;
   } catch (error) {

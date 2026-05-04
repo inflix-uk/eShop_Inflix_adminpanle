@@ -50,7 +50,9 @@ export const testSmtpConnection = async (payload) => {
     return null;
   } catch (error) {
     console.error("Error testing SMTP connection:", error);
-    toast.error(error.response?.data?.message || error.response?.data?.error || "SMTP connection test failed");
+    const apiMessage = error.response?.data?.message;
+    const apiError = error.response?.data?.error;
+    toast.error(apiError || apiMessage || "SMTP connection test failed");
     return null;
   }
 };
