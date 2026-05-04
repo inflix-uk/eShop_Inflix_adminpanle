@@ -78,7 +78,7 @@ export default function FooterPagesManagement() {
               </div>
               <Link
                 to="/admin/footer-pages/create"
-                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md flex items-center gap-2"
+                className="inline-flex items-center gap-2 rounded-md border border-transparent bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
               >
                 <FaPlus />
                 <span>Create New Page</span>
@@ -104,14 +104,14 @@ export default function FooterPagesManagement() {
                 placeholder="Search pages by title or slug..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+                className="w-full max-w-md rounded-md border border-gray-300 px-4 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
 
             {/* Pages Table */}
             {isLoading ? (
               <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+                <div className="h-12 w-12 animate-spin rounded-full border-2 border-gray-200 border-t-primary" />
               </div>
             ) : filteredPages.length === 0 ? (
               <div className="text-center py-12 bg-gray-50 rounded-lg">
@@ -149,7 +149,11 @@ export default function FooterPagesManagement() {
                           <div className="text-sm font-medium text-gray-900">{page.title}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500">/{page.slug}</div>
+                          <div className="text-sm text-gray-500">
+                            {page.categorySlug
+                              ? `/${page.categorySlug}/${page.slug}`
+                              : `/${page.slug}`}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -168,22 +172,28 @@ export default function FooterPagesManagement() {
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex justify-end gap-2">
                             <Link
-                              to={`/admin/footer-pages/preview/${page.slug}`}
-                              className="text-blue-600 hover:text-blue-900"
+                              to={{
+                                pathname: `/admin/footer-pages/preview/${page.slug}`,
+                                search: page.categorySlug
+                                  ? `?categorySlug=${encodeURIComponent(page.categorySlug)}`
+                                  : "",
+                              }}
+                              className="text-primary hover:text-secondary"
                               title="Preview"
                             >
                               <FaEye />
                             </Link>
                             <Link
                               to={`/admin/footer-pages/edit/${page._id || page.id}`}
-                              className="text-purple-600 hover:text-purple-900"
+                              className="text-primary hover:text-secondary"
                               title="Edit"
                             >
                               <FaEdit />
                             </Link>
                             <button
+                              type="button"
                               onClick={() => handleDelete(page._id || page.id, page.title)}
-                              className="text-red-600 hover:text-red-900"
+                              className="text-red-600 hover:text-red-800"
                               title="Delete"
                             >
                               <FaTrash />

@@ -149,11 +149,14 @@ export default function PricingGroupProducts() {
               <div className="flex items-center gap-2">
                 <Link
                   to={`/admin/pricing-groups/${groupId}/customers`}
-                  className="rounded-md bg-black px-3 py-2 text-sm text-white hover:bg-gray-800"
+                  className="inline-flex items-center justify-center rounded-md border border-transparent bg-primary px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
                 >
                   Add Customers
                 </Link>
-                <Link to="/admin/pricing-groups" className="rounded-md border px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                <Link
+                  to="/admin/pricing-groups"
+                  className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
+                >
                   Back to Groups
                 </Link>
               </div>
@@ -161,20 +164,20 @@ export default function PricingGroupProducts() {
 
             <div className="mt-6 rounded-lg border bg-white p-4">
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
-                <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search product or SKU" className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-                <select value={brand} onChange={(e) => setBrand(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <input type="text" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search product or SKU" className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30" />
+                <select value={brand} onChange={(e) => setBrand(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30">
                   {brands.map((item) => <option key={item} value={item}>{item === "all" ? "All Brands" : item}</option>)}
                 </select>
-                <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30">
                   {categories.map((item) => <option key={item} value={item}>{item === "all" ? "All Categories" : item}</option>)}
                 </select>
-                <select value={priceRange} onChange={(e) => setPriceRange(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <select value={priceRange} onChange={(e) => setPriceRange(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30">
                   <option value="all">All Prices</option>
                   <option value="0-300">$0 - $300</option>
                   <option value="301-800">$301 - $800</option>
                   <option value="801+">$801+</option>
                 </select>
-                <select value={stock} onChange={(e) => setStock(e.target.value)} className="w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <select value={stock} onChange={(e) => setStock(e.target.value)} className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30">
                   <option value="all">All Stock</option>
                   <option value="in-stock">In Stock</option>
                   <option value="low-stock">Low Stock</option>
@@ -228,7 +231,7 @@ export default function PricingGroupProducts() {
                                   : product.price
                               }
                               onChange={(e) => updatePrice(product.id, e.target.value)}
-                              className="w-24 rounded-md border px-2 py-1 text-right text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                              className="w-24 rounded-md border border-gray-300 px-2 py-1 text-right text-sm text-gray-900 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
                             />
                           </td>
                         </tr>

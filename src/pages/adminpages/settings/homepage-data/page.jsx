@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import LoadingBar from "react-top-loading-bar";
 import Side from "../../nav/Side";
@@ -370,6 +370,24 @@ export default function HomepageDataSettings() {
                   </div>
                 ) : (
                   <form onSubmit={handleSubmitContent} className="px-6 py-6">
+                    <div className="mb-6 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-950">
+                      <p className="font-semibold text-sky-950">
+                        Widget blocks need two switches to show on the store
+                      </p>
+                      <p className="mt-2 leading-relaxed text-sky-900/95">
+                        This screen saves <strong>layout and content</strong> (rows, columns, which
+                        widget types you added). The storefront <strong>also</strong> reads{" "}
+                        <strong>Site widgets</strong> — global on/off for each type (slider,
+                        newsletter, FAQ, etc.). If widgets disappear on <code className="rounded bg-white/80 px-1 text-xs">/</code>, open{" "}
+                        <Link
+                          to="/admin/settings/widgets"
+                          className="font-semibold text-sky-800 underline decoration-sky-400 underline-offset-2 hover:text-sky-950"
+                        >
+                          Settings → Site widgets
+                        </Link>{" "}
+                        and turn on the types you use here.
+                      </p>
+                    </div>
                     {contentUpdatedAt && (
                       <p className="text-sm text-gray-500 mb-4">
                         Content last updated:{" "}

@@ -9,6 +9,7 @@ import {
   getFooterPageById,
   API_BASE_URL,
 } from "../service/pageService";
+import { getAllPageCategories } from "../../pages-categories/service/pageCategoriesService";
 import BlocksTabForm from "../../blog-new/components/createblog/BlocksTabForm";
 import SeoTabForm from "../../blog-new/components/createblog/SeoTabForm";
 import PublishSettings from "../../blog-new/components/createblog/PublishSettings";
@@ -47,6 +48,10 @@ export default function CreateFooterPage() {
   const [metaDescription, setMetaDescription] = useState("");
   const [metaSchema, setMetaSchema] = useState([]);
   const [metaTags, setMetaTags] = useState([]);
+
+  const [pageCategories, setPageCategories] = useState([]);
+  /** Selected category slug; empty = uncategorized (live URL /{slug}). */
+  const [categorySlug, setCategorySlug] = useState("");
 
   // UI state
   const [activeTab, setActiveTab] = useState("content");
@@ -122,6 +127,11 @@ export default function CreateFooterPage() {
           setMetaDescription(pageData.metaDescription || "");
           setMetaSchema(pageData.metaSchema || []);
           setMetaTags(pageData.metaTags || []);
+          setCategorySlug(
+            pageData.categorySlug != null && pageData.categorySlug !== ""
+              ? String(pageData.categorySlug)
+              : ""
+          );
         } catch (error) {
           console.error("Error loading page:", error);
           setNotification({
@@ -137,6 +147,21 @@ export default function CreateFooterPage() {
       loadPage();
     }
   }, [id, isEditing]);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await getAllPageCategories();
+        if (!cancelled && Array.isArray(list)) setPageCategories(list);
+      } catch (e) {
+        console.warn("Could not load page categories:", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Auto-generate slug from title
   useEffect(() => {
@@ -260,6 +285,7 @@ export default function CreateFooterPage() {
         bannerImageAlt,
         bannerImageDescription,
         blockImageCount: blockImageFiles.length,
+        categorySlug: categorySlug.trim() || null,
       };
 
       console.log('[FooterPage] Saving with bannerImageAlt:', bannerImageAlt);
@@ -342,7 +368,7 @@ export default function CreateFooterPage() {
           />
           <main className="py-5">
             <div className="container mx-auto px-4 py-8 flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+              <div className="h-12 w-12 animate-spin rounded-full border-2 border-gray-200 border-t-primary" />
             </div>
           </main>
         </div>
@@ -377,6 +403,10 @@ export default function CreateFooterPage() {
                   ? "Update your footer page content"
                   : "Create a new footer page (Terms & Conditions, Privacy Policy, etc.)"}
               </p>
+              <p className="text-sm text-gray-500 mt-2">
+                Optional category uses a path like /category-name/page-slug; leave
+                empty for a root URL /page-slug only.
+              </p>
             </div>
 
             {/* Notification */}
@@ -407,7 +437,7 @@ export default function CreateFooterPage() {
                           onChange={(e) => setTitle(e.target.value)}
                           className={`w-full px-4 py-2 border ${
                             errors.title ? "border-red-300" : "border-gray-300"
-                          } rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500`}
+                          } rounded-md shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30`}
                           placeholder="e.g., Terms and Conditions"
                         />
                         {errors.title && (
@@ -419,14 +449,48 @@ export default function CreateFooterPage() {
 
                       <div>
                         <label
+                          htmlFor="pageCategory"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          Page category
+                        </label>
+                        <select
+                          id="pageCategory"
+                          value={categorySlug}
+                          onChange={(e) => setCategorySlug(e.target.value)}
+                          className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        >
+                          <option value="">None — URL is only /your-slug</option>
+                          {pageCategories.map((c) => (
+                            <option key={c._id} value={c.slug}>
+                              {c.name} (/{c.slug}/…)
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label
                           htmlFor="slug"
                           className="block text-sm font-medium text-gray-700 mb-1"
                         >
                           Slug <span className="text-red-500">*</span>
                         </label>
+                        <p className="text-xs text-gray-500 mb-1 break-all">
+                          Live URL:{" "}
+                          <span className="font-mono text-gray-700">
+                            {(import.meta.env.VITE_WEBSITE_URL || "http://localhost:3000").replace(/\/$/, "")}
+                            {categorySlug.trim()
+                              ? `/${categorySlug.trim()}/`
+                              : "/"}
+                            {slug.trim() || "{slug}"}
+                          </span>
+                        </p>
                         <div className="flex">
-                          <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">
-                            /
+                          <span className="inline-flex items-center px-2 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-xs sm:text-sm whitespace-nowrap max-w-[min(100%,12rem)] truncate" title={categorySlug.trim() ? `/${categorySlug.trim()}/` : "/"}>
+                            {categorySlug.trim()
+                              ? `/${categorySlug.trim()}/`
+                              : "/"}
                           </span>
                           <input
                             type="text"
@@ -470,8 +534,8 @@ export default function CreateFooterPage() {
                           type="button"
                           className={`py-4 px-1 border-b-2 font-medium text-sm ${
                             activeTab === "content"
-                              ? "border-purple-500 text-purple-600"
-                              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                              ? "border-primary text-primary"
+                              : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
                           }`}
                           onClick={() => setActiveTab("content")}
                         >
@@ -481,8 +545,8 @@ export default function CreateFooterPage() {
                           type="button"
                           className={`py-4 px-1 border-b-2 font-medium text-sm ${
                             activeTab === "seo"
-                              ? "border-purple-500 text-purple-600"
-                              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                              ? "border-primary text-primary"
+                              : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
                           }`}
                           onClick={() => setActiveTab("seo")}
                         >

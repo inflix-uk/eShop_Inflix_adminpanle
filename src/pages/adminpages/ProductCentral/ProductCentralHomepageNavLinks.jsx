@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import Side from "../nav/Side";
 import Top from "../nav/Top";
 import LoadingBar from "react-top-loading-bar";
@@ -7,7 +6,7 @@ import { Helmet } from "react-helmet-async";
 import HomepageNavLinksEditor from "../../../components/ProductCentralComponents/HomepageNavLinksEditor";
 
 export default function ProductCentralHomepageNavLinks() {
-  const [selectedPage, setSelectedPage] = useState("product-central-main");
+  const [selectedPage, setSelectedPage] = useState("storefront-nav-links");
   const [progress, setProgress] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
@@ -21,7 +20,7 @@ export default function ProductCentralHomepageNavLinks() {
         onLoaderFinished={() => setProgress(0)}
       />
       <Helmet>
-        <title>Storefront nav links - Product Central</title>
+        <title>Storefront nav links - Content</title>
       </Helmet>
       <Side
         selectedPage={selectedPage}
@@ -39,25 +38,7 @@ export default function ProductCentralHomepageNavLinks() {
             <nav className="flex mb-4" aria-label="Breadcrumb">
               <ol className="inline-flex items-center space-x-1 md:space-x-3">
                 <li className="inline-flex items-center">
-                  <Link
-                    to="/admin/product-central"
-                    className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-violet-600"
-                  >
-                    <svg
-                      className="w-4 h-4 mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
-                      />
-                    </svg>
-                    Product Central
-                  </Link>
+                  <span className="text-sm font-medium text-gray-500">Content</span>
                 </li>
                 <li>
                   <div className="flex items-center">
@@ -72,7 +53,7 @@ export default function ProductCentralHomepageNavLinks() {
                         clipRule="evenodd"
                       />
                     </svg>
-                    <span className="ml-1 text-sm font-medium text-violet-600 md:ml-2">
+                    <span className="ml-1 text-sm font-medium text-primary md:ml-2">
                       Storefront nav links
                     </span>
                   </div>

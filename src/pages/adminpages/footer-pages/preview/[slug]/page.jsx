@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import PropTypes from "prop-types";
 import { Edit } from "lucide-react";
 import { Helmet } from "react-helmet-async";
@@ -131,6 +131,8 @@ PageContent.propTypes = {
 // Main Component
 export default function FooterPagePreview() {
   const { slug } = useParams();
+  const [searchParams] = useSearchParams();
+  const categorySlugParam = searchParams.get("categorySlug");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [page, setPage] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -143,7 +145,10 @@ export default function FooterPagePreview() {
     const fetchPage = async () => {
       try {
         setIsLoading(true);
-        const data = await getFooterPageBySlug(slug);
+        const data = await getFooterPageBySlug(
+          slug,
+          categorySlugParam || null
+        );
         setPage(data);
       } catch (error) {
         setErrorMessage("Failed to load page preview.");
@@ -152,7 +157,7 @@ export default function FooterPagePreview() {
       }
     };
     if (slug) fetchPage();
-  }, [slug]);
+  }, [slug, categorySlugParam]);
 
   const contentBlockStyles = {
     width: "100%",
@@ -178,7 +183,10 @@ export default function FooterPagePreview() {
           <div className="container mx-auto py-8 max-w-[1600px]">
             <div className="flex justify-between items-center p-4 border-b border-gray-200 bg-white max-w-6xl mx-auto">
               <h1 className="text-2xl font-bold text-gray-900">Page Preview</h1>
-              <Link to="/admin/footer-pages" className="bg-gray-200 hover:bg-gray-300 text-gray-700 px-4 py-2 rounded-md">
+              <Link
+                to="/admin/footer-pages"
+                className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
+              >
                 Back to Pages
               </Link>
             </div>
@@ -186,7 +194,7 @@ export default function FooterPagePreview() {
             <div className="p-4 max-w-[1500px] mx-auto">
               {isLoading ? (
                 <div className="flex justify-center items-center h-64">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+                  <div className="h-12 w-12 animate-spin rounded-full border-2 border-gray-200 border-t-primary" />
                 </div>
               ) : errorMessage ? (
                 <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
@@ -315,7 +323,7 @@ export default function FooterPagePreview() {
                       <div className="flex justify-end mt-8">
                         <Link
                           to={`/admin/footer-pages/edit/${page._id || page.id}`}
-                          className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-md flex items-center gap-2"
+                          className="inline-flex items-center gap-2 rounded-md border border-transparent bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
                         >
                           <Edit size={16} />
                           <span>Edit</span>

@@ -4,10 +4,18 @@ import { useAuth } from "../../../context/Auth";
 import { Link, useNavigate } from "react-router-dom";
 import Side from "./Side";
 
-/** Public storefront (sitemap generation + “Open sitemap” link). Override with VITE_PUBLIC_SITE_URL. */
+/**
+ * Public storefront origin (sitemap + “Open sitemap” live link).
+ * Prefer VITE_PUBLIC_SITE_URL; otherwise common aliases from .env.example.
+ */
 function getPublicStoreBaseUrl() {
+  const fromEnv =
+    import.meta.env.VITE_FRONTEND_URL ||
+    import.meta.env.VITE_PUBLIC_SITE_URL ||
+    import.meta.env.VITE_STOREFRONT_URL ||
+    "";
   const fallback = import.meta.env.DEV ? "http://localhost:3000" : "https://www.aromadesire.com";
-  return (import.meta.env.VITE_PUBLIC_SITE_URL || fallback).replace(/\/$/, "");
+  return String(fromEnv || fallback).replace(/\/$/, "");
 }
 
 const generateImageFromInitial = (initial) => {
@@ -44,20 +52,19 @@ export default function Top({ toggleSidebar, isSidebarOpen, selectedPage = 'dash
     navigate("/");
   };
 
-  const handleGenerateSitemap = () => {
+  const handleGenerateSitemap = async () => {
     const siteUrl = getPublicStoreBaseUrl();
-    const url = `${siteUrl}/sitemap.xml`;
-    
+    const url = `${siteUrl}/sitemap.xml?refresh=${Date.now()}`;
+    setIsGenerating(true);
     try {
-      setIsGenerating(true);
+      // Warm the storefront sitemap (Next → API). no-cors avoids admin↔store CORS errors.
+      await fetch(url, { method: "GET", mode: "no-cors", cache: "no-store" }).catch(() => {});
       setSitemapUrl(url);
-      // Prepare refresh URL, but don't open a new tab here.
-      // User can open sitemap explicitly from the modal button.
-      setSitemapUrl(`${url}?refresh=${Date.now()}`);
       setShowSitemapModal(true);
     } catch (err) {
-      console.error('Generate sitemap error:', err);
-      alert('Failed to generate sitemap. Please try again.');
+      console.error("Sitemap link error:", err);
+      setSitemapUrl(url);
+      setShowSitemapModal(true);
     } finally {
       setIsGenerating(false);
     }
@@ -213,8 +220,13 @@ export default function Top({ toggleSidebar, isSidebarOpen, selectedPage = 'dash
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/30" onClick={() => setShowSitemapModal(false)}></div>
           <div className="relative z-50 w-full max-w-sm rounded-lg bg-white shadow-lg p-6 mx-4">
-            <h3 className="text-lg font-semibold text-gray-900">Sitemap generated</h3>
-            <p className="mt-2 text-sm text-gray-600">Your sitemap has been generated successfully.</p>
+            <h3 className="text-lg font-semibold text-gray-900">Live sitemap</h3>
+            <p className="mt-2 text-sm text-gray-600">
+              Opens your storefront <code className="rounded bg-gray-100 px-1 text-xs">/sitemap.xml</code> (built on
+              the live site with correct <code className="rounded bg-gray-100 px-1 text-xs">&lt;loc&gt;</code> URLs).
+              Set <code className="rounded bg-gray-100 px-1 text-xs">VITE_FRONTEND_URL</code> in admin{' '}
+              <code className="rounded bg-gray-100 px-1 text-xs">.env</code> if this should use another domain.
+            </p>
             <div className="mt-5 flex items-center justify-end gap-3">
               <button
                 type="button"

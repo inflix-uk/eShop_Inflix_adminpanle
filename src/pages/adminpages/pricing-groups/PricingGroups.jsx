@@ -139,12 +139,13 @@ export default function PricingGroups() {
                 </p>
               </div>
               <button
+                type="button"
                 onClick={() => {
                   setIsModalOpen(true);
                   setEditId(null);
                   setGroupName("");
                 }}
-                className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+                className="inline-flex items-center justify-center rounded-md border border-transparent bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
               >
                 + Add Group
               </button>
@@ -185,26 +186,29 @@ export default function PricingGroups() {
                         </td>
                         <td className="space-x-3 px-6 py-4 text-right">
                           <button
+                            type="button"
                             onClick={() =>
                               navigate(`/admin/pricing-groups/${group.id}`)
                             }
-                            className="text-sm text-blue-600 hover:underline"
+                            className="text-sm font-medium text-primary hover:text-secondary hover:underline"
                           >
                             Open
                           </button>
                           <button
+                            type="button"
                             onClick={() => {
                               setEditId(group.id);
                               setGroupName(group.name);
                               setIsModalOpen(true);
                             }}
-                            className="text-sm text-yellow-600 hover:underline"
+                            className="text-sm font-medium text-primary hover:text-secondary hover:underline"
                           >
                             Edit
                           </button>
                           <button
+                            type="button"
                             onClick={() => onDelete(group.id)}
-                            className="text-sm text-red-600 hover:underline"
+                            className="text-sm font-medium text-red-600 hover:text-red-800 hover:underline"
                           >
                             Delete
                           </button>
@@ -229,19 +233,21 @@ export default function PricingGroups() {
                 placeholder="Group Name"
                 value={groupName}
                 onChange={(e) => setGroupName(e.target.value)}
-                className="mt-4 w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                className="mt-4 w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
-              <div className="mt-6 flex justify-end space-x-3">
+              <div className="mt-6 flex justify-end gap-3">
                 <button
+                  type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="rounded-lg border px-4 py-2 text-sm"
+                  className="inline-flex items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-800 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
                 >
                   Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={onSaveGroup}
                   disabled={saving}
-                  className="rounded-lg bg-black px-4 py-2 text-sm text-white"
+                  className="inline-flex items-center justify-center rounded-md border border-transparent bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {saving ? "Saving..." : editId ? "Update" : "Create"}
                 </button>

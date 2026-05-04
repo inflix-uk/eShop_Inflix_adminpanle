@@ -505,15 +505,6 @@ export default function ProductCategories() {
                         </svg>
                         Add Category
                       </Link>
-                      <Link
-                        to="/admin/product-central/navbar-order"
-                        className="inline-flex items-center gap-1.5 rounded-lg bg-purple-100 px-4 py-2.5 text-sm font-medium text-purple-700 hover:bg-purple-200 transition-colors duration-150 shadow-sm"
-                      >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                        </svg>
-                        Order Navbar
-                      </Link>
                     </th>
                   </tr>
                 </thead>
