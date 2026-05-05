@@ -25,6 +25,7 @@ export const ROUTE_PERMISSIONS = {
 
     // Product Central
     '/admin/product-central': ['view_product_central'],
+    '/admin/product-central/navbar': ['view_product_central'],
     '/admin/product-central/homepage-nav-links': ['view_product_central'],
     '/admin/product-central/navbar-order': ['view_product_central'],
     '/admin/product-central/add-new-category': ['manage_product_central'],

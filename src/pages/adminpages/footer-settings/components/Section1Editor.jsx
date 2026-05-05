@@ -220,7 +220,7 @@ const Section1Editor = ({ data, onSave, onUploadImage, backendUrl, isSaving }) =
                   }}
                 />
               )}
-              <label className="cursor-pointer bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700">
+              <label className="cursor-pointer inline-flex items-center justify-center rounded-md border border-transparent bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-secondary focus-within:outline-none focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2">
                 <input
                   type="file"
                   accept="image/*"
@@ -240,7 +240,7 @@ const Section1Editor = ({ data, onSave, onUploadImage, backendUrl, isSaving }) =
               value={formData.logo.link}
               onChange={handleLogoLinkChange}
               placeholder="/"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
           </div>
           <div>
@@ -253,7 +253,7 @@ const Section1Editor = ({ data, onSave, onUploadImage, backendUrl, isSaving }) =
               onChange={handleLogoAltTextChange}
               placeholder="Describe the logo for accessibility"
               maxLength={200}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
             <p className="text-xs text-gray-400 mt-1">
               {(formData.logo.altText || "").length} / 200 characters
@@ -272,7 +272,7 @@ const Section1Editor = ({ data, onSave, onUploadImage, backendUrl, isSaving }) =
               rows={4}
               maxLength={2000}
               placeholder="Short intro or tagline for your brand..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500 resize-y min-h-[96px]"
+              className="min-h-[96px] w-full resize-y rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
             <p className="text-xs text-gray-400 mt-1">
               {formData.description.length} / 2000 characters
@@ -287,7 +287,7 @@ const Section1Editor = ({ data, onSave, onUploadImage, backendUrl, isSaving }) =
           <h3 className="text-lg font-semibold text-gray-700">Social Media</h3>
           <button
             onClick={handleAddSocialMedia}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2"
+            className="inline-flex items-center gap-2 rounded-md border border-transparent bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
             <FaPlus /> Add Social Media
           </button>
@@ -342,7 +342,7 @@ const Section1Editor = ({ data, onSave, onUploadImage, backendUrl, isSaving }) =
                       handleSocialMediaChange(index, "name", e.target.value)
                     }
                     placeholder="e.g., Twitter, Facebook"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
                 </div>
                 <div>
@@ -356,7 +356,7 @@ const Section1Editor = ({ data, onSave, onUploadImage, backendUrl, isSaving }) =
                       handleSocialMediaChange(index, "link", e.target.value)
                     }
                     placeholder="https://..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
                 </div>
                 <div>
@@ -391,7 +391,7 @@ const Section1Editor = ({ data, onSave, onUploadImage, backendUrl, isSaving }) =
                         }}
                       />
                     )}
-                    <label className="cursor-pointer bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 text-sm">
+                    <label className="cursor-pointer inline-flex items-center justify-center rounded-md border border-transparent bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-secondary focus-within:outline-none focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2">
                       <input
                         type="file"
                         accept="image/*"
@@ -421,7 +421,7 @@ const Section1Editor = ({ data, onSave, onUploadImage, backendUrl, isSaving }) =
                           e.target.checked
                         )
                       }
-                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                      className="rounded border-gray-300 text-primary focus:ring-primary/30"
                     />
                     <span className="text-sm text-gray-700">Active</span>
                   </label>
@@ -437,7 +437,7 @@ const Section1Editor = ({ data, onSave, onUploadImage, backendUrl, isSaving }) =
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-md"
+          className="inline-flex items-center justify-center rounded-md border border-transparent bg-primary px-6 py-2 text-sm font-medium text-white shadow-sm hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSaving ? "Saving..." : "Save Section 1"}
         </button>

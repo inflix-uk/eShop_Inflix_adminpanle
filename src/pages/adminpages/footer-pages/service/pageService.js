@@ -173,12 +173,12 @@ export const getFooterPageById = async (id) => {
  * @param {string} slug - The slug of the page to get
  * @returns {Promise<Object>} - The page
  */
-export const getFooterPageBySlug = async (slug, categorySlug = null) => {
+export const getFooterPageBySlug = async (slug, parentSlug = null) => {
   try {
     const encoded = encodeURIComponent(slug);
     const qs =
-      categorySlug != null && String(categorySlug).trim()
-        ? `?categorySlug=${encodeURIComponent(String(categorySlug).trim())}`
+      parentSlug != null && String(parentSlug).trim()
+        ? `?parentSlug=${encodeURIComponent(String(parentSlug).trim())}`
         : '';
     const response = await fetch(
       `${API_BASE_URL}/footer-pages/pagesBySlug/${encoded}${qs}`

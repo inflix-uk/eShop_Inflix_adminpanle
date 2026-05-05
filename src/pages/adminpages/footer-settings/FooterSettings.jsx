@@ -130,7 +130,7 @@ export default function FooterSettings() {
           />
           <main className="py-5">
             <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+              <div className="h-12 w-12 animate-spin rounded-full border-2 border-gray-200 border-t-primary"></div>
             </div>
           </main>
         </div>
@@ -172,9 +172,10 @@ export default function FooterSettings() {
                 </p>
               </div>
               <button
+                type="button"
                 onClick={handleSaveAll}
                 disabled={isSaving}
-                className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-md flex items-center gap-2"
+                className="inline-flex items-center gap-2 rounded-md border border-transparent bg-primary px-6 py-2 text-sm font-medium text-white shadow-sm hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isSaving ? (
                   <>
@@ -203,7 +204,7 @@ export default function FooterSettings() {
 
             {/* Tabs */}
             <Tab.Group selectedIndex={selectedTab} onChange={setSelectedTab}>
-              <Tab.List className="flex space-x-1 rounded-xl bg-purple-100 p-1 mb-6 overflow-x-auto">
+              <Tab.List className="mb-6 flex space-x-1 overflow-x-auto rounded-xl bg-gray-100 p-1">
                 {tabs.map((tab, index) => (
                   <Tab
                     key={index}
@@ -211,8 +212,8 @@ export default function FooterSettings() {
                       `w-full rounded-lg py-2.5 px-4 text-sm font-medium leading-5 whitespace-nowrap
                       ${
                         selected
-                          ? "bg-white text-purple-700 shadow"
-                          : "text-gray-700 hover:bg-white/[0.12] hover:text-purple-600"
+                          ? "bg-white text-primary shadow-sm"
+                          : "text-gray-700 hover:bg-white hover:text-primary"
                       }`
                     }
                   >

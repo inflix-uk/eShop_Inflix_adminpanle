@@ -6,10 +6,11 @@ import { toast } from "react-toastify";
 import axios from "axios";
 import { useAuth } from "../../../context/Auth";
 import { Helmet } from "react-helmet-async";
-const calculateReviewStats = (reviews) => {
-    const totalReviews = reviews.length;
-    const approvedReviews = reviews.filter(review => review.status === 'Approved').length;
-    const pendingReviews = reviews.filter(review => review.status === 'Pending').length;
+const calculateReviewStats = (reviews = []) => {
+    const safeReviews = Array.isArray(reviews) ? reviews : [];
+    const totalReviews = safeReviews.length;
+    const approvedReviews = safeReviews.filter((review) => review?.status === "Approved").length;
+    const pendingReviews = safeReviews.filter((review) => review?.status === "Pending").length;
 
     return { totalReviews, approvedReviews, pendingReviews };
 };
@@ -44,8 +45,8 @@ const Reviews = () => {
     }, []);
 
     // Filter products based on the search query
-    const filteredProducts = products.filter(product =>
-        product.name.toLowerCase().includes(searchQuery.toLowerCase())
+    const filteredProducts = products.filter((product) =>
+        (product?.name || "").toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     // Update the total pages whenever the number of items per page or filtered products changes

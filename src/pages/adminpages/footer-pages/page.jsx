@@ -27,8 +27,8 @@ export default function FooterPagesManagement() {
       setPages(footerPages);
       setIsLoading(false);
     } catch (error) {
-      console.error('Failed to fetch footer pages:', error);
-      setErrorMessage('Failed to load footer pages. Please try again later.');
+      console.error('Failed to fetch pages:', error);
+      setErrorMessage('Failed to load pages. Please try again later.');
       setIsLoading(false);
     }
   };
@@ -63,6 +63,13 @@ export default function FooterPagesManagement() {
     page.slug?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const getParentSlug = (page) => {
+    const parent = page?.parentPageId;
+    if (!parent) return "";
+    if (typeof parent === "string") return "";
+    return String(parent?.slug || "").trim();
+  };
+
   return (
     <>
       <Side selectedPage="footer-pages" isSidebarOpen={isSidebarOpen} toggleSidebar={toggleSidebar} closeSidebar={closeSidebar} />
@@ -70,18 +77,20 @@ export default function FooterPagesManagement() {
         <Top toggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} selectedPage="footer-pages" setSelectedPage={() => {}} />
         <main className="py-5">
           <div className="container mx-auto px-4 py-8">
-            {/* Header */}
-            <div className="mb-8 flex justify-between items-center">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-800">Footer Pages</h1>
-                <p className="text-gray-600 mt-2">Manage your footer pages (Terms & Conditions, Privacy Policy, etc.)</p>
+            {/* Header — stack on narrow widths so the CTA is not crushed by the long intro copy */}
+            <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-3xl font-bold text-gray-800">Pages</h1>
+                <p className="text-gray-600 mt-2 text-sm sm:text-base leading-relaxed">
+                  Create and manage your site pages — policies, guides, marketing content, and custom URLs (root or under a parent page).
+                </p>
               </div>
               <Link
                 to="/admin/footer-pages/create"
-                className="inline-flex items-center gap-2 rounded-md border border-transparent bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                className="inline-flex shrink-0 items-center justify-center gap-2 self-stretch rounded-md border border-transparent bg-primary px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 sm:self-start sm:py-2"
               >
-                <FaPlus />
-                <span>Create New Page</span>
+                <FaPlus className="h-4 w-4 shrink-0" aria-hidden />
+                <span className="whitespace-nowrap">Create New Page</span>
               </Link>
             </div>
 
@@ -150,8 +159,8 @@ export default function FooterPagesManagement() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-500">
-                            {page.categorySlug
-                              ? `/${page.categorySlug}/${page.slug}`
+                            {getParentSlug(page)
+                              ? `/${getParentSlug(page)}/${page.slug}`
                               : `/${page.slug}`}
                           </div>
                         </td>
@@ -174,8 +183,8 @@ export default function FooterPagesManagement() {
                             <Link
                               to={{
                                 pathname: `/admin/footer-pages/preview/${page.slug}`,
-                                search: page.categorySlug
-                                  ? `?categorySlug=${encodeURIComponent(page.categorySlug)}`
+                                search: getParentSlug(page)
+                                  ? `?parentSlug=${encodeURIComponent(getParentSlug(page))}`
                                   : "",
                               }}
                               className="text-primary hover:text-secondary"

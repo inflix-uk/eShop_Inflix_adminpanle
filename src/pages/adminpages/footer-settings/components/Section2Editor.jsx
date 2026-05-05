@@ -88,7 +88,7 @@ const Section2Editor = ({ data, onSave, isSaving }) => {
           type="text"
           value={formData.title}
           onChange={handleTitleChange}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+          className="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
         />
       </div>
 
@@ -98,7 +98,7 @@ const Section2Editor = ({ data, onSave, isSaving }) => {
           <h3 className="text-lg font-semibold text-gray-700">Links</h3>
           <button
             onClick={handleAddLink}
-            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 flex items-center gap-2"
+            className="inline-flex items-center gap-2 rounded-md border border-transparent bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
             <FaPlus /> Add Link
           </button>
@@ -151,7 +151,7 @@ const Section2Editor = ({ data, onSave, isSaving }) => {
                       handleLinkChange(index, "text", e.target.value)
                     }
                     placeholder="e.g., Read Our Blogs"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
                 </div>
                 <div>
@@ -165,7 +165,7 @@ const Section2Editor = ({ data, onSave, isSaving }) => {
                       handleLinkChange(index, "link", e.target.value)
                     }
                     placeholder="/blogs or https://..."
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+                    className="w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
                   />
                 </div>
                 <div>
@@ -179,7 +179,7 @@ const Section2Editor = ({ data, onSave, isSaving }) => {
                       onChange={(e) =>
                         handleLinkChange(index, "isActive", e.target.checked)
                       }
-                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                      className="rounded border-gray-300 text-primary focus:ring-primary/30"
                     />
                     <span className="text-sm text-gray-700">Active</span>
                   </label>
@@ -195,7 +195,7 @@ const Section2Editor = ({ data, onSave, isSaving }) => {
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-md"
+          className="inline-flex items-center justify-center rounded-md border border-transparent bg-primary px-6 py-2 text-sm font-medium text-white shadow-sm hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSaving ? "Saving..." : "Save Section 2"}
         </button>
