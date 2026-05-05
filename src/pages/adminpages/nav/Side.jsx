@@ -128,6 +128,7 @@ export default function Side({
     if (!isCurrentlyOpen) setter(true);
   }, []);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
+  const [disabledAdminRoutes, setDisabledAdminRoutes] = useState([]);
 
   const auth = useAuth();
   const permissions = auth?.user?.permissions;
@@ -146,6 +147,19 @@ export default function Side({
       return true;
     },
     [permissions]
+  );
+
+  const normalizeRoutePath = useCallback(
+    (routePath) => String(routePath || "").trim().replace(/^\/+|\/+$/g, "").toLowerCase(),
+    []
+  );
+
+  const isAdminRouteDisabled = useCallback(
+    (routePath) => {
+      const normalized = normalizeRoutePath(routePath);
+      return disabledAdminRoutes.includes(normalized);
+    },
+    [disabledAdminRoutes, normalizeRoutePath]
   );
 
   // Fetch unread messages count
@@ -185,11 +199,45 @@ export default function Side({
     };
   }, [fetchUnreadCount]);
 
+  useEffect(() => {
+    let mounted = true;
+    const fetchAdminControls = async () => {
+      try {
+        const response = await axios.get(
+          `${BACKEND_URL}superadmin/controls/public`
+        );
+        const disabled = Array.isArray(response?.data?.data?.disabledAdminRoutes)
+          ? response.data.data.disabledAdminRoutes
+              .map((item) => normalizeRoutePath(item))
+              .filter(Boolean)
+          : [];
+        if (mounted) {
+          setDisabledAdminRoutes([...new Set(disabled)]);
+        }
+      } catch (error) {
+        if (mounted) {
+          setDisabledAdminRoutes([]);
+        }
+      }
+    };
+
+    fetchAdminControls();
+    return () => {
+      mounted = false;
+    };
+  }, [normalizeRoutePath]);
+
   const footerPagesList = [
     "footer-pages",
     "footer-pages-create",
     "footer-pages-edit",
     "footer-pages-preview",
+  ];
+
+  const navbarHubPages = [
+    "storefront-navbar",
+    "storefront-nav-links",
+    "storefront-navbar-order",
   ];
 
   useEffect(() => {
@@ -210,8 +258,7 @@ export default function Side({
       "reviews",
       "author",
       "pages-categories",
-      "storefront-nav-links",
-      "storefront-navbar-order",
+      "storefront-navbar",
       ...footerPagesList,
     ];
 
@@ -689,9 +736,9 @@ export default function Side({
           ),
         },
         {
-          label: "Storefront nav links",
-          to: "/admin/product-central/homepage-nav-links",
-          selectedKey: "storefront-nav-links",
+          label: "Navbar",
+          to: "/admin/product-central/navbar",
+          selectedKey: "storefront-navbar",
           permissionCheck: (p) => p?.zextons?.view_product_central,
           icon: (
             <svg
@@ -701,33 +748,7 @@ export default function Side({
               strokeWidth={1.5}
               stroke="currentColor"
               className={`h-5 w-5 shrink-0 ${
-                selectedPage === "storefront-nav-links"
-                  ? "text-primary"
-                  : "text-gray-400 group-hover:text-primary"
-              } my-auto`}
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
-              />
-            </svg>
-          ),
-        },
-        {
-          label: "Navbar order",
-          to: "/admin/product-central/navbar-order",
-          selectedKey: "storefront-navbar-order",
-          permissionCheck: (p) => p?.zextons?.view_product_central,
-          icon: (
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-              strokeWidth={1.5}
-              stroke="currentColor"
-              className={`h-5 w-5 shrink-0 ${
-                selectedPage === "storefront-navbar-order"
+                navbarHubPages.includes(selectedPage)
                   ? "text-primary"
                   : "text-gray-400 group-hover:text-primary"
               } my-auto`}
@@ -1518,8 +1539,9 @@ export default function Side({
   const renderSidebarSections = () => {
     return sideBarData.map((section) => {
       // Filter links that the user has permission to access
-      const accessibleLinks = section.links.filter((link) =>
-        hasPermission(link.permissionCheck)
+      const accessibleLinks = section.links.filter(
+        (link) =>
+          hasPermission(link.permissionCheck) && !isAdminRouteDisabled(link.to)
       );
 
       // If no links are accessible, don't render the section at all
@@ -1548,7 +1570,9 @@ export default function Side({
                   ? productTabPages.includes(selectedPage)
                   : link.selectedKey === "footer-pages"
                     ? footerPagesList.includes(selectedPage)
-                    : selectedPage === link.selectedKey;
+                    : link.selectedKey === "storefront-navbar"
+                      ? navbarHubPages.includes(selectedPage)
+                      : selectedPage === link.selectedKey;
 
               return (
                 <SidebarLink

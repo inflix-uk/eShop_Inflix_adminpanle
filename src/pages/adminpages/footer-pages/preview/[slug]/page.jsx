@@ -132,7 +132,7 @@ PageContent.propTypes = {
 export default function FooterPagePreview() {
   const { slug } = useParams();
   const [searchParams] = useSearchParams();
-  const categorySlugParam = searchParams.get("categorySlug");
+  const parentSlugParam = searchParams.get("parentSlug");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [page, setPage] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -147,7 +147,7 @@ export default function FooterPagePreview() {
         setIsLoading(true);
         const data = await getFooterPageBySlug(
           slug,
-          categorySlugParam || null
+          parentSlugParam || null
         );
         setPage(data);
       } catch (error) {
@@ -157,7 +157,7 @@ export default function FooterPagePreview() {
       }
     };
     if (slug) fetchPage();
-  }, [slug, categorySlugParam]);
+  }, [slug, parentSlugParam]);
 
   const contentBlockStyles = {
     width: "100%",

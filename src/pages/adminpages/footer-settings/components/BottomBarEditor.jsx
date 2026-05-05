@@ -55,7 +55,7 @@ const BottomBarEditor = ({ data, onSave, isSaving }) => {
             rows={4}
             value={formData.textBeforeCredit}
             onChange={(e) => handleChange("textBeforeCredit", e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500 font-mono"
+            className="w-full rounded-md border border-gray-300 px-4 py-2.5 text-sm font-mono shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
           />
         </div>
 
@@ -72,7 +72,7 @@ const BottomBarEditor = ({ data, onSave, isSaving }) => {
               type="text"
               value={formData.creditLabel}
               onChange={(e) => handleChange("creditLabel", e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              className="w-full rounded-md border border-gray-300 px-4 py-2.5 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
               placeholder="e.g. Inflix"
             />
             <p className="text-xs text-gray-500 mt-1">
@@ -91,7 +91,7 @@ const BottomBarEditor = ({ data, onSave, isSaving }) => {
               type="url"
               value={formData.creditUrl}
               onChange={(e) => handleChange("creditUrl", e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              className="w-full rounded-md border border-gray-300 px-4 py-2.5 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
               placeholder="https://"
             />
           </div>
@@ -106,7 +106,7 @@ const BottomBarEditor = ({ data, onSave, isSaving }) => {
             {formData.creditLabel?.trim() && formData.creditUrl?.trim() ? (
               <>
                 {" "}
-                <span className="underline text-purple-700">
+                <span className="underline text-primary">
                   {formData.creditLabel.trim()}
                 </span>
               </>
@@ -123,7 +123,7 @@ const BottomBarEditor = ({ data, onSave, isSaving }) => {
           type="button"
           onClick={handleSave}
           disabled={isSaving}
-          className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-md"
+          className="inline-flex items-center justify-center rounded-md border border-transparent bg-primary px-6 py-2 text-sm font-medium text-white shadow-sm hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSaving ? "Saving…" : "Save bottom bar"}
         </button>

@@ -7,9 +7,9 @@ import {
   createFooterPage,
   updateFooterPage,
   getFooterPageById,
+  getAllFooterPages,
   API_BASE_URL,
 } from "../service/pageService";
-import { getAllPageCategories } from "../../pages-categories/service/pageCategoriesService";
 import BlocksTabForm from "../../blog-new/components/createblog/BlocksTabForm";
 import SeoTabForm from "../../blog-new/components/createblog/SeoTabForm";
 import PublishSettings from "../../blog-new/components/createblog/PublishSettings";
@@ -49,9 +49,9 @@ export default function CreateFooterPage() {
   const [metaSchema, setMetaSchema] = useState([]);
   const [metaTags, setMetaTags] = useState([]);
 
-  const [pageCategories, setPageCategories] = useState([]);
-  /** Selected category slug; empty = uncategorized (live URL /{slug}). */
-  const [categorySlug, setCategorySlug] = useState("");
+  const [allPages, setAllPages] = useState([]);
+  /** Selected parent page id; empty = root page (URL /{slug}). */
+  const [parentPageId, setParentPageId] = useState("");
 
   // UI state
   const [activeTab, setActiveTab] = useState("content");
@@ -127,9 +127,9 @@ export default function CreateFooterPage() {
           setMetaDescription(pageData.metaDescription || "");
           setMetaSchema(pageData.metaSchema || []);
           setMetaTags(pageData.metaTags || []);
-          setCategorySlug(
-            pageData.categorySlug != null && pageData.categorySlug !== ""
-              ? String(pageData.categorySlug)
+          setParentPageId(
+            pageData.parentPageId != null && pageData.parentPageId !== ""
+              ? String(pageData.parentPageId)
               : ""
           );
         } catch (error) {
@@ -152,10 +152,10 @@ export default function CreateFooterPage() {
     let cancelled = false;
     (async () => {
       try {
-        const list = await getAllPageCategories();
-        if (!cancelled && Array.isArray(list)) setPageCategories(list);
+        const list = await getAllFooterPages({});
+        if (!cancelled && Array.isArray(list)) setAllPages(list);
       } catch (e) {
-        console.warn("Could not load page categories:", e);
+        console.warn("Could not load pages list:", e);
       }
     })();
     return () => {
@@ -164,16 +164,20 @@ export default function CreateFooterPage() {
   }, []);
 
   // Auto-generate slug from title
-  useEffect(() => {
-    if (title && !slug && !isEditing) {
-      setSlug(
-        title
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/(^-|-$)+/g, "")
-      );
+  const toSlug = (value) =>
+    String(value || "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)+/g, "");
+
+  const handleTitleChange = (e) => {
+    const nextTitle = e.target.value;
+    setTitle(nextTitle);
+    if (!isEditing) {
+      setSlug(toSlug(nextTitle));
     }
-  }, [title, slug, isEditing]);
+  };
 
   // Handle banner image upload
   const handleBannerUpload = (e) => {
@@ -285,7 +289,7 @@ export default function CreateFooterPage() {
         bannerImageAlt,
         bannerImageDescription,
         blockImageCount: blockImageFiles.length,
-        categorySlug: categorySlug.trim() || null,
+        parentPageId: parentPageId.trim() || null,
       };
 
       console.log('[FooterPage] Saving with bannerImageAlt:', bannerImageAlt);
@@ -376,6 +380,13 @@ export default function CreateFooterPage() {
     );
   }
 
+  const selectedParentSlug = (() => {
+    const selectedParent = allPages.find(
+      (p) => String(p._id || p.id) === String(parentPageId)
+    );
+    return selectedParent?.slug ? String(selectedParent.slug).trim() : "";
+  })();
+
   return (
     <>
       <Side
@@ -404,8 +415,8 @@ export default function CreateFooterPage() {
                   : "Create a new footer page (Terms & Conditions, Privacy Policy, etc.)"}
               </p>
               <p className="text-sm text-gray-500 mt-2">
-                Optional category uses a path like /category-name/page-slug; leave
-                empty for a root URL /page-slug only.
+                Optional parent page uses a path like /parent-slug/page-slug; leave
+                empty to keep this as a root URL /page-slug.
               </p>
             </div>
 
@@ -434,7 +445,7 @@ export default function CreateFooterPage() {
                           type="text"
                           id="title"
                           value={title}
-                          onChange={(e) => setTitle(e.target.value)}
+                          onChange={handleTitleChange}
                           className={`w-full px-4 py-2 border ${
                             errors.title ? "border-red-300" : "border-gray-300"
                           } rounded-md shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30`}
@@ -449,24 +460,35 @@ export default function CreateFooterPage() {
 
                       <div>
                         <label
-                          htmlFor="pageCategory"
+                          htmlFor="parentPage"
                           className="block text-sm font-medium text-gray-700 mb-1"
                         >
-                          Page category
+                          Parent page
                         </label>
                         <select
-                          id="pageCategory"
-                          value={categorySlug}
-                          onChange={(e) => setCategorySlug(e.target.value)}
+                          id="parentPage"
+                          value={parentPageId}
+                          onChange={(e) => setParentPageId(e.target.value)}
                           className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
                         >
                           <option value="">None — URL is only /your-slug</option>
-                          {pageCategories.map((c) => (
-                            <option key={c._id} value={c.slug}>
-                              {c.name} (/{c.slug}/…)
+                          {allPages
+                            .filter((p) => String(p._id || p.id) !== String(id || ""))
+                            .filter((p) => !p.parentPageId)
+                            .map((p) => (
+                            <option key={p._id || p.id} value={p._id || p.id}>
+                              {p.title} (/{p.slug}/…)
                             </option>
                           ))}
                         </select>
+                      </div>
+
+                      <div>
+                        {parentPageId && (
+                          <p className="mt-1 text-xs text-gray-500">
+                            Child page URL will use selected parent slug.
+                          </p>
+                        )}
                       </div>
 
                       <div>
@@ -480,17 +502,16 @@ export default function CreateFooterPage() {
                           Live URL:{" "}
                           <span className="font-mono text-gray-700">
                             {(import.meta.env.VITE_WEBSITE_URL || "http://localhost:3000").replace(/\/$/, "")}
-                            {categorySlug.trim()
-                              ? `/${categorySlug.trim()}/`
-                              : "/"}
+                            {selectedParentSlug ? `/${selectedParentSlug}/` : "/"}
                             {slug.trim() || "{slug}"}
                           </span>
                         </p>
                         <div className="flex">
-                          <span className="inline-flex items-center px-2 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-xs sm:text-sm whitespace-nowrap max-w-[min(100%,12rem)] truncate" title={categorySlug.trim() ? `/${categorySlug.trim()}/` : "/"}>
-                            {categorySlug.trim()
-                              ? `/${categorySlug.trim()}/`
-                              : "/"}
+                          <span
+                            className="inline-flex items-center px-2 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-xs sm:text-sm whitespace-nowrap max-w-[min(100%,12rem)] truncate"
+                            title={selectedParentSlug ? `/${selectedParentSlug}/` : "/"}
+                          >
+                            {selectedParentSlug ? `/${selectedParentSlug}/` : "/"}
                           </span>
                           <input
                             type="text"

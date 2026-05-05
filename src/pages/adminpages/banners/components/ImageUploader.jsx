@@ -32,6 +32,7 @@ async function verifyImageDimensions(file, width, height) {
 
 const ImageUploader = ({
   label,
+  helperText = null,
   value,
   onChange,
   error,
@@ -119,6 +120,9 @@ const ImageUploader = ({
       <label className="block text-sm font-medium text-gray-700 mb-2">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
+      {helperText ? (
+        <p className="mb-2 text-xs text-gray-500">{helperText}</p>
+      ) : null}
 
       {value ? (
         <div className="relative">
@@ -179,6 +183,7 @@ const ImageUploader = ({
 
 ImageUploader.propTypes = {
   label: PropTypes.string.isRequired,
+  helperText: PropTypes.string,
   value: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(File)]),
   onChange: PropTypes.func.isRequired,
   error: PropTypes.string,

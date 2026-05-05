@@ -47,7 +47,7 @@ const NewsletterSectionEditor = ({ data, onSave, isSaving }) => {
             type="checkbox"
             checked={formData.isEnabled}
             onChange={(e) => handleChange("isEnabled", e.target.checked)}
-            className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+            className="rounded border-gray-300 text-primary focus:ring-primary/30"
           />
           <span className="text-gray-800 font-medium">Show newsletter block in footer</span>
         </label>
@@ -65,7 +65,7 @@ const NewsletterSectionEditor = ({ data, onSave, isSaving }) => {
             type="text"
             value={formData.heading}
             onChange={(e) => handleChange("heading", e.target.value)}
-            className="w-full border border-gray-300 rounded-md px-4 py-2.5 text-base focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+            className="w-full rounded-md border border-gray-300 px-4 py-2.5 text-base shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
             placeholder="e.g. Stay in the loop"
           />
         </div>
@@ -83,7 +83,7 @@ const NewsletterSectionEditor = ({ data, onSave, isSaving }) => {
             value={formData.description}
             onChange={(e) => handleChange("description", e.target.value)}
             rows={3}
-            className="w-full border border-gray-300 rounded-md px-4 py-2 text-sm text-gray-800 focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+            className="w-full rounded-md border border-gray-300 px-4 py-2 text-sm text-gray-800 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
             placeholder="Short line about what subscribers get…"
           />
         </div>
@@ -104,7 +104,7 @@ const NewsletterSectionEditor = ({ data, onSave, isSaving }) => {
               type="text"
               value={formData.placeholder}
               onChange={(e) => handleChange("placeholder", e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
           </div>
 
@@ -120,7 +120,7 @@ const NewsletterSectionEditor = ({ data, onSave, isSaving }) => {
               type="text"
               value={formData.buttonLabel}
               onChange={(e) => handleChange("buttonLabel", e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
             />
           </div>
 
@@ -136,7 +136,7 @@ const NewsletterSectionEditor = ({ data, onSave, isSaving }) => {
               type="text"
               value={formData.imageUrl}
               onChange={(e) => handleChange("imageUrl", e.target.value)}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
               placeholder="/uploads/... or https://..."
             />
           </div>
@@ -148,7 +148,7 @@ const NewsletterSectionEditor = ({ data, onSave, isSaving }) => {
           type="button"
           onClick={handleSave}
           disabled={isSaving}
-          className="bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white px-6 py-2 rounded-md"
+          className="inline-flex items-center justify-center rounded-md border border-transparent bg-primary px-6 py-2 text-sm font-medium text-white shadow-sm hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isSaving ? "Saving…" : "Save section"}
         </button>
