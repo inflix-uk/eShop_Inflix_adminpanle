@@ -52,8 +52,7 @@ export default function AllBlogs() {
     dispatch(fetchBlogs());
   }, [dispatch]);
   useEffect(() => {
-    const allBlog = blogs.filter(blog => blog.visibility === true);
-    setAllBlogs(allBlog);
+    setAllBlogs(Array.isArray(blogs) ? blogs : []);
   }, [blogs]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const toggleSidebar = () => {

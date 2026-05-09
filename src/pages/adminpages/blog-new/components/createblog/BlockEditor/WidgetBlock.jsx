@@ -27,7 +27,9 @@ import {
   Percent,
   Gift,
   Contact,
+  PanelTop,
 } from "lucide-react";
+import { FiDownload, FiGrid, FiHome, FiPhone, FiSearch, FiShoppingCart, FiStar, FiTag, FiUser } from "react-icons/fi";
 import { DynamicIcon } from "lucide-react/dynamic";
 import { API_BASE_URL } from "../../../service/blogService";
 import InlineBannerItemEditor from "./InlineBannerItemEditor";
@@ -119,6 +121,47 @@ function createDealsDiscountCardItem() {
   };
 }
 
+const NAVBAR_LAYOUT_PRESETS = [
+  { id: "classic", variant: "modern", label: "Classic left nav", preview: "Logo | Links | Search + Buttons" },
+  { id: "centered", variant: "minimalist", label: "Centered links", preview: "Logo | Links | Icon actions" },
+  { id: "split", variant: "dark-sidebar", label: "Split actions", preview: "Logo + Links | Search | Icons" },
+  { id: "minimal", variant: "developer", label: "Minimal", preview: "Logo + Links | Search + Profile" },
+  { id: "business", variant: "business", label: "Business", preview: "Logo + Links | Wide search | Icons" },
+  { id: "bold-left", variant: "bold-left", label: "Bold left", preview: "Logo | Center search | Icons" },
+];
+
+function resolveNavbarReactIcon(code, label = "") {
+  const normalized = String(code || "").trim();
+  const iconMap = {
+    FiHome,
+    FiGrid,
+    FiStar,
+    FiTag,
+    FiShoppingCart,
+    FiUser,
+    FiDownload,
+    FiPhone,
+    FiSearch,
+  };
+  if (normalized && iconMap[normalized]) return iconMap[normalized];
+
+  const key = String(label || "").toLowerCase();
+  if (key.includes("home")) return FiHome;
+  if (key.includes("product") || key.includes("shop")) return FiGrid;
+  if (key.includes("feature")) return FiStar;
+  if (key.includes("pricing") || key.includes("deal")) return FiTag;
+  if (key.includes("cart")) return FiShoppingCart;
+  if (key.includes("user") || key.includes("profile")) return FiUser;
+  if (key.includes("download")) return FiDownload;
+  if (key.includes("phone") || key.includes("contact")) return FiPhone;
+  if (key.includes("search")) return FiSearch;
+  return FiGrid;
+}
+
+function createNavbarLinkItem(label = "", url = "", icon = "", linkType = "label") {
+  return { id: nanoid(), label, url, icon, linkType };
+}
+
 /** `<input type="date">` only accepts yyyy-MM-dd; map legacy ISO / dd/mm/yyyy when possible. */
 function dealsCardDateToInputValue(raw) {
   const s = String(raw ?? "").trim();
@@ -181,6 +224,532 @@ export default function WidgetBlock({
 }) {
   const [htmlCssTab, setHtmlCssTab] = useState("html");
   const widgetType = content?.widgetType || "slider";
+
+  if (widgetType === "navbar") {
+    const layout = content?.layout || "classic";
+    const variant = content?.variant || "modern";
+    const links = Array.isArray(content?.links) ? content.links : [];
+    const logoText = content?.logoText ?? "";
+    const showSearch = content?.showSearch !== false;
+    const showButtons = content?.showButtons !== false;
+    const actionIcon1 = content?.actionIcon1 ?? "FiShoppingCart";
+    const actionIcon2 = content?.actionIcon2 ?? "FiUser";
+    const primaryButtonIcon = content?.primaryButtonIcon ?? "FiDownload";
+    const secondaryButtonIcon = content?.secondaryButtonIcon ?? "FiPhone";
+
+    const updateNavbar = (patch) => {
+      onChange(id, {
+        widgetType: "navbar",
+        variant,
+        layout,
+        logoUrl: content?.logoUrl ?? "",
+        logoText,
+        links,
+        showSearch,
+        showButtons,
+        actionIcon1,
+        actionIcon2,
+        primaryButtonLabel: content?.primaryButtonLabel ?? "Sign in",
+        primaryButtonUrl: content?.primaryButtonUrl ?? "/login",
+        primaryButtonIcon,
+        secondaryButtonLabel: content?.secondaryButtonLabel ?? "Get started",
+        secondaryButtonUrl: content?.secondaryButtonUrl ?? "/register",
+        secondaryButtonIcon,
+        ...patch,
+      });
+    };
+
+    const updateLink = (linkId, patch) => {
+      updateNavbar({
+        links: links.map((link) => (link.id === linkId ? { ...link, ...patch } : link)),
+      });
+    };
+
+    const addLink = () => {
+      updateNavbar({
+        links: [...links, createNavbarLinkItem("", "")],
+      });
+    };
+
+    const removeLink = (linkId) => {
+      updateNavbar({
+        links: links.filter((link) => link.id !== linkId),
+      });
+    };
+
+    const handleNavbarLogoPick = (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        updateNavbar({ logoUrl: ev.target?.result || "" });
+      };
+      reader.readAsDataURL(file);
+      e.target.value = "";
+    };
+
+    const previewLinks = links.length
+      ? links
+          .filter((l) => String(l?.label || "").trim() || String(l?.icon || "").trim())
+          .slice(0, 6)
+      : [
+          { id: "p1", label: "Home", url: "/", linkType: "label" },
+          { id: "p2", label: "Product", url: "/products", linkType: "label" },
+          { id: "p3", label: "Features", url: "/features", linkType: "label" },
+          { id: "p4", label: "Pricing", url: "/pricing", linkType: "label" },
+        ];
+    const previewLogoSrc = content?.logoUrl ? getSlideImageSrc(content.logoUrl) : "";
+    const logoInitials = (logoText || "Brand").slice(0, 2).toUpperCase();
+    const primaryLabel = (content?.primaryButtonLabel || "Sign in").trim() || "Sign in";
+    const secondaryLabel = (content?.secondaryButtonLabel || "Register").trim() || "Register";
+    const ActionIcon1 = resolveNavbarReactIcon(actionIcon1, "cart");
+    const ActionIcon2 = resolveNavbarReactIcon(actionIcon2, "user");
+    const PrimaryButtonIcon = resolveNavbarReactIcon(primaryButtonIcon, "download");
+    const SecondaryButtonIcon = resolveNavbarReactIcon(secondaryButtonIcon, "phone");
+
+    return (
+      <div className="border-2 border-cyan-200 rounded-lg p-3 mb-4 bg-cyan-50/40">
+        <div className="flex justify-between items-center mb-3 pb-2 border-b border-cyan-200">
+          <div className="flex items-center gap-2">
+            <Grip className="text-cyan-500" size={18} />
+            <PanelTop className="text-cyan-600" size={18} />
+            <span className="text-sm font-semibold text-cyan-900">Navbar widget</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <button type="button" onClick={onMoveUp} className="p-1.5 text-gray-600 hover:bg-white rounded-full" title="Move up">
+              <ChevronUp size={18} />
+            </button>
+            <button type="button" onClick={onMoveDown} className="p-1.5 text-gray-600 hover:bg-white rounded-full" title="Move down">
+              <ChevronDown size={18} />
+            </button>
+            <button type="button" onClick={() => onDelete(id)} className="p-1.5 text-red-500 hover:bg-red-50 rounded-full" title="Remove widget">
+              <Trash2 size={18} />
+            </button>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-cyan-100 bg-white p-3 space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-2">Choose navbar preset (preview)</label>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {NAVBAR_LAYOUT_PRESETS.map((preset) => (
+                <button
+                  key={`${preset.id}-${preset.variant}`}
+                  type="button"
+                  onClick={() => updateNavbar({ layout: preset.id, variant: preset.variant })}
+                  className={`rounded-md border px-3 py-2 text-left transition ${
+                    layout === preset.id && variant === preset.variant
+                      ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                      : "border-gray-200 bg-white hover:bg-gray-50"
+                  }`}
+                >
+                  <p className="text-xs font-semibold text-gray-900">{preset.label}</p>
+                  <p className="text-[11px] text-gray-600 mt-1">{preset.preview}</p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
+            <p className="mb-2 text-xs font-medium text-gray-600">Live preview (matches storefront variant)</p>
+            <div className="overflow-x-auto">
+              {variant === "modern" && (
+                <div className="min-w-[860px] rounded-xl border bg-white px-4 py-3 shadow-sm">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-2.5">
+                      {previewLogoSrc ? (
+                        <img src={previewLogoSrc} alt="logo" className="h-10 w-auto max-w-[120px] rounded-md object-contain" />
+                      ) : (
+                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-gradient-to-br from-emerald-600 to-emerald-800 text-[11px] font-bold text-white">
+                          {logoInitials}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-4 rounded-2xl bg-[#DEE3DE] p-2 px-5">
+                      <div className="flex items-center gap-6">
+                        {previewLinks.slice(0, 4).map((l) => (
+                          <span key={l.id} className="text-sm font-medium text-slate-700">{l.label || l.icon || "Link"}</span>
+                        ))}
+                      </div>
+                      {showSearch ? <div className="rounded-2xl px-3 py-2 text-sm text-slate-400">Search</div> : null}
+                      <div className="flex items-center gap-2">
+                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-700 text-white">
+                          <ActionIcon1 className="h-4 w-4" />
+                        </span>
+                        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-700 text-white">
+                          <ActionIcon2 className="h-4 w-4" />
+                        </span>
+                      </div>
+                      {showButtons ? (
+                        <>
+                          <span className="rounded-2xl bg-emerald-700 px-4 py-2 text-sm font-semibold text-white">{primaryLabel}</span>
+                          <span className="rounded-2xl bg-orange-500 px-4 py-2 text-sm font-semibold text-white">{secondaryLabel}</span>
+                        </>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {variant === "minimalist" && (
+                <div className="min-w-[860px] rounded-xl border bg-white px-4 py-3 shadow-sm">
+                  <div className="flex h-16 items-center justify-between gap-3">
+                    <div className="flex items-center gap-10">
+                      {previewLinks.slice(0, 4).map((l) => (
+                        <span key={l.id} className="text-sm font-medium text-slate-600">{l.label || l.icon || "Link"}</span>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {previewLogoSrc ? (
+                        <img src={previewLogoSrc} alt="logo" className="h-16 w-16 rounded-md object-contain" />
+                      ) : (
+                        <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-slate-900 text-[11px] font-bold text-white">
+                          {logoInitials}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {showSearch ? <span className="mr-2 rounded-2xl px-3 py-2 text-sm text-slate-400">Search</span> : null}
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700">
+                        <ActionIcon1 className="h-4 w-4" />
+                      </span>
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700">
+                        <ActionIcon2 className="h-4 w-4" />
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {variant === "dark-sidebar" && (
+                <div className="min-w-[860px] rounded-full border border-slate-800 bg-slate-950 px-4 py-3 shadow-sm">
+                  <div className="flex h-16 items-center justify-between gap-4 text-white">
+                    <div className="flex items-center gap-3">
+                      {previewLogoSrc ? (
+                        <img src={previewLogoSrc} alt="logo" className="h-16 w-16 rounded-md object-contain" />
+                      ) : (
+                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-emerald-600 text-xs font-bold text-white">
+                          {logoInitials}
+                        </span>
+                      )}
+                      {showSearch ? <div className="rounded-full px-4 py-1.5 text-sm text-slate-300">Search products...</div> : null}
+                    </div>
+                    <div className="flex flex-1 items-center justify-center gap-8 px-4">
+                      {previewLinks.slice(0, 4).map((l) => (
+                        <span key={l.id} className="text-sm font-medium text-slate-300">{l.label || l.icon || "Link"}</span>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white">
+                        <ActionIcon1 className="h-4 w-4" />
+                      </span>
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/10 text-white">
+                        <ActionIcon2 className="h-4 w-4" />
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {variant === "business" && (
+                <div className="min-w-[860px] rounded-xl border bg-white px-4 py-3 shadow-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5">
+                      {previewLogoSrc ? (
+                        <img src={previewLogoSrc} alt="logo" className="h-14 w-14 rounded-md object-contain" />
+                      ) : (
+                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-emerald-600 text-xs font-bold text-white">
+                          {logoInitials}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 rounded-full bg-black px-3 py-1.5">
+                      {previewLinks.slice(0, 4).map((l) => (
+                        <span key={l.id} className="rounded-full px-4 py-1.5 text-sm font-medium text-white/80">{l.label || l.icon || "Link"}</span>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {showSearch ? <div className="rounded-full border border-slate-200 px-4 py-2 text-sm text-gray-400">Search...</div> : null}
+                      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-black text-white">
+                        <ActionIcon1 className="h-4 w-4" />
+                      </span>
+                      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-500 text-white">
+                        <ActionIcon2 className="h-4 w-4" />
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {variant === "developer" && (
+                <div className="min-w-[860px] rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      {previewLogoSrc ? (
+                        <img src={previewLogoSrc} alt="logo" className="h-16 w-16 rounded-lg object-contain" />
+                      ) : (
+                        <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-violet-600 to-indigo-600 text-xs font-bold text-white">
+                          {logoInitials}
+                        </span>
+                      )}
+                    </div>
+                    {showSearch ? <div className="rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-gray-400">Search anything...</div> : null}
+                    <div className="flex items-center gap-1 rounded-full bg-slate-900/95 p-1.5">
+                      {previewLinks.slice(0, 4).map((l) => (
+                        <span key={l.id} className="grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white/80">
+                          {(() => {
+                            const Icon = resolveNavbarReactIcon(l?.icon, l?.label);
+                            return <Icon className="h-4 w-4" />;
+                          })()}
+                        </span>
+                      ))}
+                      <span className="flex h-11 w-11 items-center justify-center rounded-full bg-orange-500 text-white">
+                        <ActionIcon1 className="h-5 w-5" />
+                      </span>
+                      <span className="flex h-11 w-11 items-center justify-center rounded-full bg-violet-500 text-white">
+                        <ActionIcon2 className="h-5 w-5" />
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {variant === "bold-left" && (
+                <div className="min-w-[860px] rounded-xl border bg-white px-4 py-3 shadow-sm">
+                  <div className="flex h-16 items-center justify-between rounded-xl border border-slate-200 px-4 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center overflow-visible">
+                        {previewLogoSrc ? (
+                          <img src={previewLogoSrc} alt="logo" className="h-14 w-14 object-contain" />
+                        ) : (
+                          <span className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-slate-900 text-xs font-bold text-white">
+                            {logoInitials}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-8">
+                      {previewLinks.slice(0, 5).map((l) => (
+                        <span key={l.id} className="relative text-sm font-medium text-slate-700">
+                          {l.label || l.icon || "Link"}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="inline-flex items-center gap-2 rounded-lg bg-orange-500 px-4 py-2 text-sm font-semibold text-white">
+                        <PrimaryButtonIcon className="h-4 w-4" />
+                        {primaryLabel}
+                      </span>
+                      <span className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+                        <SecondaryButtonIcon className="h-4 w-4" />
+                        {secondaryLabel}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Logo text</label>
+              <input
+                type="text"
+                value={logoText}
+                onChange={(e) => updateNavbar({ logoText: e.target.value })}
+                className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                placeholder="Brand name"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Logo image (optional)</label>
+              <div className="space-y-2">
+                {content?.logoUrl ? (
+                  <div className="relative rounded-md overflow-hidden border border-gray-200 bg-gray-50 h-20">
+                    <img
+                      src={getSlideImageSrc(content.logoUrl)}
+                      alt="Navbar logo preview"
+                      className="h-full w-full object-contain"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => updateNavbar({ logoUrl: "" })}
+                      className="absolute top-1 right-1 rounded bg-white/90 px-2 py-0.5 text-xs shadow"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                ) : null}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleNavbarLogoPick}
+                  className="w-full text-xs"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <label className="block text-xs font-medium text-gray-600">Nav links (label or icon + URL)</label>
+              <button type="button" onClick={addLink} className="text-xs text-primary hover:underline">
+                + Add link
+              </button>
+            </div>
+            <div className="space-y-2">
+              {links.map((link) => (
+                <div key={link.id} className="grid gap-2 sm:grid-cols-[140px_1fr_1fr_auto]">
+                  <select
+                    value={link.linkType === "icon" ? "icon" : "label"}
+                    onChange={(e) => {
+                      const nextType = e.target.value === "icon" ? "icon" : "label";
+                      updateLink(link.id, { linkType: nextType });
+                    }}
+                    className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                  >
+                    <option value="label">Label</option>
+                    <option value="icon">Icon</option>
+                  </select>
+                  {link.linkType === "icon" ? (
+                    <input
+                      type="text"
+                      value={link.icon ?? ""}
+                      onChange={(e) => updateLink(link.id, { icon: e.target.value })}
+                      className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                      placeholder="FiHome (react-icons)"
+                    />
+                  ) : (
+                    <input
+                      type="text"
+                      value={link.label ?? ""}
+                      onChange={(e) => updateLink(link.id, { label: e.target.value })}
+                      className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                      placeholder="Text label"
+                    />
+                  )}
+                  <input
+                    type="text"
+                    value={link.url ?? ""}
+                    onChange={(e) => updateLink(link.id, { url: e.target.value })}
+                    className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                    placeholder="/path or https://..."
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeLink(link.id)}
+                    className="rounded border border-red-200 px-2 py-1.5 text-xs text-red-600 hover:bg-red-50"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+              {links.length === 0 ? (
+                <p className="text-xs text-gray-500">No links added yet.</p>
+              ) : null}
+              <p className="text-[11px] text-gray-500">
+                Supported icon names: FiHome, FiGrid, FiStar, FiTag, FiShoppingCart, FiUser, FiDownload, FiPhone, FiSearch
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Action icon 1</label>
+              <input
+                type="text"
+                value={actionIcon1}
+                onChange={(e) => updateNavbar({ actionIcon1: e.target.value })}
+                className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                placeholder="FiShoppingCart"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Action icon 2</label>
+              <input
+                type="text"
+                value={actionIcon2}
+                onChange={(e) => updateNavbar({ actionIcon2: e.target.value })}
+                className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                placeholder="FiUser"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={showSearch}
+                onChange={(e) => updateNavbar({ showSearch: e.target.checked })}
+              />
+              Show search field
+            </label>
+            <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+              <input
+                type="checkbox"
+                checked={showButtons}
+                onChange={(e) => updateNavbar({ showButtons: e.target.checked })}
+              />
+              Show action buttons
+            </label>
+          </div>
+
+          <div className={`grid gap-3 sm:grid-cols-2 ${showButtons ? "" : "opacity-70"}`}>
+            <div className="space-y-2">
+              <label className="block text-xs font-medium text-gray-600">Primary button</label>
+              <input
+                type="text"
+                value={content?.primaryButtonLabel ?? ""}
+                onChange={(e) => updateNavbar({ primaryButtonLabel: e.target.value })}
+                className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                placeholder="Sign in"
+              />
+              <input
+                type="text"
+                value={content?.primaryButtonUrl ?? ""}
+                onChange={(e) => updateNavbar({ primaryButtonUrl: e.target.value })}
+                className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                placeholder="/login"
+              />
+              <input
+                type="text"
+                value={primaryButtonIcon}
+                onChange={(e) => updateNavbar({ primaryButtonIcon: e.target.value })}
+                className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                placeholder="Primary button icon (e.g. FiDownload)"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-xs font-medium text-gray-600">Secondary button</label>
+              <input
+                type="text"
+                value={content?.secondaryButtonLabel ?? ""}
+                onChange={(e) => updateNavbar({ secondaryButtonLabel: e.target.value })}
+                className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                placeholder="Get started"
+              />
+              <input
+                type="text"
+                value={content?.secondaryButtonUrl ?? ""}
+                onChange={(e) => updateNavbar({ secondaryButtonUrl: e.target.value })}
+                className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                placeholder="/register"
+              />
+              <input
+                type="text"
+                value={secondaryButtonIcon}
+                onChange={(e) => updateNavbar({ secondaryButtonIcon: e.target.value })}
+                className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                placeholder="Secondary button icon (e.g. FiPhone)"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (widgetType === "newsletter") {
     const heading = content?.heading ?? "";
@@ -2710,7 +3279,7 @@ export default function WidgetBlock({
                       <img
                         src={getSlideImageSrc(slide.imageUrl)}
                         alt=""
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                       />
                       <button
                         type="button"
