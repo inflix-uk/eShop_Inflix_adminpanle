@@ -710,6 +710,7 @@ export default function Side({
             </svg>
           ),
         },
+        /* Pages categories — hidden from sidebar
         {
           label: "Pages categories",
           to: "/admin/pages-categories",
@@ -735,6 +736,7 @@ export default function Side({
             </svg>
           ),
         },
+        */
         {
           label: "Navbar",
           to: "/admin/product-central/navbar",

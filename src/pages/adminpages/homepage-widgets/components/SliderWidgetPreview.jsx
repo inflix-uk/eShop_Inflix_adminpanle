@@ -151,7 +151,7 @@ export default function SliderWidgetPreview({
                     <img
                       src={src}
                       alt=""
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-contain"
                       onError={(e) => {
                         e.target.style.display = "none";
                       }}

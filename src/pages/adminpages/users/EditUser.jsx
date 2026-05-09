@@ -3,7 +3,7 @@
  * Edit user details on a dedicated page
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { toast } from 'react-toastify';
@@ -13,6 +13,11 @@ import Top from '../nav/Top';
 import { getUserById, updateUser, buildUserUpdatePayload, resetUserPassword, assignPricingGroupToUser } from './services/usersService';
 import { getAllRoles } from '../roles/services/rolesService';
 import { fetchPricingGroups } from '../pricing-groups/api/groupsApi';
+import {
+    fetchUserPricingProducts,
+    fetchUserProductPrices,
+    saveUserProductPrice,
+} from './services/userPricingService';
 
 const EditUser = () => {
     const { userId } = useParams();
@@ -29,6 +34,13 @@ const EditUser = () => {
     const [isResettingPassword, setIsResettingPassword] = useState(false);
     const [showNewPassword, setShowNewPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [activeTab, setActiveTab] = useState('details');
+    const [pricingProducts, setPricingProducts] = useState([]);
+    const [pricingOverrides, setPricingOverrides] = useState({});
+    const [priceInputByProduct, setPriceInputByProduct] = useState({});
+    const [pricingLoading, setPricingLoading] = useState(false);
+    const [pricingSearch, setPricingSearch] = useState('');
+    const [saveTimers, setSaveTimers] = useState({});
 
     // Fetch user and roles on mount
     useEffect(() => {
@@ -164,6 +176,78 @@ const EditUser = () => {
         setIsResettingPassword(false);
     };
 
+    useEffect(() => {
+        return () => {
+            Object.values(saveTimers).forEach((timerId) => {
+                clearTimeout(timerId);
+            });
+        };
+    }, [saveTimers]);
+
+    useEffect(() => {
+        const loadPricingData = async () => {
+            if (activeTab !== 'pricing' || !userId) return;
+            setPricingLoading(true);
+            try {
+                const [products, overrides] = await Promise.all([
+                    fetchUserPricingProducts(),
+                    fetchUserProductPrices(userId),
+                ]);
+                const overrideMap = {};
+                const inputMap = {};
+                overrides.forEach((row) => {
+                    const key = String(row.productId);
+                    overrideMap[key] = Number(row.price);
+                    inputMap[key] = String(row.price);
+                });
+                setPricingProducts(products);
+                setPricingOverrides(overrideMap);
+                setPriceInputByProduct(inputMap);
+            } catch (error) {
+                toast.error(error?.response?.data?.message || 'Failed to load user pricing');
+            } finally {
+                setPricingLoading(false);
+            }
+        };
+
+        loadPricingData();
+    }, [activeTab, userId]);
+
+    const onPriceInputChange = (productId, value) => {
+        const pid = String(productId);
+        setPriceInputByProduct((prev) => ({ ...prev, [pid]: value }));
+
+        setSaveTimers((prev) => {
+            const next = { ...prev };
+            if (next[pid]) clearTimeout(next[pid]);
+            next[pid] = setTimeout(async () => {
+                const parsed = Number(value);
+                if (!Number.isFinite(parsed) || parsed <= 0) return;
+                try {
+                    await saveUserProductPrice(userId, pid, parsed);
+                    setPricingOverrides((curr) => ({ ...curr, [pid]: parsed }));
+                    toast.success('Custom price saved');
+                } catch (error) {
+                    toast.error(error?.response?.data?.message || 'Failed to save custom price');
+                }
+            }, 450);
+            return next;
+        });
+    };
+
+    const filteredPricingProducts = useMemo(() => {
+        const term = pricingSearch.trim().toLowerCase();
+        if (!term) return pricingProducts;
+        return pricingProducts.filter((p) => {
+            return (
+                String(p.name || '').toLowerCase().includes(term) ||
+                String(p.sku || '').toLowerCase().includes(term) ||
+                String(p.brand || '').toLowerCase().includes(term) ||
+                String(p.category || '').toLowerCase().includes(term)
+            );
+        });
+    }, [pricingProducts, pricingSearch]);
+
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
     const closeSidebar = () => setIsSidebarOpen(false);
 
@@ -230,8 +314,34 @@ const EditUser = () => {
                             </p>
                         </div>
 
+                        <div className="mb-4 flex items-center gap-2 border-b border-gray-200">
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('details')}
+                                className={`rounded-t-lg px-4 py-2 text-sm font-medium ${
+                                    activeTab === 'details'
+                                        ? 'bg-white text-primary border border-b-white border-gray-200'
+                                        : 'text-gray-600'
+                                }`}
+                            >
+                                Details
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('pricing')}
+                                className={`rounded-t-lg px-4 py-2 text-sm font-medium ${
+                                    activeTab === 'pricing'
+                                        ? 'bg-white text-primary border border-b-white border-gray-200'
+                                        : 'text-gray-600'
+                                }`}
+                            >
+                                Pricing
+                            </button>
+                        </div>
+
                         {/* Form */}
                         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                            {activeTab === 'details' ? (
                             <form onSubmit={(e) => e.preventDefault()}>
                                 {/* Personal Information */}
                                 <div className="mb-6">
@@ -531,6 +641,77 @@ const EditUser = () => {
                                     </button>
                                 </div>
                             </form>
+                            ) : (
+                            <div>
+                                <div className="mb-4">
+                                    <h2 className="text-lg font-semibold text-gray-900">User Custom Product Pricing</h2>
+                                    <p className="mt-1 text-sm text-gray-600">
+                                        Per-user override precedence: User price &gt; Pricing group price &gt; Product base price
+                                    </p>
+                                </div>
+                                <div className="mb-4">
+                                    <input
+                                        type="text"
+                                        value={pricingSearch}
+                                        onChange={(e) => setPricingSearch(e.target.value)}
+                                        placeholder="Search by product, sku, brand, category"
+                                        className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-primary focus:border-primary"
+                                    />
+                                </div>
+                                <div className="overflow-auto rounded-lg border border-gray-200">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">Product</th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">SKU</th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">Category</th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">Base Price</th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">Custom Price</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100 bg-white">
+                                            {pricingLoading ? (
+                                                <tr>
+                                                    <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-500">
+                                                        Loading products...
+                                                    </td>
+                                                </tr>
+                                            ) : filteredPricingProducts.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-500">
+                                                        No products found.
+                                                    </td>
+                                                </tr>
+                                            ) : (
+                                                filteredPricingProducts.map((product) => {
+                                                    const pid = String(product.id);
+                                                    const currentOverride = pricingOverrides[pid];
+                                                    return (
+                                                        <tr key={pid}>
+                                                            <td className="px-4 py-3 text-sm text-gray-900">{product.name}</td>
+                                                            <td className="px-4 py-3 text-sm text-gray-600">{product.sku || '-'}</td>
+                                                            <td className="px-4 py-3 text-sm text-gray-600">{product.category || '-'}</td>
+                                                            <td className="px-4 py-3 text-sm text-gray-900">£{Number(product.price || 0).toFixed(2)}</td>
+                                                            <td className="px-4 py-3">
+                                                                <input
+                                                                    type="number"
+                                                                    min="0.01"
+                                                                    step="0.01"
+                                                                    value={priceInputByProduct[pid] ?? ''}
+                                                                    onChange={(e) => onPriceInputChange(pid, e.target.value)}
+                                                                    placeholder={currentOverride ? String(currentOverride) : 'No override'}
+                                                                    className="w-40 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:ring-2 focus:ring-primary focus:border-primary"
+                                                                />
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            )}
                         </div>
                     </div>
                 </main>

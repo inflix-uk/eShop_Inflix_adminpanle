@@ -12,6 +12,7 @@ import Side from '../nav/Side';
 import Top from '../nav/Top';
 
 export default function BlogManagement() {
+  const BLOGS_PER_PAGE = 10;
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
   const closeSidebar = () => setIsSidebarOpen(false);
@@ -24,6 +25,7 @@ export default function BlogManagement() {
   const [categories, setCategories] = useState([{ id: 'all', name: 'All Categories' }]);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Fetch blog posts from the backend
   const fetchBlogs = async () => {
@@ -31,8 +33,7 @@ export default function BlogManagement() {
       setIsLoading(true);
       setErrorMessage('');
       setSuccessMessage(''); // Clear any previous success messages
-      // Add any filters you want to apply
-      const filters = {};
+      const filters = { page: 1, limit: 1000 };
       const blogPosts = await getAllBlogPosts(filters);
       setBlogs(blogPosts);
       
@@ -138,6 +139,23 @@ export default function BlogManagement() {
       }
       return 0;
     });
+
+  const totalPages = Math.max(1, Math.ceil(filteredAndSortedBlogs.length / BLOGS_PER_PAGE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const startOffset = (safeCurrentPage - 1) * BLOGS_PER_PAGE;
+  const paginatedBlogs = filteredAndSortedBlogs.slice(startOffset, startOffset + BLOGS_PER_PAGE);
+  const startIndex = filteredAndSortedBlogs.length === 0 ? 0 : startOffset + 1;
+  const endIndex = Math.min(startOffset + BLOGS_PER_PAGE, filteredAndSortedBlogs.length);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterCategory, sortConfig.key, sortConfig.direction]);
+
+  useEffect(() => {
+    if (currentPage !== safeCurrentPage) {
+      setCurrentPage(safeCurrentPage);
+    }
+  }, [currentPage, safeCurrentPage]);
 
   // Helper function to format image paths correctly
   const getImageSrc = (imagePath) => {
@@ -263,7 +281,7 @@ export default function BlogManagement() {
             {/* Blog posts table */}
             <BlogTable
               isLoading={isLoading}
-              filteredAndSortedBlogs={filteredAndSortedBlogs}
+              filteredAndSortedBlogs={paginatedBlogs}
               requestSort={requestSort}
               handleDeleteBlog={handleDeleteBlog}
               getFullImageUrl={getFullImageUrl}
@@ -273,6 +291,11 @@ export default function BlogManagement() {
             <BlogPagination
               filteredCount={filteredAndSortedBlogs.length}
               totalCount={blogs.length}
+              currentPage={safeCurrentPage}
+              totalPages={totalPages}
+              startIndex={startIndex}
+              endIndex={endIndex}
+              onPageChange={setCurrentPage}
             />
           </div>
         </main>

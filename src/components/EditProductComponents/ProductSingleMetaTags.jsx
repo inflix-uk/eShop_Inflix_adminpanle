@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import PropTypes from "prop-types";
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -11,6 +11,13 @@ export default function ProductSingleMetaTags({
   const [schemas, setSchemas] = useState(
     product.Seo_Meta?.metaSchemas?.length ? product.Seo_Meta.metaSchemas : [""]
   ); // Initialize with existing schemas or a single empty schema
+
+  useEffect(() => {
+    const incoming = Array.isArray(product?.Seo_Meta?.metaSchemas)
+      ? product.Seo_Meta.metaSchemas
+      : [];
+    setSchemas(incoming.length ? incoming : [""]);
+  }, [product?.Seo_Meta?.metaSchemas]);
 
   const handleAddSchema = () => {
     setSchemas([...schemas, ""]);
@@ -232,7 +239,8 @@ export default function ProductSingleMetaTags({
                         type="file"
                         className="sr-only"
                         onChange={(e) => {
-                          const file = e.target.files[0];
+                          const file = e.target.files?.[0];
+                          if (!file) return;
                           const fileUrl = URL.createObjectURL(file);
 
                           setproductMetaImage(fileUrl);
