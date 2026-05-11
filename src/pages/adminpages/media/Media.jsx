@@ -29,8 +29,8 @@ import {
 
 export default function Media() {
   const [selectedPage, setSelectedPage] = useState("media");
-  /** `blob` = Vercel Blob (or disk fallback from API). `spaces` = S3 / DO Spaces listing. */
-  const [storageModule, setStorageModule] = useState("blob");
+  /** S3 / DO Spaces only (Vercel Blob UI removed). */
+  const storageModule = "spaces";
   const [spacesConfigured, setSpacesConfigured] = useState(true);
   const [directories, setDirectories] = useState([]); // State to store the directories with files
   const [loading, setLoading] = useState(true); // State for loading
@@ -91,8 +91,8 @@ export default function Media() {
 
   useEffect(() => {
     fetchFiles();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- refetch when switching Blob vs Spaces
-  }, [auth.ip, storageModule]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [auth.ip]);
 
   const getImagePathAfterUploads = (filePath) => {
     // Check if filePath exists and contains 'uploads/'
@@ -106,17 +106,6 @@ export default function Media() {
   const handleTabChange = (tabName) => {
     setSelectedTab(tabName);
     setCurrentPage(1); // Reset to the first page when changing tabs
-  };
-
-  const handleStorageModuleChange = (next) => {
-    if (next === storageModule) return;
-    setStorageModule(next);
-    setSelectedTab(null);
-    setCurrentPage(1);
-    setSearchTerm("");
-    setEditingFileId(null);
-    setEditingTitleId(null);
-    setEditingAltTextId(null);
   };
 
   // Handle search input change
@@ -577,32 +566,8 @@ export default function Media() {
                       Media library
                     </h1>
                     <p className="text-sm text-gray-500 mt-1">
-                      Switch between Vercel Blob and S3 / DigitalOcean Spaces.
+                      Browse and manage images in S3 / DigitalOcean Spaces.
                     </p>
-                  </div>
-                  <div className="inline-flex rounded-lg border border-gray-200 bg-gray-50 p-1">
-                    <button
-                      type="button"
-                      onClick={() => handleStorageModuleChange("blob")}
-                      className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                        storageModule === "blob"
-                          ? "bg-white text-blue-700 shadow-sm"
-                          : "text-gray-600 hover:text-gray-900"
-                      }`}
-                    >
-                      Vercel Blob
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleStorageModuleChange("spaces")}
-                      className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                        storageModule === "spaces"
-                          ? "bg-white text-blue-700 shadow-sm"
-                          : "text-gray-600 hover:text-gray-900"
-                      }`}
-                    >
-                      S3 / Spaces
-                    </button>
                   </div>
                 </div>
 
@@ -621,8 +586,7 @@ export default function Media() {
                 {storageModule === "spaces" && spacesConfigured && (
                   <p className="text-sm text-gray-600 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
                     S3 / Spaces: upload, title, and alt text are stored in your
-                    bucket and Media library records. Use the{" "}
-                    <strong>Vercel Blob</strong> tab for Blob-only assets.
+                    bucket and Media library records.
                   </p>
                 )}
 
@@ -718,9 +682,7 @@ export default function Media() {
             )}
 
             {/* Upload Image Modal */}
-            {selectedTab &&
-              (storageModule === "blob" ||
-                (storageModule === "spaces" && spacesConfigured)) && (
+            {selectedTab && storageModule === "spaces" && spacesConfigured && (
               <UploadImageModal
                 isOpen={isUploadModalOpen}
                 onClose={() => setIsUploadModalOpen(false)}

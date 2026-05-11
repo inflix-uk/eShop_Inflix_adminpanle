@@ -192,26 +192,56 @@ export const getFooterPageBySlug = async (slug, parentSlug = null) => {
 };
 
 /**
- * Gets all footer pages
- * @param {Object} filters - Optional filters
- * @returns {Promise<Array>} - Array of pages
+ * Gets all footer pages (aggregates every backend page — API defaults to limit=10 per request).
+ * @param {Object} filters - Optional filters (publishStatus, search, etc.). Do not pass `page`/`limit` unless you use {@link getAllFooterPagesSinglePage}.
+ * @returns {Promise<Array>} - Full array of pages
  */
 export const getAllFooterPages = async (filters = {}) => {
   try {
-    // Build query string from filters
-    const queryParams = new URLSearchParams();
-    Object.entries(filters).forEach(([key, value]) => {
-      if (value !== undefined && value !== null) {
-        queryParams.append(key, value);
+    const { page: _ignorePage, limit: clientLimit, ...rest } = filters;
+    const perPage = Math.min(Math.max(Number(clientLimit) || 100, 1), 250);
+
+    const aggregated = [];
+    let page = 1;
+    let reportedTotal = null;
+
+    while (true) {
+      const queryParams = new URLSearchParams();
+      Object.entries({ ...rest, page, limit: perPage }).forEach(([key, value]) => {
+        if (value !== undefined && value !== null && String(value).trim() !== '') {
+          queryParams.append(key, String(value));
+        }
+      });
+
+      const queryString = queryParams.toString();
+      const url = `${API_BASE_URL}/footer-pages/get/all/pages${queryString ? `?${queryString}` : ''}`;
+
+      const response = await fetch(url);
+      const data = await handleResponse(response);
+      const batch = Array.isArray(data.data) ? data.data : [];
+      const total = data.pagination?.total;
+      if (total != null && reportedTotal == null) {
+        reportedTotal = Number(total);
       }
-    });
-    
-    const queryString = queryParams.toString();
-    const url = `${API_BASE_URL}/footer-pages/get/all/pages${queryString ? `?${queryString}` : ''}`;
-    
-    const response = await fetch(url);
-    const data = await handleResponse(response);
-    return data.data;
+
+      aggregated.push(...batch);
+
+      if (batch.length === 0) break;
+      if (reportedTotal != null && aggregated.length >= reportedTotal) break;
+      if (reportedTotal == null && batch.length < perPage) break;
+
+      page += 1;
+      if (page > 500) {
+        console.warn('[getAllFooterPages] Stopped after 500 API pages; check backend pagination.');
+        break;
+      }
+    }
+
+    if (reportedTotal != null && aggregated.length !== reportedTotal) {
+      console.warn('[getAllFooterPages] Count mismatch: received', aggregated.length, 'rows, API total was', reportedTotal);
+    }
+
+    return aggregated;
   } catch (error) {
     console.error('Error getting footer pages:', error);
     throw error;

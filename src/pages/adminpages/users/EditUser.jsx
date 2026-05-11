@@ -3,14 +3,21 @@
  * Edit user details on a dedicated page
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { toast } from 'react-toastify';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import Side from '../nav/Side';
 import Top from '../nav/Top';
-import { getUserById, updateUser, buildUserUpdatePayload, resetUserPassword, assignPricingGroupToUser } from './services/usersService';
+import {
+    getUserById,
+    updateUser,
+    buildUserUpdatePayload,
+    resetUserPassword,
+    assignPricingGroupToUser,
+    fetchUserOrderHistory,
+} from './services/usersService';
 import { getAllRoles } from '../roles/services/rolesService';
 import { fetchPricingGroups } from '../pricing-groups/api/groupsApi';
 import {
@@ -18,6 +25,11 @@ import {
     fetchUserProductPrices,
     saveUserProductPrice,
 } from './services/userPricingService';
+import {
+    flattenProductsToPricingRows,
+    groupPricesRowsToMap,
+    priceMapKey,
+} from '../pricing-groups/api/productsApi';
 
 const EditUser = () => {
     const { userId } = useParams();
@@ -41,6 +53,9 @@ const EditUser = () => {
     const [pricingLoading, setPricingLoading] = useState(false);
     const [pricingSearch, setPricingSearch] = useState('');
     const [saveTimers, setSaveTimers] = useState({});
+    const saveTimersRef = useRef({});
+    const [userOrderHistory, setUserOrderHistory] = useState([]);
+    const [orderHistoryLoading, setOrderHistoryLoading] = useState(false);
 
     // Fetch user and roles on mount
     useEffect(() => {
@@ -176,13 +191,14 @@ const EditUser = () => {
         setIsResettingPassword(false);
     };
 
+    saveTimersRef.current = saveTimers;
     useEffect(() => {
         return () => {
-            Object.values(saveTimers).forEach((timerId) => {
+            Object.values(saveTimersRef.current).forEach((timerId) => {
                 clearTimeout(timerId);
             });
         };
-    }, [saveTimers]);
+    }, []);
 
     useEffect(() => {
         const loadPricingData = async () => {
@@ -193,12 +209,10 @@ const EditUser = () => {
                     fetchUserPricingProducts(),
                     fetchUserProductPrices(userId),
                 ]);
-                const overrideMap = {};
+                const overrideMap = groupPricesRowsToMap(overrides);
                 const inputMap = {};
-                overrides.forEach((row) => {
-                    const key = String(row.productId);
-                    overrideMap[key] = Number(row.price);
-                    inputMap[key] = String(row.price);
+                Object.entries(overrideMap).forEach(([key, val]) => {
+                    inputMap[key] = String(val);
                 });
                 setPricingProducts(products);
                 setPricingOverrides(overrideMap);
@@ -213,19 +227,66 @@ const EditUser = () => {
         loadPricingData();
     }, [activeTab, userId]);
 
-    const onPriceInputChange = (productId, value) => {
+    useEffect(() => {
+        const loadOrderHistory = async () => {
+            if (activeTab !== 'orderHistory' || !userId) return;
+            setOrderHistoryLoading(true);
+            try {
+                const result = await fetchUserOrderHistory(userId);
+                if (result.success) {
+                    setUserOrderHistory(result.orders);
+                } else {
+                    setUserOrderHistory([]);
+                    toast.error(result.message || 'Failed to load order history');
+                }
+            } catch {
+                setUserOrderHistory([]);
+                toast.error('Failed to load order history');
+            } finally {
+                setOrderHistoryLoading(false);
+            }
+        };
+        loadOrderHistory();
+    }, [activeTab, userId]);
+
+    const onPriceInputChange = (productId, variantKey, value) => {
         const pid = String(productId);
-        setPriceInputByProduct((prev) => ({ ...prev, [pid]: value }));
+        const vk = variantKey != null ? String(variantKey).trim() : '';
+        const rk = priceMapKey(pid, vk);
+        setPriceInputByProduct((prev) => ({ ...prev, [rk]: value }));
 
         setSaveTimers((prev) => {
             const next = { ...prev };
-            if (next[pid]) clearTimeout(next[pid]);
-            next[pid] = setTimeout(async () => {
-                const parsed = Number(value);
+            if (next[rk]) clearTimeout(next[rk]);
+            next[rk] = setTimeout(async () => {
+                const trimmed = String(value ?? '')
+                    .trim()
+                    .replace(/£/g, '')
+                    .replace(/,/g, '.');
+                if (trimmed === '') {
+                    try {
+                        await saveUserProductPrice(userId, pid, null, vk, { clear: true });
+                        setPricingOverrides((curr) => {
+                            const c = { ...curr };
+                            delete c[rk];
+                            return c;
+                        });
+                        setPriceInputByProduct((curr) => {
+                            const c = { ...curr };
+                            delete c[rk];
+                            return c;
+                        });
+                        toast.success('Custom price cleared');
+                    } catch (error) {
+                        toast.error(error?.response?.data?.message || 'Failed to clear custom price');
+                    }
+                    return;
+                }
+                const parsed = Number(trimmed);
                 if (!Number.isFinite(parsed) || parsed <= 0) return;
                 try {
-                    await saveUserProductPrice(userId, pid, parsed);
-                    setPricingOverrides((curr) => ({ ...curr, [pid]: parsed }));
+                    await saveUserProductPrice(userId, pid, parsed, vk);
+                    setPricingOverrides((curr) => ({ ...curr, [rk]: parsed }));
                     toast.success('Custom price saved');
                 } catch (error) {
                     toast.error(error?.response?.data?.message || 'Failed to save custom price');
@@ -235,18 +296,21 @@ const EditUser = () => {
         });
     };
 
-    const filteredPricingProducts = useMemo(() => {
+    const pricingRows = useMemo(() => flattenProductsToPricingRows(pricingProducts), [pricingProducts]);
+
+    const filteredPricingRows = useMemo(() => {
         const term = pricingSearch.trim().toLowerCase();
-        if (!term) return pricingProducts;
-        return pricingProducts.filter((p) => {
+        if (!term) return pricingRows;
+        return pricingRows.filter((r) => {
             return (
-                String(p.name || '').toLowerCase().includes(term) ||
-                String(p.sku || '').toLowerCase().includes(term) ||
-                String(p.brand || '').toLowerCase().includes(term) ||
-                String(p.category || '').toLowerCase().includes(term)
+                String(r.productName || '').toLowerCase().includes(term) ||
+                String(r.variantLabel || '').toLowerCase().includes(term) ||
+                String(r.sku || '').toLowerCase().includes(term) ||
+                String(r.brand || '').toLowerCase().includes(term) ||
+                String(r.category || '').toLowerCase().includes(term)
             );
         });
-    }, [pricingProducts, pricingSearch]);
+    }, [pricingRows, pricingSearch]);
 
     const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
     const closeSidebar = () => setIsSidebarOpen(false);
@@ -337,11 +401,22 @@ const EditUser = () => {
                             >
                                 Pricing
                             </button>
+                            <button
+                                type="button"
+                                onClick={() => setActiveTab('orderHistory')}
+                                className={`rounded-t-lg px-4 py-2 text-sm font-medium ${
+                                    activeTab === 'orderHistory'
+                                        ? 'bg-white text-primary border border-b-white border-gray-200'
+                                        : 'text-gray-600'
+                                }`}
+                            >
+                                Order history
+                            </button>
                         </div>
 
                         {/* Form */}
                         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-                            {activeTab === 'details' ? (
+                            {activeTab === 'details' && (
                             <form onSubmit={(e) => e.preventDefault()}>
                                 {/* Personal Information */}
                                 <div className="mb-6">
@@ -641,12 +716,17 @@ const EditUser = () => {
                                     </button>
                                 </div>
                             </form>
-                            ) : (
+                            )}
+                            {activeTab === 'pricing' && (
                             <div>
                                 <div className="mb-4">
                                     <h2 className="text-lg font-semibold text-gray-900">User Custom Product Pricing</h2>
                                     <p className="mt-1 text-sm text-gray-600">
-                                        Per-user override precedence: User price &gt; Pricing group price &gt; Product base price
+                                        One row per product variation (same as pricing groups). For products with variations,
+                                        set a custom user price per variation; that price applies only to that variation for this user.
+                                        Precedence per row: user custom &gt; group custom for that variation &gt; base price.
+                                        Products without variations use a single product-level custom price.
+                                        Clear the field and pause briefly to remove a custom price and resolve conflicts with group pricing.
                                     </p>
                                 </div>
                                 <div className="mb-4">
@@ -658,15 +738,15 @@ const EditUser = () => {
                                         className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:ring-2 focus:ring-primary focus:border-primary"
                                     />
                                 </div>
-                                <div className="overflow-auto rounded-lg border border-gray-200">
-                                    <table className="min-w-full divide-y divide-gray-200">
+                                <div className="overflow-x-auto overflow-y-visible rounded-lg border border-gray-200">
+                                    <table className="min-w-[800px] w-full divide-y divide-gray-200">
                                         <thead className="bg-gray-50">
                                             <tr>
                                                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">Product</th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">Variation</th>
                                                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">SKU</th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">Category</th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">Base Price</th>
-                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">Custom Price</th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">Base (£)</th>
+                                                <th className="min-w-[10rem] px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">Custom user (£)</th>
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-gray-100 bg-white">
@@ -676,32 +756,125 @@ const EditUser = () => {
                                                         Loading products...
                                                     </td>
                                                 </tr>
-                                            ) : filteredPricingProducts.length === 0 ? (
+                                            ) : filteredPricingRows.length === 0 ? (
                                                 <tr>
                                                     <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-500">
                                                         No products found.
                                                     </td>
                                                 </tr>
                                             ) : (
-                                                filteredPricingProducts.map((product) => {
-                                                    const pid = String(product.id);
-                                                    const currentOverride = pricingOverrides[pid];
+                                                filteredPricingRows.map((row) => {
+                                                    const rowKey = row.rowKey;
+                                                    const currentOverride = pricingOverrides[rowKey];
+                                                    const ph =
+                                                        row.basePrice != null &&
+                                                        Number.isFinite(Number(row.basePrice)) &&
+                                                        Number(row.basePrice) > 0
+                                                            ? String(Number(row.basePrice).toFixed(2))
+                                                            : 'e.g. 99.99';
                                                     return (
-                                                        <tr key={pid}>
-                                                            <td className="px-4 py-3 text-sm text-gray-900">{product.name}</td>
-                                                            <td className="px-4 py-3 text-sm text-gray-600">{product.sku || '-'}</td>
-                                                            <td className="px-4 py-3 text-sm text-gray-600">{product.category || '-'}</td>
-                                                            <td className="px-4 py-3 text-sm text-gray-900">£{Number(product.price || 0).toFixed(2)}</td>
+                                                        <tr key={rowKey} className="hover:bg-gray-50">
+                                                            <td className="px-4 py-3 text-sm text-gray-900">{row.productName}</td>
+                                                            <td className="px-4 py-3 text-sm text-gray-700">{row.variantLabel}</td>
+                                                            <td className="px-4 py-3 text-sm text-gray-600">{row.sku || '—'}</td>
+                                                            <td className="px-4 py-3 text-sm text-gray-900">
+                                                                £{Number(row.basePrice || 0).toFixed(2)}
+                                                            </td>
                                                             <td className="px-4 py-3">
                                                                 <input
                                                                     type="number"
                                                                     min="0.01"
                                                                     step="0.01"
-                                                                    value={priceInputByProduct[pid] ?? ''}
-                                                                    onChange={(e) => onPriceInputChange(pid, e.target.value)}
-                                                                    placeholder={currentOverride ? String(currentOverride) : 'No override'}
+                                                                    value={priceInputByProduct[rowKey] ?? ''}
+                                                                    onChange={(e) =>
+                                                                        onPriceInputChange(row.productId, row.variantKey, e.target.value)
+                                                                    }
+                                                                    placeholder={
+                                                                        currentOverride != null &&
+                                                                        Number.isFinite(Number(currentOverride))
+                                                                            ? String(currentOverride)
+                                                                            : ph
+                                                                    }
                                                                     className="w-40 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:ring-2 focus:ring-primary focus:border-primary"
                                                                 />
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            )}
+                            {activeTab === 'orderHistory' && (
+                            <div>
+                                <div className="mb-4">
+                                    <h2 className="text-lg font-semibold text-gray-900">Order history</h2>
+                                    <p className="mt-1 text-sm text-gray-600">
+                                        All orders placed by this user. Select a row to open the order in the admin order detail view.
+                                    </p>
+                                </div>
+                                <div className="overflow-auto rounded-lg border border-gray-200">
+                                    <table className="min-w-full divide-y divide-gray-200">
+                                        <thead className="bg-gray-50">
+                                            <tr>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">Order #</th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">Date</th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">Status</th>
+                                                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-600">Total</th>
+                                                <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">Email</th>
+                                                <th className="px-4 py-3 text-right text-xs font-semibold uppercase text-gray-600"> </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100 bg-white">
+                                            {orderHistoryLoading ? (
+                                                <tr>
+                                                    <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-500">
+                                                        Loading orders…
+                                                    </td>
+                                                </tr>
+                                            ) : userOrderHistory.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-500">
+                                                        No orders found for this user.
+                                                    </td>
+                                                </tr>
+                                            ) : (
+                                                userOrderHistory.map((order, idx) => {
+                                                    const oid = order?._id != null ? String(order._id) : '';
+                                                    const created = order?.createdAt
+                                                        ? new Date(order.createdAt).toLocaleString()
+                                                        : '—';
+                                                    const total =
+                                                        order?.totalOrderValue != null && Number.isFinite(Number(order.totalOrderValue))
+                                                            ? `£${Number(order.totalOrderValue).toFixed(2)}`
+                                                            : '—';
+                                                    const email = order?.contactDetails?.email || '—';
+                                                    return (
+                                                        <tr
+                                                            key={oid || `order-row-${idx}`}
+                                                            className="cursor-pointer hover:bg-gray-50"
+                                                            onClick={() => oid && navigate(`/admin/orderdetails/${oid}`)}
+                                                        >
+                                                            <td className="px-4 py-3 text-sm font-medium text-primary">
+                                                                {order?.orderNumber || oid || '—'}
+                                                            </td>
+                                                            <td className="px-4 py-3 text-sm text-gray-700">{created}</td>
+                                                            <td className="px-4 py-3 text-sm text-gray-800">{order?.status || '—'}</td>
+                                                            <td className="px-4 py-3 text-right text-sm text-gray-900">{total}</td>
+                                                            <td className="px-4 py-3 text-sm text-gray-600">{email}</td>
+                                                            <td className="px-4 py-3 text-right text-sm">
+                                                                <button
+                                                                    type="button"
+                                                                    className="font-medium text-primary hover:underline"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        if (oid) navigate(`/admin/orderdetails/${oid}`);
+                                                                    }}
+                                                                >
+                                                                    View
+                                                                </button>
                                                             </td>
                                                         </tr>
                                                     );

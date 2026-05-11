@@ -177,6 +177,30 @@ export const resetUserPassword = async (userId, newPassword, confirmPassword) =>
     }
 };
 
+/**
+ * Fetch all orders for a user (admin). Uses POST /get/order/user.
+ * @param {string} userId - Mongo user id
+ * @returns {Promise<{ success: boolean, orders: Array, message?: string }>}
+ */
+export const fetchUserOrderHistory = async (userId) => {
+    try {
+        const response = await axios.post(`${BACKEND_URL}get/order/user`, { userId });
+        const orders = Array.isArray(response.data?.orders) ? response.data.orders : [];
+        const ok = response.data?.status === 200 || response.data?.status === 201;
+        return {
+            success: ok,
+            orders,
+            message: response.data?.message || ''
+        };
+    } catch (error) {
+        return {
+            success: false,
+            orders: [],
+            message: error.response?.data?.message || error.message || 'Failed to load order history'
+        };
+    }
+};
+
 export const assignPricingGroupToUser = async (userId, pricingGroup) => {
     try {
         const response = await axios.put(
@@ -204,5 +228,6 @@ export default {
     updateUser,
     buildUserUpdatePayload,
     resetUserPassword,
-    assignPricingGroupToUser
+    assignPricingGroupToUser,
+    fetchUserOrderHistory
 };
