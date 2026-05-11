@@ -531,7 +531,9 @@ export default function WidgetBlock({
                     <div className="flex items-center gap-8">
                       {previewLinks.slice(0, 5).map((l) => (
                         <span key={l.id} className="relative text-sm font-medium text-slate-700">
-                          {l.label || l.icon || "Link"}
+                          {l.linkType === "icon_label"
+                            ? `${l.icon || "?"}+${l.label || "Label"}`
+                            : l.label || l.icon || "Link"}
                         </span>
                       ))}
                     </div>
@@ -593,7 +595,9 @@ export default function WidgetBlock({
 
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-xs font-medium text-gray-600">Nav links (label or icon + URL)</label>
+              <label className="block text-xs font-medium text-gray-600">
+                Nav links (label only, icon only, or icon + label + URL)
+              </label>
               <button type="button" onClick={addLink} className="text-xs text-primary hover:underline">
                 + Add link
               </button>
@@ -602,17 +606,43 @@ export default function WidgetBlock({
               {links.map((link) => (
                 <div key={link.id} className="grid gap-2 sm:grid-cols-[140px_1fr_1fr_auto]">
                   <select
-                    value={link.linkType === "icon" ? "icon" : "label"}
+                    value={
+                      link.linkType === "icon"
+                        ? "icon"
+                        : link.linkType === "icon_label"
+                          ? "icon_label"
+                          : "label"
+                    }
                     onChange={(e) => {
-                      const nextType = e.target.value === "icon" ? "icon" : "label";
+                      const v = e.target.value;
+                      const nextType =
+                        v === "icon" ? "icon" : v === "icon_label" ? "icon_label" : "label";
                       updateLink(link.id, { linkType: nextType });
                     }}
                     className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
                   >
-                    <option value="label">Label</option>
-                    <option value="icon">Icon</option>
+                    <option value="label">Label only</option>
+                    <option value="icon">Icon only</option>
+                    <option value="icon_label">Icon + label</option>
                   </select>
-                  {link.linkType === "icon" ? (
+                  {link.linkType === "icon_label" ? (
+                    <div className="flex min-w-0 flex-col gap-1">
+                      <input
+                        type="text"
+                        value={link.icon ?? ""}
+                        onChange={(e) => updateLink(link.id, { icon: e.target.value })}
+                        className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                        placeholder="FiHome (react-icons)"
+                      />
+                      <input
+                        type="text"
+                        value={link.label ?? ""}
+                        onChange={(e) => updateLink(link.id, { label: e.target.value })}
+                        className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                        placeholder="Visible label"
+                      />
+                    </div>
+                  ) : link.linkType === "icon" ? (
                     <input
                       type="text"
                       value={link.icon ?? ""}

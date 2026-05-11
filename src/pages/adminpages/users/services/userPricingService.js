@@ -1,65 +1,41 @@
 import axios from "axios";
+import { normalizeApiBase, normalizeProduct } from "../../pricing-groups/api/productsApi";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-function toNumber(value, fallback = 0) {
-  const n = Number(value);
-  return Number.isFinite(n) ? n : fallback;
-}
-
-function normalizeProduct(raw) {
-  const variantValues = Array.isArray(raw?.variantValues) ? raw.variantValues : [];
-  const firstVariant = variantValues[0] || {};
-  const price = toNumber(
-    firstVariant.salePrice ?? firstVariant.Price ?? raw?.salePrice ?? raw?.price,
-    0
-  );
-  const stockFromVariants = variantValues.reduce(
-    (sum, v) => sum + toNumber(v?.quantity ?? v?.stock, 0),
-    0
-  );
-  const stock = toNumber(
-    raw?.stock ?? raw?.quantity ?? (stockFromVariants > 0 ? stockFromVariants : 0),
-    0
-  );
-
-  return {
-    id: raw?._id || raw?.id || String(Math.random()),
-    name: raw?.name || "Unnamed product",
-    sku: firstVariant?.SKU || raw?.SKU || raw?.sku || "-",
-    brand: raw?.brand || "N/A",
-    category:
-      raw?.category?.name || raw?.categoryName || raw?.productCategory || "Uncategorized",
-    price,
-    stock,
-  };
-}
-
 export async function fetchUserPricingProducts() {
-  const res = await axios.get(`${BACKEND_URL}get/all/product/adminpage/v2`, {
+  const base = normalizeApiBase(BACKEND_URL);
+  const res = await axios.get(`${base}get/all/product/adminpage/v2`, {
     headers: { "x-user-role": "admin" },
   });
   const rows = Array.isArray(res?.data?.products)
     ? res.data.products
     : Array.isArray(res?.data?.data)
-    ? res.data.data
-    : [];
+      ? res.data.data
+      : [];
   return rows.map(normalizeProduct);
 }
 
 export async function fetchUserProductPrices(userId) {
-  const res = await axios.get(`${BACKEND_URL}api/users/${userId}/product-prices`, {
+  const base = normalizeApiBase(BACKEND_URL);
+  const res = await axios.get(`${base}api/users/${userId}/product-prices`, {
     headers: { "x-user-role": "admin" },
   });
   return Array.isArray(res?.data?.data) ? res.data.data : [];
 }
 
-export async function saveUserProductPrice(userId, productId, price) {
-  const res = await axios.post(
-    `${BACKEND_URL}api/users/${userId}/product-price`,
-    { productId, price },
-    { headers: { "x-user-role": "admin" } }
-  );
-  return res?.data?.data || null;
+/**
+ * @param {object} [opts]
+ * @param {boolean} [opts.clear] - Remove per-user override for this product/variant.
+ */
+export async function saveUserProductPrice(userId, productId, price, variantKey = "", opts = {}) {
+  const base = normalizeApiBase(BACKEND_URL);
+  const vk = variantKey != null ? String(variantKey).trim() : "";
+  const body = opts.clear
+    ? { productId, variantKey: vk, clear: true }
+    : { productId, price, variantKey: vk };
+  const res = await axios.post(`${base}api/users/${userId}/product-price`, body, {
+    headers: { "x-user-role": "admin" },
+  });
+  return res?.data?.data ?? null;
 }
-

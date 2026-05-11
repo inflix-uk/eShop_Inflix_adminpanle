@@ -100,6 +100,29 @@ function presetKey(preset) {
   return `${preset.id}::${preset.variant}`;
 }
 
+/** Merge saved per-preset snapshots + active storefront `config` into hub state. */
+function mergeVariantConfigsFromApi(cfg, presets) {
+  const presetMap =
+    presets && typeof presets === "object" && !Array.isArray(presets) ? presets : {};
+  const next = {};
+  NAVBAR_LAYOUT_PRESETS.forEach((preset) => {
+    const k = presetKey(preset);
+    const fromPresets = presetMap[k] && typeof presetMap[k] === "object" && !Array.isArray(presetMap[k]);
+    next[k] = {
+      ...createInitialVariantConfig(preset),
+      ...(fromPresets ? presetMap[k] : {}),
+    };
+  });
+  if (cfg && typeof cfg === "object" && !Array.isArray(cfg)) {
+    const matched =
+      NAVBAR_LAYOUT_PRESETS.find((p) => p.id === cfg.id && p.variant === cfg.variant) ||
+      NAVBAR_LAYOUT_PRESETS[0];
+    const mk = presetKey(matched);
+    next[mk] = { ...createInitialVariantConfig(matched), ...cfg };
+  }
+  return next;
+}
+
 function createInitialVariantConfig(preset) {
   return {
     id: preset.id,
@@ -112,6 +135,7 @@ function createInitialVariantConfig(preset) {
     logoUrl: "",
     showSearch: true,
     showOnStorefront: true,
+    stickyNavbar: false,
     showButtons: true,
     showPrimaryButton: true,
     showSecondaryButton: true,
@@ -194,26 +218,23 @@ export default function ProductCentralNavbarHub() {
     const base = (auth.ip || "").endsWith("/") ? auth.ip : `${auth.ip || ""}/`;
     if (!auth.ip) return;
     axios
-      .get(`${base}navbar-variant-test/public`)
+      .get(`${base}navbar-variant-test`, { headers: { "x-user-role": "admin" } })
       .then((res) => {
         if (cancelled) return;
         const cfg = res.data?.data?.config;
-        if (!cfg || typeof cfg !== "object") return;
-        const matchedPreset =
-          NAVBAR_LAYOUT_PRESETS.find(
-            (p) => p.id === cfg.id && p.variant === cfg.variant
-          ) || NAVBAR_LAYOUT_PRESETS[0];
-        setSelectedPreset(matchedPreset);
-        setVariantConfigs((prev) => ({
-          ...prev,
-          [presetKey(matchedPreset)]: {
-            ...createInitialVariantConfig(matchedPreset),
-            ...cfg,
-          },
-        }));
+        const presets = res.data?.data?.presets;
+        if (!cfg && (!presets || typeof presets !== "object")) return;
+        setVariantConfigs(mergeVariantConfigsFromApi(cfg, presets));
+        if (cfg && typeof cfg === "object") {
+          const matchedPreset =
+            NAVBAR_LAYOUT_PRESETS.find(
+              (p) => p.id === cfg.id && p.variant === cfg.variant
+            ) || NAVBAR_LAYOUT_PRESETS[0];
+          setSelectedPreset(matchedPreset);
+        }
       })
       .catch(() => {
-        if (!cancelled) toast.error("Failed to load saved navbar variant");
+        if (!cancelled) toast.error("Failed to load saved navbar variants");
       });
     return () => {
       cancelled = true;
@@ -356,6 +377,11 @@ export default function ProductCentralNavbarHub() {
       )
       .then((res) => {
         if (res.data?.success) {
+          const cfg = res.data?.data?.config;
+          const presets = res.data?.data?.presets;
+          if (presets && typeof presets === "object") {
+            setVariantConfigs(mergeVariantConfigsFromApi(cfg, presets));
+          }
           setVariantSaveMessage("Saved successfully.");
           toast.success("Saved successfully.");
         } else {
@@ -518,7 +544,7 @@ export default function ProductCentralNavbarHub() {
                     </div>
 
                     <div className="rounded-lg border border-cyan-100 bg-cyan-50/40 p-4 space-y-4">
-                      <div className="rounded-md border border-blue-100 bg-blue-50 px-3 py-2">
+                      <div className="space-y-2 rounded-md border border-blue-100 bg-blue-50 px-3 py-2">
                         <label className="flex items-center gap-2 text-xs font-medium text-blue-900">
                           <input
                             type="checkbox"
@@ -530,6 +556,21 @@ export default function ProductCentralNavbarHub() {
                             }
                           />
                           Show overall navbar on storefront
+                        </label>
+                        <label className="flex flex-wrap items-center gap-2 text-xs font-medium text-blue-900">
+                          <input
+                            type="checkbox"
+                            checked={selectedConfig.stickyNavbar === true}
+                            onChange={(e) =>
+                              updateSelectedVariantConfig({
+                                stickyNavbar: e.target.checked,
+                              })
+                            }
+                          />
+                          <span>
+                            Sticky navbar (stay pinned to top while scrolling — applies to this
+                            preset when it is the active storefront variant)
+                          </span>
                         </label>
                       </div>
                       <div>
@@ -720,40 +761,78 @@ export default function ProductCentralNavbarHub() {
                                   ::
                                 </div>
                                 <select
-                                  value={link.linkType === "icon" ? "icon" : "label"}
-                                  onChange={(e) =>
-                                    updateSelectedLink(link.id, {
-                                      linkType: e.target.value === "icon" ? "icon" : "label",
-                                    })
+                                  value={
+                                    link.linkType === "icon"
+                                      ? "icon"
+                                      : link.linkType === "icon_label"
+                                        ? "icon_label"
+                                        : "label"
                                   }
+                                  onChange={(e) => {
+                                    const v = e.target.value;
+                                    updateSelectedLink(link.id, {
+                                      linkType:
+                                        v === "icon"
+                                          ? "icon"
+                                          : v === "icon_label"
+                                            ? "icon_label"
+                                            : "label",
+                                    });
+                                  }}
                                   className="col-span-2 rounded-md border border-gray-300 px-2 py-1.5 text-xs"
                                 >
-                                  <option value="label">Label</option>
-                                  <option value="icon">Icon</option>
+                                  <option value="label">Label only</option>
+                                  <option value="icon">Icon only</option>
+                                  <option value="icon_label">Icon + label</option>
                                 </select>
-                                <input
-                                  type="text"
-                                  value={link.linkType === "icon" ? link.icon || "" : link.label || ""}
-                                  onChange={(e) =>
-                                    updateSelectedLink(
-                                      link.id,
+                                {link.linkType === "icon_label" ? (
+                                  <>
+                                    <input
+                                      type="text"
+                                      value={link.icon || ""}
+                                      onChange={(e) =>
+                                        updateSelectedLink(link.id, { icon: e.target.value })
+                                      }
+                                      className="col-span-2 rounded-md border border-gray-300 px-2 py-1.5 text-xs"
+                                      placeholder="FiHome (react-icons)"
+                                    />
+                                    <input
+                                      type="text"
+                                      value={link.label || ""}
+                                      onChange={(e) =>
+                                        updateSelectedLink(link.id, { label: e.target.value })
+                                      }
+                                      className="col-span-2 rounded-md border border-gray-300 px-2 py-1.5 text-xs"
+                                      placeholder="Visible label"
+                                    />
+                                  </>
+                                ) : (
+                                  <input
+                                    type="text"
+                                    value={link.linkType === "icon" ? link.icon || "" : link.label || ""}
+                                    onChange={(e) =>
+                                      updateSelectedLink(
+                                        link.id,
+                                        link.linkType === "icon"
+                                          ? { icon: e.target.value }
+                                          : { label: e.target.value }
+                                      )
+                                    }
+                                    className="col-span-3 rounded-md border border-gray-300 px-2 py-1.5 text-xs"
+                                    placeholder={
                                       link.linkType === "icon"
-                                        ? { icon: e.target.value }
-                                        : { label: e.target.value }
-                                    )
-                                  }
-                                  className="col-span-3 rounded-md border border-gray-300 px-2 py-1.5 text-xs"
-                                  placeholder={
-                                    link.linkType === "icon"
-                                      ? "FiHome (react-icons)"
-                                      : "Label"
-                                  }
-                                />
+                                        ? "FiHome (react-icons)"
+                                        : "Label"
+                                    }
+                                  />
+                                )}
                                 <input
                                   type="text"
                                   value={link.url}
                                   onChange={(e) => updateSelectedLink(link.id, { url: e.target.value })}
-                                  className="col-span-5 rounded-md border border-gray-300 px-2 py-1.5 text-xs"
+                                  className={`rounded-md border border-gray-300 px-2 py-1.5 text-xs ${
+                                    link.linkType === "icon_label" ? "col-span-4" : "col-span-5"
+                                  }`}
                                   placeholder="/path"
                                 />
                                 <button
@@ -1271,11 +1350,23 @@ export default function ProductCentralNavbarHub() {
                                 }}
                               >
                                 <div className="flex items-center justify-center gap-8 text-sm">
-                                  {previewLinks.map((link) => (
-                                    <span key={link.id} style={{ color: selectedConfig.menuLinkTextColor || "#334155" }}>
-                                      {link.linkType === "icon" ? link.icon || "FiGrid" : link.label || "Link"}
-                                    </span>
-                                  ))}
+                                  {previewLinks.map((link) => {
+                                    const c = selectedConfig.menuLinkTextColor || "#334155";
+                                    if (link.linkType === "icon_label") {
+                                      const Cmp = resolveNavbarIcon(link.icon || "FiGrid");
+                                      return (
+                                        <span key={link.id} className="inline-flex items-center gap-1" style={{ color: c }}>
+                                          <Cmp className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                                          <span>{link.label || "Link"}</span>
+                                        </span>
+                                      );
+                                    }
+                                    return (
+                                      <span key={link.id} style={{ color: c }}>
+                                        {link.linkType === "icon" ? link.icon || "FiGrid" : link.label || "Link"}
+                                      </span>
+                                    );
+                                  })}
                                 </div>
                               </div>
                             </div>
@@ -1298,11 +1389,23 @@ export default function ProductCentralNavbarHub() {
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-6 text-sm">
-                                  {previewLinks.map((link) => (
-                                    <span key={link.id} style={{ color: selectedConfig.menuLinkTextColor || "#334155" }}>
-                                      {link.linkType === "icon" ? link.icon || "FiGrid" : link.label || "Link"}
-                                    </span>
-                                  ))}
+                                  {previewLinks.map((link) => {
+                                    const c = selectedConfig.menuLinkTextColor || "#334155";
+                                    if (link.linkType === "icon_label") {
+                                      const Cmp = resolveNavbarIcon(link.icon || "FiGrid");
+                                      return (
+                                        <span key={link.id} className="inline-flex items-center gap-1" style={{ color: c }}>
+                                          <Cmp className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                                          <span>{link.label || "Link"}</span>
+                                        </span>
+                                      );
+                                    }
+                                    return (
+                                      <span key={link.id} style={{ color: c }}>
+                                        {link.linkType === "icon" ? link.icon || "FiGrid" : link.label || "Link"}
+                                      </span>
+                                    );
+                                  })}
                                 </div>
                                 <div className="flex items-center gap-2">
                                   {selectedConfig.showSearch !== false ? (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { FaPlus, FaEdit, FaEye, FaTrash } from 'react-icons/fa';
 import { getAllFooterPages, deleteFooterPage } from './service/pageService';
@@ -24,7 +24,28 @@ export default function FooterPagesManagement() {
       setErrorMessage('');
       setSuccessMessage('');
       const footerPages = await getAllFooterPages({});
-      setPages(footerPages);
+      const list = Array.isArray(footerPages) ? footerPages : [];
+      console.log(
+        "[Footer pages admin] Full list from API (all pages, pagination merged):",
+        list.length,
+        "row(s)"
+      );
+      if (list.length > 0) {
+        console.table(
+          list.map((p) => ({
+            title: p?.title ?? "",
+            slug: p?.slug ?? "",
+            path: p?.parentPageId?.slug
+              ? `/${p.parentPageId.slug}/${p?.slug ?? ""}`
+              : `/${p?.slug ?? ""}`,
+            publishStatus: p?.publishStatus ?? "",
+            id: String(p?._id ?? p?.id ?? ""),
+          }))
+        );
+      } else {
+        console.log("[Footer pages admin] Backend payload (empty or non-array):", footerPages);
+      }
+      setPages(list);
       setIsLoading(false);
     } catch (error) {
       console.error('Failed to fetch pages:', error);
@@ -58,10 +79,37 @@ export default function FooterPagesManagement() {
   };
 
   // Filter pages based on search
-  const filteredPages = pages.filter(page =>
-    page.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    page.slug?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredPages = useMemo(
+    () =>
+      pages.filter(
+        (page) =>
+          page.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          page.slug?.toLowerCase().includes(searchTerm.toLowerCase())
+      ),
+    [pages, searchTerm]
   );
+
+  useEffect(() => {
+    if (isLoading) return;
+    const searching = Boolean(searchTerm?.trim());
+    console.log(
+      "[Footer pages admin] Table rows:",
+      filteredPages.length,
+      "visible /",
+      pages.length,
+      "loaded (search:",
+      searching ? `"${searchTerm}"` : "off)",
+      ")"
+    );
+    if (searching && filteredPages.length < pages.length) {
+      const hidden = pages.length - filteredPages.length;
+      console.log(
+        "[Footer pages admin]",
+        hidden,
+        "page(s) hidden by search filter (still in loaded list; clear search to see all in table)."
+      );
+    }
+  }, [isLoading, pages.length, filteredPages.length, searchTerm]);
 
   const getParentSlug = (page) => {
     const parent = page?.parentPageId;
