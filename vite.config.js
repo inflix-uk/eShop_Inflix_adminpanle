@@ -23,7 +23,6 @@ export default defineConfig({
             'react-quill',
             // 'suneditor-react',
             '@uiw/react-md-editor',
-            '@uiw/react-markdown-preview',
           ],
           // Chart libraries
           'chart-vendor': ['apexcharts', 'chart.js', 'react-apexcharts', 'react-chartjs-2'],
@@ -40,7 +39,7 @@ export default defineConfig({
           // Stripe payment
           'stripe-vendor': ['@stripe/react-stripe-js', '@stripe/stripe-js'],
           // Other utilities
-          'utils-vendor': ['dompurify', 'axios', 'react-toastify'],
+          'utils-vendor': ['axios', 'react-toastify'],
         },
       },
     },
