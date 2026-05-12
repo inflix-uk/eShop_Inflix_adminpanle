@@ -67,6 +67,12 @@ const NAVBAR_LAYOUT_PRESETS = [
     label: "Retail two row",
     preview: "Top search + contact/icons | Bottom links bar",
   },
+  {
+    id: "split",
+    variant: "wing-split",
+    label: "Wing split bar",
+    preview: "Colored wing | Logo | 60% links strip (same bg)",
+  },
 ];
 const DEFAULT_NAVBAR_LINKS = [
   { id: "lnk-1", label: "Home", url: "/", icon: "", linkType: "label", children: [] },
@@ -1296,77 +1302,202 @@ export default function ProductCentralNavbarHub() {
 
                         <p className="mb-3 text-xs font-medium text-gray-600">
                           Live preview (matches storefront variant style)
+                          {selectedConfig.variant === "retail-two-row" ? (
+                            <span className="ml-1 block text-[11px] font-normal text-gray-500 sm:inline">
+                              Scroll the preview area to test sticky.
+                            </span>
+                          ) : null}
                         </p>
                         <div className="overflow-x-auto">
                           {selectedConfig.variant === "retail-two-row" ? (
                             <div
-                              className="min-w-[920px] rounded-xl border p-3 shadow-sm"
+                              className="min-w-[920px] max-h-[min(70vh,520px)] overflow-y-auto rounded-xl border bg-gray-50 p-3 shadow-inner"
                               style={{ backgroundColor: selectedConfig.navbarBgColor || "#ffffff" }}
                             >
-                              <div className="flex items-center justify-between gap-4 pb-3">
-                                <div className="flex items-center gap-2">
+                              <div className="space-y-3 pb-32">
+                                <p className="text-center text-[11px] text-gray-400">
+                                  Page content above the navbar (scroll down)
+                                </p>
+                                <div className="h-16 rounded-lg bg-gradient-to-r from-slate-100 to-slate-200" />
+                                <div
+                                  className="rounded-xl border p-3 shadow-sm"
+                                  style={{ backgroundColor: selectedConfig.navbarBgColor || "#ffffff" }}
+                                >
+                                  <div
+                                    className={`flex items-center justify-between gap-4 ${
+                                      selectedConfig.stickyNavbar === true
+                                        ? "sticky top-0 z-10 rounded-t-lg border-b border-slate-100 pb-3 shadow-sm"
+                                        : "pb-3"
+                                    }`}
+                                    style={
+                                      selectedConfig.stickyNavbar === true
+                                        ? { backgroundColor: selectedConfig.navbarBgColor || "#ffffff" }
+                                        : undefined
+                                    }
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      {selectedConfig.logoUrl ? (
+                                        <img src={selectedConfig.logoUrl} alt="logo" className="h-10 w-auto rounded-md object-contain" />
+                                      ) : (
+                                        <span className="text-sm font-semibold text-gray-900">
+                                          {selectedConfig.logoText || "Brand"}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {selectedConfig.showSearch !== false ? (
+                                      <div className="flex h-10 w-[42%] items-center rounded-md border border-slate-300 bg-white px-3 text-xs text-slate-400">
+                                        Search for products
+                                      </div>
+                                    ) : (
+                                      <div className="min-w-0 flex-1" />
+                                    )}
+                                    <div className="flex shrink-0 items-center gap-2">
+                                      {selectedConfig.showButtons !== false ? (
+                                        <>
+                                          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full"
+                                            style={{
+                                              backgroundColor: selectedConfig.actionIcon1BgColor || "#0e9f6e",
+                                              color: selectedConfig.actionIcon1Color || "#ffffff",
+                                            }}>
+                                            <PreviewActionIcon1 className="h-4 w-4" />
+                                          </span>
+                                          <span className="text-[11px] text-slate-600">Basket £0.00</span>
+                                          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full"
+                                            style={{
+                                              backgroundColor: selectedConfig.actionIcon2BgColor || "#0e9f6e",
+                                              color: selectedConfig.actionIcon2Color || "#ffffff",
+                                            }}>
+                                            <PreviewActionIcon2 className="h-4 w-4" />
+                                          </span>
+                                        </>
+                                      ) : null}
+                                    </div>
+                                  </div>
+                                  <div
+                                    className="rounded-md px-4 py-2"
+                                    style={{
+                                      backgroundColor:
+                                        selectedConfig.classicRightSectionBgColor || "#fdf4df",
+                                    }}
+                                  >
+                                    <div className="flex items-center justify-center gap-8 text-sm">
+                                      {previewLinks.map((link) => {
+                                        const c = selectedConfig.menuLinkTextColor || "#334155";
+                                        if (link.linkType === "icon_label") {
+                                          const Cmp = resolveNavbarIcon(link.icon || "FiGrid");
+                                          return (
+                                            <span key={link.id} className="inline-flex items-center gap-1" style={{ color: c }}>
+                                              <Cmp className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                                              <span>{link.label || "Link"}</span>
+                                            </span>
+                                          );
+                                        }
+                                        return (
+                                          <span key={link.id} style={{ color: c }}>
+                                            {link.linkType === "icon" ? link.icon || "FiGrid" : link.label || "Link"}
+                                          </span>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                </div>
+                                <p className="text-center text-[11px] text-gray-400">
+                                  More page content below (keeps scroll going)
+                                </p>
+                                <div className="h-40 rounded-lg bg-gradient-to-r from-slate-100 to-slate-200" />
+                                <div className="h-40 rounded-lg bg-gradient-to-r from-slate-200 to-slate-100" />
+                              </div>
+                            </div>
+                          ) : selectedConfig.variant === "wing-split" ? (
+                            <div
+                              className="min-w-[860px] overflow-hidden rounded-xl border shadow-sm"
+                              style={{
+                                backgroundColor:
+                                  selectedConfig.navbarBgColor ||
+                                  selectedConfig.classicRightSectionBgColor ||
+                                  "#f1f5f9",
+                              }}
+                            >
+                              <div className="flex min-h-[52px] w-full items-stretch">
+                                <div
+                                  className="min-w-0 flex-1"
+                                  style={{
+                                    backgroundColor:
+                                      selectedConfig.navbarBgColor ||
+                                      selectedConfig.classicRightSectionBgColor ||
+                                      "#f1f5f9",
+                                  }}
+                                />
+                                <div className="flex shrink-0 items-center bg-white px-4">
                                   {selectedConfig.logoUrl ? (
-                                    <img src={selectedConfig.logoUrl} alt="logo" className="h-10 w-auto rounded-md object-contain" />
+                                    <img
+                                      src={selectedConfig.logoUrl}
+                                      alt="logo"
+                                      className="h-9 w-auto max-w-[140px] rounded-md object-contain"
+                                    />
                                   ) : (
                                     <span className="text-sm font-semibold text-gray-900">
                                       {selectedConfig.logoText || "Brand"}
                                     </span>
                                   )}
                                 </div>
-                                {selectedConfig.showSearch !== false ? (
-                                  <div className="flex h-10 w-[42%] items-center rounded-md border border-slate-300 bg-white px-3 text-xs text-slate-400">
-                                    Search for products
+                                <div
+                                  className="flex w-[60%] shrink-0 flex-wrap items-center justify-end gap-3 px-3 py-2"
+                                  style={{
+                                    backgroundColor:
+                                      selectedConfig.navbarBgColor ||
+                                      selectedConfig.classicRightSectionBgColor ||
+                                      "#f1f5f9",
+                                  }}
+                                >
+                                  <div
+                                    className="flex flex-wrap justify-end gap-4 text-sm"
+                                    style={{ color: selectedConfig.menuLinkTextColor || "#334155" }}
+                                  >
+                                    {previewLinks.map((link) => {
+                                      if (link.linkType === "icon_label") {
+                                        const Cmp = resolveNavbarIcon(link.icon || "FiGrid");
+                                        return (
+                                          <span key={link.id} className="inline-flex items-center gap-1">
+                                            <Cmp className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                                            <span>{link.label || "Link"}</span>
+                                          </span>
+                                        );
+                                      }
+                                      return (
+                                        <span key={link.id}>
+                                          {link.linkType === "icon" ? link.icon || "FiGrid" : link.label || "Link"}
+                                        </span>
+                                      );
+                                    })}
                                   </div>
-                                ) : (
-                                  <div className="flex-1" />
-                                )}
-                                <div className="flex items-center gap-2">
+                                  {selectedConfig.showSearch !== false ? (
+                                    <span className="rounded-md border border-slate-300/80 bg-white/90 px-2 py-1 text-[11px] text-slate-600">
+                                      Search
+                                    </span>
+                                  ) : null}
                                   {selectedConfig.showButtons !== false ? (
                                     <>
-                                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full"
+                                      <span
+                                        className="inline-flex h-8 w-8 items-center justify-center rounded-full"
                                         style={{
                                           backgroundColor: selectedConfig.actionIcon1BgColor || "#0e9f6e",
                                           color: selectedConfig.actionIcon1Color || "#ffffff",
-                                        }}>
+                                        }}
+                                      >
                                         <PreviewActionIcon1 className="h-4 w-4" />
                                       </span>
-                                      <span className="text-[11px] text-slate-600">Basket £0.00</span>
-                                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full"
+                                      <span
+                                        className="inline-flex h-8 w-8 items-center justify-center rounded-full"
                                         style={{
                                           backgroundColor: selectedConfig.actionIcon2BgColor || "#0e9f6e",
                                           color: selectedConfig.actionIcon2Color || "#ffffff",
-                                        }}>
+                                        }}
+                                      >
                                         <PreviewActionIcon2 className="h-4 w-4" />
                                       </span>
                                     </>
                                   ) : null}
-                                </div>
-                              </div>
-                              <div
-                                className="rounded-md px-4 py-2"
-                                style={{
-                                  backgroundColor:
-                                    selectedConfig.classicRightSectionBgColor || "#fdf4df",
-                                }}
-                              >
-                                <div className="flex items-center justify-center gap-8 text-sm">
-                                  {previewLinks.map((link) => {
-                                    const c = selectedConfig.menuLinkTextColor || "#334155";
-                                    if (link.linkType === "icon_label") {
-                                      const Cmp = resolveNavbarIcon(link.icon || "FiGrid");
-                                      return (
-                                        <span key={link.id} className="inline-flex items-center gap-1" style={{ color: c }}>
-                                          <Cmp className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                                          <span>{link.label || "Link"}</span>
-                                        </span>
-                                      );
-                                    }
-                                    return (
-                                      <span key={link.id} style={{ color: c }}>
-                                        {link.linkType === "icon" ? link.icon || "FiGrid" : link.label || "Link"}
-                                      </span>
-                                    );
-                                  })}
                                 </div>
                               </div>
                             </div>
