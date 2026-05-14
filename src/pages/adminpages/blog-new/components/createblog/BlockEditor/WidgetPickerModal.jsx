@@ -20,6 +20,7 @@ import {
   Percent,
   Gift,
   Contact,
+  PanelTop,
 } from "lucide-react";
 
 const WIDGET_OPTIONS = [
@@ -126,6 +127,13 @@ const WIDGET_OPTIONS = [
     description:
       "Fragment HTML and CSS in separate tabs; CSS is scoped with @scope on the live site. Markup is server-rendered (visible in page HTML).",
     Icon: Code2,
+  },
+  {
+    id: "navbar",
+    title: "Navbar",
+    description:
+      "Starter navbar presets with links, search, buttons, and brand/logo text.",
+    Icon: PanelTop,
   },
   {
     id: "contactUs",

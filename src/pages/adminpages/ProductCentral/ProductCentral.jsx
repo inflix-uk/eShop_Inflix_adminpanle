@@ -78,40 +78,6 @@ export default function ProductCentral() {
       shadowColor: "shadow-blue-200"
     },
     {
-      id: "google-categories",
-      title: "Google Categories",
-      description: "Google product taxonomy (5,595 categories)",
-      path: "/admin/product-central/google-categories",
-      icon: (
-        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-        </svg>
-      ),
-      count: "–",
-      subCount: null,
-      bgGradient: "from-amber-500 to-orange-600",
-      iconBg: "bg-amber-100",
-      iconColor: "text-amber-600",
-      shadowColor: "shadow-amber-200"
-    },
-    {
-      id: "homepage-nav-links",
-      title: "Storefront nav links",
-      description: "Navbar and homepage quick links (name + path)",
-      path: "/admin/product-central/homepage-nav-links",
-      icon: (
-        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-        </svg>
-      ),
-      count: "–",
-      subCount: null,
-      bgGradient: "from-violet-500 to-purple-600",
-      iconBg: "bg-violet-100",
-      iconColor: "text-violet-600",
-      shadowColor: "shadow-violet-200"
-    },
-    {
       id: "subcategories",
       title: "Subcategories",
       description: "Manage subcategories",

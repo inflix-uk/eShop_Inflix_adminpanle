@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { FaPlus, FaEdit, FaEye, FaTrash } from 'react-icons/fa';
 import { getAllFooterPages, deleteFooterPage } from './service/pageService';
@@ -24,11 +24,32 @@ export default function FooterPagesManagement() {
       setErrorMessage('');
       setSuccessMessage('');
       const footerPages = await getAllFooterPages({});
-      setPages(footerPages);
+      const list = Array.isArray(footerPages) ? footerPages : [];
+      console.log(
+        "[Footer pages admin] Full list from API (all pages, pagination merged):",
+        list.length,
+        "row(s)"
+      );
+      if (list.length > 0) {
+        console.table(
+          list.map((p) => ({
+            title: p?.title ?? "",
+            slug: p?.slug ?? "",
+            path: p?.parentPageId?.slug
+              ? `/${p.parentPageId.slug}/${p?.slug ?? ""}`
+              : `/${p?.slug ?? ""}`,
+            publishStatus: p?.publishStatus ?? "",
+            id: String(p?._id ?? p?.id ?? ""),
+          }))
+        );
+      } else {
+        console.log("[Footer pages admin] Backend payload (empty or non-array):", footerPages);
+      }
+      setPages(list);
       setIsLoading(false);
     } catch (error) {
-      console.error('Failed to fetch footer pages:', error);
-      setErrorMessage('Failed to load footer pages. Please try again later.');
+      console.error('Failed to fetch pages:', error);
+      setErrorMessage('Failed to load pages. Please try again later.');
       setIsLoading(false);
     }
   };
@@ -58,10 +79,44 @@ export default function FooterPagesManagement() {
   };
 
   // Filter pages based on search
-  const filteredPages = pages.filter(page =>
-    page.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    page.slug?.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredPages = useMemo(
+    () =>
+      pages.filter(
+        (page) =>
+          page.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          page.slug?.toLowerCase().includes(searchTerm.toLowerCase())
+      ),
+    [pages, searchTerm]
   );
+
+  useEffect(() => {
+    if (isLoading) return;
+    const searching = Boolean(searchTerm?.trim());
+    console.log(
+      "[Footer pages admin] Table rows:",
+      filteredPages.length,
+      "visible /",
+      pages.length,
+      "loaded (search:",
+      searching ? `"${searchTerm}"` : "off)",
+      ")"
+    );
+    if (searching && filteredPages.length < pages.length) {
+      const hidden = pages.length - filteredPages.length;
+      console.log(
+        "[Footer pages admin]",
+        hidden,
+        "page(s) hidden by search filter (still in loaded list; clear search to see all in table)."
+      );
+    }
+  }, [isLoading, pages.length, filteredPages.length, searchTerm]);
+
+  const getParentSlug = (page) => {
+    const parent = page?.parentPageId;
+    if (!parent) return "";
+    if (typeof parent === "string") return "";
+    return String(parent?.slug || "").trim();
+  };
 
   return (
     <>
@@ -70,18 +125,20 @@ export default function FooterPagesManagement() {
         <Top toggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} selectedPage="footer-pages" setSelectedPage={() => {}} />
         <main className="py-5">
           <div className="container mx-auto px-4 py-8">
-            {/* Header */}
-            <div className="mb-8 flex justify-between items-center">
-              <div>
-                <h1 className="text-3xl font-bold text-gray-800">Footer Pages</h1>
-                <p className="text-gray-600 mt-2">Manage your footer pages (Terms & Conditions, Privacy Policy, etc.)</p>
+            {/* Header — stack on narrow widths so the CTA is not crushed by the long intro copy */}
+            <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-3xl font-bold text-gray-800">Pages</h1>
+                <p className="text-gray-600 mt-2 text-sm sm:text-base leading-relaxed">
+                  Create and manage your site pages — policies, guides, marketing content, and custom URLs (root or under a parent page).
+                </p>
               </div>
               <Link
                 to="/admin/footer-pages/create"
-                className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md flex items-center gap-2"
+                className="inline-flex shrink-0 items-center justify-center gap-2 self-stretch rounded-md border border-transparent bg-primary px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 sm:self-start sm:py-2"
               >
-                <FaPlus />
-                <span>Create New Page</span>
+                <FaPlus className="h-4 w-4 shrink-0" aria-hidden />
+                <span className="whitespace-nowrap">Create New Page</span>
               </Link>
             </div>
 
@@ -104,14 +161,14 @@ export default function FooterPagesManagement() {
                 placeholder="Search pages by title or slug..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full max-w-md px-4 py-2 border border-gray-300 rounded-md focus:ring-purple-500 focus:border-purple-500"
+                className="w-full max-w-md rounded-md border border-gray-300 px-4 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
               />
             </div>
 
             {/* Pages Table */}
             {isLoading ? (
               <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+                <div className="h-12 w-12 animate-spin rounded-full border-2 border-gray-200 border-t-primary" />
               </div>
             ) : filteredPages.length === 0 ? (
               <div className="text-center py-12 bg-gray-50 rounded-lg">
@@ -149,7 +206,11 @@ export default function FooterPagesManagement() {
                           <div className="text-sm font-medium text-gray-900">{page.title}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-500">/{page.slug}</div>
+                          <div className="text-sm text-gray-500">
+                            {getParentSlug(page)
+                              ? `/${getParentSlug(page)}/${page.slug}`
+                              : `/${page.slug}`}
+                          </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
@@ -168,22 +229,28 @@ export default function FooterPagesManagement() {
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex justify-end gap-2">
                             <Link
-                              to={`/admin/footer-pages/preview/${page.slug}`}
-                              className="text-blue-600 hover:text-blue-900"
+                              to={{
+                                pathname: `/admin/footer-pages/preview/${page.slug}`,
+                                search: getParentSlug(page)
+                                  ? `?parentSlug=${encodeURIComponent(getParentSlug(page))}`
+                                  : "",
+                              }}
+                              className="text-primary hover:text-secondary"
                               title="Preview"
                             >
                               <FaEye />
                             </Link>
                             <Link
                               to={`/admin/footer-pages/edit/${page._id || page.id}`}
-                              className="text-purple-600 hover:text-purple-900"
+                              className="text-primary hover:text-secondary"
                               title="Edit"
                             >
                               <FaEdit />
                             </Link>
                             <button
+                              type="button"
                               onClick={() => handleDelete(page._id || page.id, page.title)}
-                              className="text-red-600 hover:text-red-900"
+                              className="text-red-600 hover:text-red-800"
                               title="Delete"
                             >
                               <FaTrash />

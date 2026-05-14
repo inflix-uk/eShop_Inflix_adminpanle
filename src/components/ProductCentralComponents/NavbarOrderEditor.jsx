@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "../../context/Auth";
 import { toast } from "react-toastify";
 import Select from "react-select";
@@ -84,7 +84,6 @@ function mapApiRowToNavRow(row) {
 
 export default function NavbarOrderEditor() {
   const auth = useAuth();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -393,7 +392,6 @@ export default function NavbarOrderEditor() {
       .then((response) => {
         if (response.data.status === 201) {
           toast.success("Navbar order saved successfully!");
-          navigate("/admin/product-central/categories");
         } else {
           toast.error(
             response.data.message || response.data.error || "Failed to save."
@@ -427,10 +425,10 @@ export default function NavbarOrderEditor() {
       <div className="rounded-xl border border-red-200 bg-red-50/80 p-6">
         <p className="text-sm text-red-800 mb-4">{loadError}</p>
         <Link
-          to="/admin/product-central/categories"
+          to="/admin"
           className="inline-flex rounded-lg bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-900"
         >
-          Back to categories
+          Back to dashboard
         </Link>
       </div>
     );
@@ -674,7 +672,7 @@ export default function NavbarOrderEditor() {
 
       <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
         <Link
-          to="/admin/product-central/categories"
+          to="/admin"
           className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
         >
           Cancel

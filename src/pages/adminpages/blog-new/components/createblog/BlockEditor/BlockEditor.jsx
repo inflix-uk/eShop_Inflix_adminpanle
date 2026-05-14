@@ -216,6 +216,29 @@ export default function BlockEditor({ blocks, setBlocks, className, collapsibleR
         };
       } else if (widgetSubtype === 'contactUs') {
         newBlock.content = createDefaultContactUsWidgetContent();
+      } else if (widgetSubtype === 'navbar') {
+        newBlock.content = {
+          widgetType: 'navbar',
+          variant: 'modern',
+          layout: 'classic',
+          logoUrl: '',
+          logoText: 'Brand',
+          links: [
+            { id: nanoid(), label: 'Home', url: '/', icon: 'FiHome' },
+            { id: nanoid(), label: 'Shop', url: '/products', icon: 'FiGrid' },
+            { id: nanoid(), label: 'Deals', url: '/deals', icon: 'FiTag' },
+          ],
+          showSearch: true,
+          showButtons: true,
+          actionIcon1: 'FiShoppingCart',
+          actionIcon2: 'FiUser',
+          primaryButtonLabel: 'Sign in',
+          primaryButtonUrl: '/login',
+          primaryButtonIcon: 'FiDownload',
+          secondaryButtonLabel: 'Get started',
+          secondaryButtonUrl: '/register',
+          secondaryButtonIcon: 'FiPhone',
+        };
       } else {
         newBlock.content = {
           widgetType: 'slider',
@@ -569,7 +592,8 @@ export default function BlockEditor({ blocks, setBlocks, className, collapsibleR
             widgetType === "activeDeals" ||
             widgetType === "dealsDiscountCards" ||
             widgetType === "htmlCss" ||
-            widgetType === "contactUs"
+            widgetType === "contactUs" ||
+            widgetType === "navbar"
           ) {
             addBlock(rowIndex, columnIndex, "widget", widgetType);
           }

@@ -128,6 +128,7 @@ export default function Side({
     if (!isCurrentlyOpen) setter(true);
   }, []);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
+  const [disabledAdminRoutes, setDisabledAdminRoutes] = useState([]);
 
   const auth = useAuth();
   const permissions = auth?.user?.permissions;
@@ -146,6 +147,19 @@ export default function Side({
       return true;
     },
     [permissions]
+  );
+
+  const normalizeRoutePath = useCallback(
+    (routePath) => String(routePath || "").trim().replace(/^\/+|\/+$/g, "").toLowerCase(),
+    []
+  );
+
+  const isAdminRouteDisabled = useCallback(
+    (routePath) => {
+      const normalized = normalizeRoutePath(routePath);
+      return disabledAdminRoutes.includes(normalized);
+    },
+    [disabledAdminRoutes, normalizeRoutePath]
   );
 
   // Fetch unread messages count
@@ -185,11 +199,45 @@ export default function Side({
     };
   }, [fetchUnreadCount]);
 
+  useEffect(() => {
+    let mounted = true;
+    const fetchAdminControls = async () => {
+      try {
+        const response = await axios.get(
+          `${BACKEND_URL}superadmin/controls/public`
+        );
+        const disabled = Array.isArray(response?.data?.data?.disabledAdminRoutes)
+          ? response.data.data.disabledAdminRoutes
+              .map((item) => normalizeRoutePath(item))
+              .filter(Boolean)
+          : [];
+        if (mounted) {
+          setDisabledAdminRoutes([...new Set(disabled)]);
+        }
+      } catch (error) {
+        if (mounted) {
+          setDisabledAdminRoutes([]);
+        }
+      }
+    };
+
+    fetchAdminControls();
+    return () => {
+      mounted = false;
+    };
+  }, [normalizeRoutePath]);
+
   const footerPagesList = [
     "footer-pages",
     "footer-pages-create",
     "footer-pages-edit",
     "footer-pages-preview",
+  ];
+
+  const navbarHubPages = [
+    "storefront-navbar",
+    "storefront-nav-links",
+    "storefront-navbar-order",
   ];
 
   useEffect(() => {
@@ -209,6 +257,8 @@ export default function Side({
       "media",
       "reviews",
       "author",
+      "pages-categories",
+      "storefront-navbar",
       ...footerPagesList,
     ];
 
@@ -660,6 +710,59 @@ export default function Side({
             </svg>
           ),
         },
+        /* Pages categories — hidden from sidebar
+        {
+          label: "Pages categories",
+          to: "/admin/pages-categories",
+          selectedKey: "pages-categories",
+          icon: (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className={`h-5 w-5 shrink-0 ${
+                selectedPage === "pages-categories"
+                  ? "text-primary"
+                  : "text-gray-400 group-hover:text-primary"
+              } my-auto`}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z"
+              />
+            </svg>
+          ),
+        },
+        */
+        {
+          label: "Navbar",
+          to: "/admin/product-central/navbar",
+          selectedKey: "storefront-navbar",
+          permissionCheck: (p) => p?.zextons?.view_product_central,
+          icon: (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className={`h-5 w-5 shrink-0 ${
+                navbarHubPages.includes(selectedPage)
+                  ? "text-primary"
+                  : "text-gray-400 group-hover:text-primary"
+              } my-auto`}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25A2.25 2.25 0 0 1 13.5 8.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"
+              />
+            </svg>
+          ),
+        },
       ],
     },
     {
@@ -1003,7 +1106,7 @@ export default function Side({
           strokeWidth={1.5}
           stroke="currentColor"
           className={`h-5 w-5 shrink-0 ${
-            selectedPage === "stripe-settings" || selectedPage === "shipping-settings" || selectedPage === "trustpilot-settings" || selectedPage === "scripts-settings" || selectedPage === "email-template-settings" || selectedPage === "smtp-settings" || selectedPage === "site-wide-schema-settings" || selectedPage === "robots-settings" || selectedPage === "widgets-settings" || selectedPage === "announcement-banner-settings" || selectedPage === "deals-modal-settings" || selectedPage === "footer-settings" || selectedPage === "google-search-console" || selectedPage === "logo" || selectedPage === "site-wide-color"
+            selectedPage === "stripe-settings" || selectedPage === "shipping-settings" || selectedPage === "trustpilot-settings" || selectedPage === "scripts-settings" || selectedPage === "email-template-settings" || selectedPage === "smtp-settings" || selectedPage === "site-wide-schema-settings" || selectedPage === "robots-settings" || selectedPage === "widgets-settings" || selectedPage === "announcement-banner-settings" || selectedPage === "deals-modal-settings" || selectedPage === "footer-settings" || selectedPage === "logo" || selectedPage === "site-wide-color"
               ? "text-primary"
               : "text-gray-400 group-hover:text-primary"
           } my-auto`}
@@ -1348,6 +1451,7 @@ export default function Side({
             </svg>
           ),
         },
+        /* Hidden: Google Search Console (was under Settings near Footer Settings). Restore by uncommenting.
         {
           label: "Google Search Console",
           to: "/admin/google-search-console",
@@ -1374,6 +1478,7 @@ export default function Side({
             </svg>
           ),
         },
+        */
         {
           label: "Logo",
           to: "/admin/logo",
@@ -1436,8 +1541,9 @@ export default function Side({
   const renderSidebarSections = () => {
     return sideBarData.map((section) => {
       // Filter links that the user has permission to access
-      const accessibleLinks = section.links.filter((link) =>
-        hasPermission(link.permissionCheck)
+      const accessibleLinks = section.links.filter(
+        (link) =>
+          hasPermission(link.permissionCheck) && !isAdminRouteDisabled(link.to)
       );
 
       // If no links are accessible, don't render the section at all
@@ -1466,7 +1572,9 @@ export default function Side({
                   ? productTabPages.includes(selectedPage)
                   : link.selectedKey === "footer-pages"
                     ? footerPagesList.includes(selectedPage)
-                    : selectedPage === link.selectedKey;
+                    : link.selectedKey === "storefront-navbar"
+                      ? navbarHubPages.includes(selectedPage)
+                      : selectedPage === link.selectedKey;
 
               return (
                 <SidebarLink

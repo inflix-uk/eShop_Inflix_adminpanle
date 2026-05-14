@@ -7,6 +7,7 @@ import {
   createFooterPage,
   updateFooterPage,
   getFooterPageById,
+  getAllFooterPages,
   API_BASE_URL,
 } from "../service/pageService";
 import BlocksTabForm from "../../blog-new/components/createblog/BlocksTabForm";
@@ -47,6 +48,10 @@ export default function CreateFooterPage() {
   const [metaDescription, setMetaDescription] = useState("");
   const [metaSchema, setMetaSchema] = useState([]);
   const [metaTags, setMetaTags] = useState([]);
+
+  const [allPages, setAllPages] = useState([]);
+  /** Selected parent page id; empty = root page (URL /{slug}). */
+  const [parentPageId, setParentPageId] = useState("");
 
   // UI state
   const [activeTab, setActiveTab] = useState("content");
@@ -122,6 +127,11 @@ export default function CreateFooterPage() {
           setMetaDescription(pageData.metaDescription || "");
           setMetaSchema(pageData.metaSchema || []);
           setMetaTags(pageData.metaTags || []);
+          setParentPageId(
+            pageData.parentPageId != null && pageData.parentPageId !== ""
+              ? String(pageData.parentPageId)
+              : ""
+          );
         } catch (error) {
           console.error("Error loading page:", error);
           setNotification({
@@ -138,17 +148,36 @@ export default function CreateFooterPage() {
     }
   }, [id, isEditing]);
 
-  // Auto-generate slug from title
   useEffect(() => {
-    if (title && !slug && !isEditing) {
-      setSlug(
-        title
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/(^-|-$)+/g, "")
-      );
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await getAllFooterPages({});
+        if (!cancelled && Array.isArray(list)) setAllPages(list);
+      } catch (e) {
+        console.warn("Could not load pages list:", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // Auto-generate slug from title
+  const toSlug = (value) =>
+    String(value || "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)+/g, "");
+
+  const handleTitleChange = (e) => {
+    const nextTitle = e.target.value;
+    setTitle(nextTitle);
+    if (!isEditing) {
+      setSlug(toSlug(nextTitle));
     }
-  }, [title, slug, isEditing]);
+  };
 
   // Handle banner image upload
   const handleBannerUpload = (e) => {
@@ -260,6 +289,7 @@ export default function CreateFooterPage() {
         bannerImageAlt,
         bannerImageDescription,
         blockImageCount: blockImageFiles.length,
+        parentPageId: parentPageId.trim() || null,
       };
 
       console.log('[FooterPage] Saving with bannerImageAlt:', bannerImageAlt);
@@ -342,13 +372,20 @@ export default function CreateFooterPage() {
           />
           <main className="py-5">
             <div className="container mx-auto px-4 py-8 flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+              <div className="h-12 w-12 animate-spin rounded-full border-2 border-gray-200 border-t-primary" />
             </div>
           </main>
         </div>
       </>
     );
   }
+
+  const selectedParentSlug = (() => {
+    const selectedParent = allPages.find(
+      (p) => String(p._id || p.id) === String(parentPageId)
+    );
+    return selectedParent?.slug ? String(selectedParent.slug).trim() : "";
+  })();
 
   return (
     <>
@@ -377,6 +414,10 @@ export default function CreateFooterPage() {
                   ? "Update your footer page content"
                   : "Create a new footer page (Terms & Conditions, Privacy Policy, etc.)"}
               </p>
+              <p className="text-sm text-gray-500 mt-2">
+                Optional parent page uses a path like /parent-slug/page-slug; leave
+                empty to keep this as a root URL /page-slug.
+              </p>
             </div>
 
             {/* Notification */}
@@ -404,10 +445,10 @@ export default function CreateFooterPage() {
                           type="text"
                           id="title"
                           value={title}
-                          onChange={(e) => setTitle(e.target.value)}
+                          onChange={handleTitleChange}
                           className={`w-full px-4 py-2 border ${
                             errors.title ? "border-red-300" : "border-gray-300"
-                          } rounded-md shadow-sm focus:ring-purple-500 focus:border-purple-500`}
+                          } rounded-md shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30`}
                           placeholder="e.g., Terms and Conditions"
                         />
                         {errors.title && (
@@ -419,14 +460,58 @@ export default function CreateFooterPage() {
 
                       <div>
                         <label
+                          htmlFor="parentPage"
+                          className="block text-sm font-medium text-gray-700 mb-1"
+                        >
+                          Parent page
+                        </label>
+                        <select
+                          id="parentPage"
+                          value={parentPageId}
+                          onChange={(e) => setParentPageId(e.target.value)}
+                          className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
+                        >
+                          <option value="">None — URL is only /your-slug</option>
+                          {allPages
+                            .filter((p) => String(p._id || p.id) !== String(id || ""))
+                            .filter((p) => !p.parentPageId)
+                            .map((p) => (
+                            <option key={p._id || p.id} value={p._id || p.id}>
+                              {p.title} (/{p.slug}/…)
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        {parentPageId && (
+                          <p className="mt-1 text-xs text-gray-500">
+                            Child page URL will use selected parent slug.
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label
                           htmlFor="slug"
                           className="block text-sm font-medium text-gray-700 mb-1"
                         >
                           Slug <span className="text-red-500">*</span>
                         </label>
+                        <p className="text-xs text-gray-500 mb-1 break-all">
+                          Live URL:{" "}
+                          <span className="font-mono text-gray-700">
+                            {(import.meta.env.VITE_WEBSITE_URL || "http://localhost:3000").replace(/\/$/, "")}
+                            {selectedParentSlug ? `/${selectedParentSlug}/` : "/"}
+                            {slug.trim() || "{slug}"}
+                          </span>
+                        </p>
                         <div className="flex">
-                          <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 sm:text-sm">
-                            /
+                          <span
+                            className="inline-flex items-center px-2 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-xs sm:text-sm whitespace-nowrap max-w-[min(100%,12rem)] truncate"
+                            title={selectedParentSlug ? `/${selectedParentSlug}/` : "/"}
+                          >
+                            {selectedParentSlug ? `/${selectedParentSlug}/` : "/"}
                           </span>
                           <input
                             type="text"
@@ -470,8 +555,8 @@ export default function CreateFooterPage() {
                           type="button"
                           className={`py-4 px-1 border-b-2 font-medium text-sm ${
                             activeTab === "content"
-                              ? "border-purple-500 text-purple-600"
-                              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                              ? "border-primary text-primary"
+                              : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
                           }`}
                           onClick={() => setActiveTab("content")}
                         >
@@ -481,8 +566,8 @@ export default function CreateFooterPage() {
                           type="button"
                           className={`py-4 px-1 border-b-2 font-medium text-sm ${
                             activeTab === "seo"
-                              ? "border-purple-500 text-purple-600"
-                              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                              ? "border-primary text-primary"
+                              : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700"
                           }`}
                           onClick={() => setActiveTab("seo")}
                         >
