@@ -984,6 +984,20 @@ function App() {
               }
             />
             <Route
+              path="/admin/product-central/google-categories"
+              element={
+                <>
+                  <ErrorBoundary fallback={<div>Error</div>}>
+                    <Suspense fallback={<div>Loading...</div>}>
+                      <PermissionRoute permission="zextons.view_product_central">
+                        <ProductCentralGoogleCategories />
+                      </PermissionRoute>
+                    </Suspense>
+                  </ErrorBoundary>
+                </>
+              }
+            />
+            <Route
               path="/admin/product-central/homepage-nav-links"
               element={
                 <Navigate
