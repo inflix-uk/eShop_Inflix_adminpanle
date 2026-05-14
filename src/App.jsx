@@ -31,6 +31,9 @@ const ProductCentral = lazy(() =>
 const ProductCentralCategories = lazy(() =>
   import("./pages/adminpages/ProductCentral/ProductCentralCategories")
 );
+const ProductCentralGoogleCategories = lazy(() =>
+  import("./pages/adminpages/ProductCentral/ProductCentralGoogleCategories")
+);
 const ProductCentralHomepageNavLinks = lazy(() =>
   import("./pages/adminpages/ProductCentral/ProductCentralHomepageNavLinks")
 );
@@ -827,6 +830,20 @@ function App() {
                     <Suspense fallback={<div>Loading...</div>}>
                       <PermissionRoute permission="zextons.view_product_central">
                         <ProductCentralCategories />
+                      </PermissionRoute>
+                    </Suspense>
+                  </ErrorBoundary>
+                </>
+              }
+            />
+            <Route
+              path="/admin/product-central/google-categories"
+              element={
+                <>
+                  <ErrorBoundary fallback={<div>Error</div>}>
+                    <Suspense fallback={<div>Loading...</div>}>
+                      <PermissionRoute permission="zextons.view_product_central">
+                        <ProductCentralGoogleCategories />
                       </PermissionRoute>
                     </Suspense>
                   </ErrorBoundary>
