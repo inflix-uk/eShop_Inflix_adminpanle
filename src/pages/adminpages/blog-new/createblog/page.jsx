@@ -27,6 +27,12 @@ import BlogsTab from '../../blogs/BlogsTab';
 import Side from '../../nav/Side';
 import Top from '../../nav/Top';
 
+function userFacingApiError(error, fallback) {
+  if (typeof error === "string" && error.trim()) return error;
+  const m = error && typeof error.message === "string" ? error.message.trim() : "";
+  return m || fallback;
+}
+
 export default function CreateBlogPage({ initialData = {} } = {}) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
@@ -291,7 +297,10 @@ export default function CreateBlogPage({ initialData = {} } = {}) {
       console.error("Content step save failed:", error);
       setNotification({
         show: true,
-        message: typeof error === "string" ? error : "Failed to save content. Check slug is unique and try again.",
+        message: userFacingApiError(
+          error,
+          "Failed to save content. Check slug is unique, network/CORS, and try again."
+        ),
         type: "error",
       });
     } finally {
@@ -330,7 +339,7 @@ export default function CreateBlogPage({ initialData = {} } = {}) {
       console.error("SEO step save failed:", error);
       setNotification({
         show: true,
-        message: typeof error === "string" ? error : "Failed to save SEO.",
+        message: userFacingApiError(error, "Failed to save SEO."),
         type: "error",
       });
     } finally {
@@ -580,10 +589,10 @@ export default function CreateBlogPage({ initialData = {} } = {}) {
       console.error(`Error ${label} blog post:`, error);
       setNotification({
         show: true,
-        message:
-          typeof error === "string"
-            ? error
-            : `Failed to ${isEditing ? "update" : "publish"} blog post. Please try again.`,
+        message: userFacingApiError(
+          error,
+          `Failed to ${isEditing ? "update" : "publish"} blog post. Please try again.`
+        ),
         type: "error",
       });
     } finally {

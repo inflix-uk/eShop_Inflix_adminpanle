@@ -9,6 +9,7 @@ import { toast } from 'react-toastify'
 import { useAuth } from '../../../context/Auth';
 import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
+import GoogleCategoryCascadeSelect from './GoogleCategoryCascadeSelect';
 
 const tinymceInit = {
     height: 500,
@@ -69,6 +70,7 @@ export default function AddCategory() {
     const [productContent, set_productContent] = useState("");
     const [metaSchemas, setMetaSchemas] = useState([""]);
     const [metaKeywords, setMetaKeywords] = useState("");
+    const [googleCategorySelection, setGoogleCategorySelection] = useState(null);
     const editorRef = useRef(null);
     // Function to add new schema input
     const handleAddSchema = () => {
@@ -210,6 +212,11 @@ export default function AddCategory() {
             formData.append("metaSchemas", JSON.stringify(metaSchemas));
             const editorContent = editorRef.current ? editorRef.current.getContent() : productContent;
             formData.append("content", editorContent);
+            if (googleCategorySelection?.googleCategoryId) {
+                formData.append("googleCategoryId", String(googleCategorySelection.googleCategoryId));
+                formData.append("googleCategoryName", googleCategorySelection.googleCategoryName || "");
+                formData.append("googleCategoryFullPath", googleCategorySelection.googleCategoryFullPath || "");
+            }
             formData.append("isFeatured", true);
             formData.append("isPublish", true);
             
@@ -228,6 +235,7 @@ export default function AddCategory() {
                         set_productMetaKeywords("");
                         setMetaSchemas([""]);
                         set_productContent("");
+                        setGoogleCategorySelection(null);
                         setProgress(100);
                         navigate('/admin/product-central')
                     } else {
@@ -598,6 +606,10 @@ export default function AddCategory() {
                                                         ))}
                                                     </div>
                                                 </div>
+                                                <GoogleCategoryCascadeSelect
+                                                    apiBase={auth.ip}
+                                                    onChange={setGoogleCategorySelection}
+                                                />
                                                 {/* Content Editor */}
                                                 <div className="col-span-2">
                                                     <label htmlFor="productContent" className="block mb-2 text-sm font-medium text-gray-900">

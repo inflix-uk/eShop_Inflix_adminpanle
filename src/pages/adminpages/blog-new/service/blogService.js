@@ -20,6 +20,31 @@ function blogApiUrl(resourcePath) {
   return `${API_BASE_URL}/${path}`;
 }
 
+/** HTTPS admin pages cannot call `http://` APIs (browser mixed-content block → Failed to fetch). */
+function assertBrowserCanReachApi() {
+  if (typeof window === "undefined") return;
+  if (window.location.protocol === "https:" && API_BASE_URL.toLowerCase().startsWith("http://")) {
+    throw new Error(
+      "VITE_BACKEND_URL uses HTTP but this admin is on HTTPS. The browser blocks that (mixed content). Set VITE_BACKEND_URL to your HTTPS API base URL and rebuild the admin."
+    );
+  }
+}
+
+function mapBlogFetchFailure(url, error) {
+  if (typeof error === "string") return error;
+  const msg = error?.message != null ? String(error.message) : String(error);
+  const blocked =
+    error instanceof TypeError ||
+    msg === "Failed to fetch" ||
+    /failed to fetch|networkerror|load failed/i.test(msg);
+  if (blocked) {
+    return new Error(
+      `Could not reach the blog API at ${url}. Production checklist: use HTTPS in VITE_BACKEND_URL when the admin is HTTPS; set backend ADMINPANEL_URL to this admin origin (https://…, no trailing slash); optional CORS_EXTRA_ORIGINS for aliases; confirm the API is up and allows large multipart uploads (images).`
+    );
+  }
+  return error;
+}
+
 /**
  * Generates a URL-friendly slug from a title
  * @param {string} title - The title to convert to a slug
@@ -61,6 +86,8 @@ async function handleResponse(response) {
  * @returns {Promise<Object>} - The created blog post
  */
 export const createBlogPost = async (blogData) => {
+  assertBrowserCanReachApi();
+  const url = blogApiUrl("newblog/blog/posts");
   try {
     // Create a FormData instance for file uploads
     const formData = new FormData();
@@ -106,7 +133,7 @@ export const createBlogPost = async (blogData) => {
     
     console.log('Sending blog data with files to API');
     
-    const response = await fetch(blogApiUrl("newblog/blog/posts"), {
+    const response = await fetch(url, {
       method: 'POST',
       // Don't set Content-Type header, browser will set it with boundary for FormData
       body: formData
@@ -116,7 +143,8 @@ export const createBlogPost = async (blogData) => {
     return data.data;
   } catch (error) {
     console.error('Error creating blog post:', error);
-    throw error;
+    const mapped = mapBlogFetchFailure(url, error);
+    throw mapped;
   }
 };
 
@@ -127,6 +155,8 @@ export const createBlogPost = async (blogData) => {
  * @returns {Promise<Object>} - The updated blog post
  */
 export const updateBlogPost = async (id, blogData) => {
+  assertBrowserCanReachApi();
+  const url = blogApiUrl(`newblog/blog/posts/${id}`);
   try {
     // Create a FormData instance for file uploads
     const formData = new FormData();
@@ -172,7 +202,7 @@ export const updateBlogPost = async (id, blogData) => {
     
     console.log('Sending updated blog data with files to API');
     
-    const response = await fetch(blogApiUrl(`newblog/blog/posts/${id}`), {
+    const response = await fetch(url, {
       method: 'PUT',
       // Don't set Content-Type header, browser will set it with boundary for FormData
       body: formData
@@ -182,7 +212,7 @@ export const updateBlogPost = async (id, blogData) => {
     return data.data;
   } catch (error) {
     console.error('Error updating blog post:', error);
-    throw error;
+    throw mapBlogFetchFailure(url, error);
   }
 };
 

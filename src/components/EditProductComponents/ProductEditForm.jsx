@@ -2,6 +2,37 @@ import  { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import Select from 'react-select';
 import { toast } from 'react-toastify';
+import {
+  buildMainCategorySelectOptions,
+  findMainCategorySelectOption,
+} from '../../utils/googleProductCategoryExport';
+
+/** Parent group headers + indented sub-options in Main Category select */
+const mainCategorySelectStyles = {
+  group: (base) => ({
+    ...base,
+    padding: 0,
+  }),
+  groupHeading: (base) => ({
+    ...base,
+    fontSize: "0.8125rem",
+    fontWeight: 600,
+    color: "#1e40af",
+    backgroundColor: "#eff6ff",
+    borderTop: "1px solid #dbeafe",
+    borderBottom: "1px solid #93c5fd",
+    padding: "8px 12px",
+    marginTop: 8,
+    marginBottom: 4,
+    textTransform: "none",
+    letterSpacing: "0.01em",
+  }),
+  option: (base, { data }) => ({
+    ...base,
+    paddingLeft: data?.subcategoryName ? "1.75rem" : "0.75rem",
+    fontSize: "0.875rem",
+  }),
+};
 
 export default function ProductEditForm({
   product,
@@ -19,19 +50,20 @@ export default function ProductEditForm({
   brands,
 }) {
   const [categories, setCategories] = useState([]);
+  const [mainCategoryOptions, setMainCategoryOptions] = useState([]);
+  const [storeCategories, setStoreCategories] = useState([]);
   const [selectedCategories, setSelectedCategories] = useState([]);
+  const [selectedMainCategory, setSelectedMainCategory] = useState(null);
   const [subCategories, setSubCategories] = useState([]);
   const [selectedSubCategories, setSelectedSubCategories] = useState([]);
   const [isLoadingCategories, setIsLoadingCategories] = useState(false);
   const [selectedBrand, setSelectedBrand] = useState(null);
 
-  // Brand options
   const brandOptions = brands?.map((brand) => ({
     value: brand.name,
     label: brand.name,
   })) || [];
 
-  // Initialize brand when product loads
   useEffect(() => {
     if (product?.brand && brandOptions.length > 0) {
       const brandOption = brandOptions.find(b => b.value === product.brand);
@@ -41,7 +73,6 @@ export default function ProductEditForm({
     }
   }, [product?.brand, brandOptions.length]);
 
-  // Handle brand change
   const handleBrandChange = (selectedOption) => {
     setSelectedBrand(selectedOption);
     setProduct(prevProduct => ({
@@ -58,7 +89,6 @@ export default function ProductEditForm({
   }, [product.name]);
 
   useEffect(() => {
-    // Fetch categories when component mounts
     if (productApi) {
       getCategories();
     }
@@ -70,7 +100,13 @@ export default function ProductEditForm({
       initializeForm();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [categories.length, product?.category, product?.subCategory]);
+  }, [
+    categories.length,
+    mainCategoryOptions.length,
+    product?.category,
+    product?.subCategory,
+    product?.mainCategory,
+  ]);
 
   const getCategories = async () => {
     setIsLoadingCategories(true);
@@ -80,10 +116,13 @@ export default function ProductEditForm({
         const filteredCategories = response.data.productCategories.filter(
           (category) => category.isPublish
         );
+        setStoreCategories(filteredCategories);
+        setMainCategoryOptions(buildMainCategorySelectOptions(filteredCategories));
         setCategories(filteredCategories.map(cat => ({
           label: cat.name,
           value: cat.name,
-          subCategory: cat.subCategory.map(subCat => ({
+          googleCategoryFullPath: cat.googleCategoryFullPath || "",
+          subCategory: (cat.subCategory || []).map(subCat => ({
             label: subCat,
             value: subCat,
             category: cat.name,
@@ -101,6 +140,14 @@ export default function ProductEditForm({
   };
 
   const initializeForm = () => {
+    if (product.mainCategory && mainCategoryOptions.length > 0) {
+      setSelectedMainCategory(
+        findMainCategorySelectOption(mainCategoryOptions, product.mainCategory)
+      );
+    } else {
+      setSelectedMainCategory(null);
+    }
+
     if (product.category) {
       const initialCategories = product.category.split(',').map(cat => ({
         label: cat,
@@ -121,7 +168,7 @@ export default function ProductEditForm({
         parsedSubCategories = JSON.parse(product.subCategory);
       } catch (error) {
         console.error('Error parsing subCategory JSON:', error);
-        parsedSubCategories = {}; // Default to an empty object if parsing fails
+        parsedSubCategories = {};
       }
 
       const initialSubCategories = Object.entries(parsedSubCategories).flatMap(
@@ -137,46 +184,51 @@ export default function ProductEditForm({
     }
   };
 
-  const handleCategoryChange = (selectedOptions) => {
-    // Update selected categories
-    setSelectedCategories(selectedOptions);
+  const handleMainCategoryChange = (selectedOption) => {
+    setSelectedMainCategory(selectedOption);
+    setProduct((prevProduct) => ({
+      ...prevProduct,
+      mainCategory: selectedOption ? selectedOption.value : null,
+    }));
+  };
 
-    // Update the product state with the new categories
-    const updatedCategories = selectedOptions.map(option => option.value).join(',');
+  const handleCategoryChange = (selectedOptions) => {
+    setSelectedCategories(selectedOptions || []);
+
+    const updatedCategories = (selectedOptions || []).map(option => option.value).join(',');
     setProduct(prevProduct => ({
       ...prevProduct,
       category: updatedCategories,
     }));
 
-    // Determine which categories were removed
     const removedCategories = selectedCategories.filter(
-      (cat) => !selectedOptions.some((selected) => selected.value === cat.value)
+      (cat) => !(selectedOptions || []).some((selected) => selected.value === cat.value)
     );
 
-    // Remove subcategories associated with the removed categories from selectedSubCategories
     const updatedSelectedSubCategories = selectedSubCategories.filter(
       (subCat) => !removedCategories.some((cat) => cat.value === subCat.category)
     );
 
     setSelectedSubCategories(updatedSelectedSubCategories);
 
-    // Remove the subcategories of the removed categories from product.subCategory
-    const updatedSubCategoryObject = { ...JSON.parse(product.subCategory) };
+    let updatedSubCategoryObject = {};
+    try {
+      updatedSubCategoryObject = product.subCategory ? JSON.parse(product.subCategory) : {};
+    } catch {
+      updatedSubCategoryObject = {};
+    }
     removedCategories.forEach((cat) => {
       delete updatedSubCategoryObject[cat.value];
     });
 
-    // Convert the updated subcategory object back to a JSON string
     const updatedSubCategoryString = JSON.stringify(updatedSubCategoryObject);
 
-    // Update the product state with the new subCategory
     setProduct(prevProduct => ({
       ...prevProduct,
       subCategory: updatedSubCategoryString,
     }));
 
-    // Filter and add new subcategories based on the selected categories
-    const newSubCategories = selectedOptions.flatMap(option =>
+    const newSubCategories = (selectedOptions || []).flatMap(option =>
       categories.find(cat => cat.value === option.value)?.subCategory || []
     );
 
@@ -184,10 +236,9 @@ export default function ProductEditForm({
   };
 
   const handleSubCategoryChange = (selectedOptions) => {
-    setSelectedSubCategories(selectedOptions);
+    setSelectedSubCategories(selectedOptions || []);
 
-    // Group the selected subcategories by their categories
-    const groupedSubCategories = selectedOptions.reduce((acc, subCat) => {
+    const groupedSubCategories = (selectedOptions || []).reduce((acc, subCat) => {
       if (!acc[subCat.category]) {
         acc[subCat.category] = [];
       }
@@ -195,7 +246,6 @@ export default function ProductEditForm({
       return acc;
     }, {});
 
-    // Update the product.subCategory state
     const updatedSubCategoryString = JSON.stringify(groupedSubCategories);
 
     setProduct(prevProduct => ({
@@ -203,25 +253,21 @@ export default function ProductEditForm({
       subCategory: updatedSubCategoryString,
     }));
   };
-  const generateProductURL = (name) => {
-    if (!name) return; // Ensure the name is defined before generating the URL
 
-    // Sanitize the product name
+  const generateProductURL = (name) => {
+    if (!name) return;
+
     const sanitizedName = name
       .toLowerCase()
-      .trim() // Remove leading and trailing spaces
-      .replace(/[^a-z0-9. ]/g, '') // Remove special characters except dots for versions
-      .replace(/\s+/g, '-') // Replace internal spaces with dashes
-      .replace(/(\d+)\.(\d+)/g, '$1.$2'); // Keep version numbers like 10.9
+      .trim()
+      .replace(/[^a-z0-9. ]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/(\d+)\.(\d+)/g, '$1.$2');
 
-    // Remove unwanted spaces or hyphens at the end of the sanitized name
     const cleanedName = sanitizedName.replace(/[-\s]+$/, '');
 
-    // Set the product URL
     setProductUrl(cleanedName);
   };
-
-
 
   const handleNameChange = (e) => {
     const newName = e.target.value;
@@ -229,8 +275,9 @@ export default function ProductEditForm({
       ...prevProduct,
       name: newName,
     }));
-    generateProductURL(newName); // Update URL based on new name
+    generateProductURL(newName);
   };
+
   return (
     <>
       <form className="bg-white shadow-sm ring-1 ring-gray-900/5 sm:rounded-xl">
@@ -251,11 +298,61 @@ export default function ProductEditForm({
                   autoComplete="given-name"
                   className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                   value={product?.name || ''}
-                  onChange={handleNameChange} // Updated to handle name changes
+                  onChange={handleNameChange}
                 />
                 <input type="hidden" name="product-url" value={productUrl} />
                 <p>Generated Url:{productUrl}</p>
               </div>
+            </div>
+
+            <div className="">
+              <label
+                htmlFor="main-category"
+                className="block text-sm font-medium leading-6 text-gray-900"
+              >
+                Main Category
+              </label>
+              <p className="mt-1 text-xs text-gray-500">
+                Pick a store category or subcategory for Google Merchant export. Google taxonomy
+                is set on the parent category in Product Central.
+              </p>
+              <div className="mt-2">
+                <Select
+                  id="main-category"
+                  name="main-category"
+                  options={mainCategoryOptions}
+                  isMulti={false}
+                  isClearable
+                  value={selectedMainCategory}
+                  className="block w-full rounded-md border-0 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
+                  onChange={handleMainCategoryChange}
+                  isLoading={isLoadingCategories}
+                  placeholder={
+                    isLoadingCategories ? "Loading categories..." : "Select category or subcategory"
+                  }
+                  styles={mainCategorySelectStyles}
+                  formatGroupLabel={(group) => (
+                    <span className="flex items-center gap-2">
+                      <span className="inline-block h-2 w-2 shrink-0 rounded-full bg-blue-600" />
+                      {group.label}
+                    </span>
+                  )}
+                />
+              </div>
+              {selectedMainCategory ? (
+                <p className="mt-2 text-xs text-gray-600">
+                  {selectedMainCategory.parentName &&
+                  selectedMainCategory.subcategoryName ? (
+                    <span className="block text-gray-500">
+                      Store: {selectedMainCategory.parentName} ›{" "}
+                      {selectedMainCategory.subcategoryName}
+                    </span>
+                  ) : null}
+                  {selectedMainCategory.googleCategoryFullPath
+                    ? `Google path: ${String(selectedMainCategory.googleCategoryFullPath).replace(/ > /g, " / ")}`
+                    : "No Google category mapped on the parent store category yet."}
+                </p>
+              ) : null}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6">

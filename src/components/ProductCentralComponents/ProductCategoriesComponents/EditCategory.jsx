@@ -10,6 +10,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import BlockEditor from '../../../pages/adminpages/blog-new/components/createblog/BlockEditor/BlockEditor';
 import { appendBlocksToFormData } from '../../../pages/adminpages/blog-new/utils/appendBlocksToFormData';
+import GoogleCategoryCascadeSelect from './GoogleCategoryCascadeSelect';
 
 export default function EditCategory() {
     const auth = useAuth();
@@ -34,6 +35,8 @@ export default function EditCategory() {
     const [metaKeywords, setMetaKeywords] = useState("");
     const [saving, setSaving] = useState(false);
     const [isDataLoaded, setIsDataLoaded] = useState(false);
+    const [googleCategorySelection, setGoogleCategorySelection] = useState(null);
+    const [savedGoogleCategoryId, setSavedGoogleCategoryId] = useState(null);
     // Function to add new schema input
     const handleAddSchema = () => {
         setMetaSchemas([...metaSchemas, ""]);
@@ -178,6 +181,16 @@ export default function EditCategory() {
             formData.append("isFeatured", true);
             formData.append("isPublish", true);
 
+            if (googleCategorySelection?.googleCategoryId) {
+                formData.append("googleCategoryId", String(googleCategorySelection.googleCategoryId));
+                formData.append("googleCategoryName", googleCategorySelection.googleCategoryName || "");
+                formData.append("googleCategoryFullPath", googleCategorySelection.googleCategoryFullPath || "");
+            } else {
+                formData.append("googleCategoryId", "");
+                formData.append("googleCategoryName", "");
+                formData.append("googleCategoryFullPath", "");
+            }
+
             appendBlocksToFormData(formData, contentBlocks, {
                 jsonField: "content_blocks",
                 countField: "categoryBlockImageCount",
@@ -254,7 +267,17 @@ export default function EditCategory() {
 
                 // Set the meta schemas array
                 setMetaSchemas(category.metaSchemas || [""]);
-                // setCategory(response.data);
+                const existingGoogleId = category.googleCategoryId ?? null;
+                setSavedGoogleCategoryId(existingGoogleId);
+                setGoogleCategorySelection(
+                    existingGoogleId
+                        ? {
+                            googleCategoryId: existingGoogleId,
+                            googleCategoryName: category.googleCategoryName || "",
+                            googleCategoryFullPath: category.googleCategoryFullPath || "",
+                        }
+                        : null
+                );
                 setIsDataLoaded(true);
                 setProgress(100);
             } else {
@@ -624,6 +647,17 @@ export default function EditCategory() {
                                                         ))}
                                                     </div>
                                                 </div>
+                                                {isDataLoaded ? (
+                                                    <GoogleCategoryCascadeSelect
+                                                        apiBase={auth.ip}
+                                                        initialGoogleCategoryId={savedGoogleCategoryId}
+                                                        onChange={setGoogleCategorySelection}
+                                                    />
+                                                ) : (
+                                                    <div className="col-span-2 text-sm text-gray-500">
+                                                        Loading Google categories…
+                                                    </div>
+                                                )}
                                                 {/* Block-based category page content (same as homepage / product description) */}
                                                 <div className="col-span-2">
                                                     <label className="block mb-2 text-sm font-medium text-gray-900">

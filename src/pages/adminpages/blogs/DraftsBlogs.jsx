@@ -10,6 +10,11 @@ import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchBlogs } from "../../../redux/reducers/blogsSlice";
 import { Helmet } from "react-helmet-async";
+import { blogListCardImageSrc } from "./blogListImageUrl";
+
+const BLOG_CARD_IMAGE_PLACEHOLDER =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='360'%3E%3Crect fill='%23e5e7eb' width='100%25' height='100%25'/%3E%3C/svg%3E";
+
 export default function DraftsBlogs() {
     const [selectedPage, setSelectedPage] = useState("blogs");
     const auth = useAuth();
@@ -82,7 +87,15 @@ export default function DraftsBlogs() {
     const currentBlogs = filteredBlogs.slice(indexOfFirstBlog, indexOfLastBlog);
     const totalPages = Math.ceil(filteredBlogs.length / blogsPerPage);
 
-    const categories = ['all', ...new Set(allBlogs.map(blog => blog.blogCategory))];
+    const categories = [
+        'all',
+        ...new Set(
+            allBlogs
+                .map((blog) => blog.blogCategory)
+                .filter((c) => c != null && String(c).trim() !== '')
+                .map((c) => String(c))
+        ),
+    ];
 
     const handlePageChange = (pageNumber) => {
         setCurrentPage(pageNumber);
@@ -179,11 +192,17 @@ export default function DraftsBlogs() {
                                         setCurrentPage(1);
                                     }}
                                 >
-                                    {categories.map(category => (
+                                    {categories.map((category) => {
+                                        const label =
+                                            category === 'all'
+                                                ? 'All'
+                                                : `${String(category).charAt(0).toUpperCase()}${String(category).slice(1)}`;
+                                        return (
                                         <option key={category} value={category}>
-                                            {category.charAt(0).toUpperCase() + category.slice(1)}
+                                            {label}
                                         </option>
-                                    ))}
+                                        );
+                                    })}
                                 </select>
                             </div>
                         </div>
@@ -207,9 +226,9 @@ export default function DraftsBlogs() {
                                         >
                                             <div className="relative aspect-video">
                                                 <img
-                                                    src={`${auth.ip}${post.thumbnailImage}`}
+                                                    src={blogListCardImageSrc(auth.ip, post) || BLOG_CARD_IMAGE_PLACEHOLDER}
                                                     className="w-full h-full object-cover"
-                                                    alt={post.name}
+                                                    alt={post.name || post.title || "Blog"}
                                                     loading="lazy"
                                                 />
                                                 <div className="absolute inset-0 bg-black bg-opacity-40 transition-opacity hover:bg-opacity-30" />

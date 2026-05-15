@@ -35,6 +35,9 @@ const ProductCentralCategories = lazy(() =>
 const ProductCentralNavbarHub = lazy(() =>
   import("./pages/adminpages/ProductCentral/ProductCentralNavbarHub")
 );
+const ProductCentralGoogleCategories = lazy(() =>
+  import("./pages/adminpages/ProductCentral/ProductCentralGoogleCategories")
+);
 const ProductCentralSubcategories = lazy(() =>
   import("./pages/adminpages/ProductCentral/ProductCentralSubcategories")
 );

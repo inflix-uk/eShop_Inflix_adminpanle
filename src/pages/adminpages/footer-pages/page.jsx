@@ -7,6 +7,8 @@ import { getAllFooterPages, deleteFooterPage } from './service/pageService';
 import Side from '../nav/Side';
 import Top from '../nav/Top';
 
+const PAGE_SIZE = 10;
+
 export default function FooterPagesManagement() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
@@ -16,6 +18,7 @@ export default function FooterPagesManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+  const [page, setPage] = useState(1);
 
   // Fetch pages from the backend
   const fetchPages = async () => {
@@ -82,12 +85,27 @@ export default function FooterPagesManagement() {
   const filteredPages = useMemo(
     () =>
       pages.filter(
-        (page) =>
-          page.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          page.slug?.toLowerCase().includes(searchTerm.toLowerCase())
+        (p) =>
+          p.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          p.slug?.toLowerCase().includes(searchTerm.toLowerCase())
       ),
     [pages, searchTerm]
   );
+
+  const totalPages = Math.max(1, Math.ceil(filteredPages.length / PAGE_SIZE));
+
+  const paginatedPages = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredPages.slice(start, start + PAGE_SIZE);
+  }, [filteredPages, page]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm]);
+
+  useEffect(() => {
+    setPage((p) => (p > totalPages ? totalPages : p));
+  }, [totalPages]);
 
   useEffect(() => {
     if (isLoading) return;
@@ -200,39 +218,39 @@ export default function FooterPagesManagement() {
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredPages.map((page) => (
-                      <tr key={page._id || page.id} className="hover:bg-gray-50">
+                    {paginatedPages.map((row) => (
+                      <tr key={row._id || row.id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm font-medium text-gray-900">{page.title}</div>
+                          <div className="text-sm font-medium text-gray-900">{row.title}</div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-500">
-                            {getParentSlug(page)
-                              ? `/${getParentSlug(page)}/${page.slug}`
-                              : `/${page.slug}`}
+                            {getParentSlug(row)
+                              ? `/${getParentSlug(row)}/${row.slug}`
+                              : `/${row.slug}`}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            page.publishStatus === 'published' 
+                            row.publishStatus === 'published' 
                               ? 'bg-blue-100 text-blue-800' 
                               : 'bg-yellow-100 text-yellow-800'
                           }`}>
-                            {page.publishStatus || 'draft'}
+                            {row.publishStatus || 'draft'}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {page.updatedAt 
-                            ? new Date(page.updatedAt).toLocaleDateString()
+                          {row.updatedAt 
+                            ? new Date(row.updatedAt).toLocaleDateString()
                             : 'N/A'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                           <div className="flex justify-end gap-2">
                             <Link
                               to={{
-                                pathname: `/admin/footer-pages/preview/${page.slug}`,
-                                search: getParentSlug(page)
-                                  ? `?parentSlug=${encodeURIComponent(getParentSlug(page))}`
+                                pathname: `/admin/footer-pages/preview/${row.slug}`,
+                                search: getParentSlug(row)
+                                  ? `?parentSlug=${encodeURIComponent(getParentSlug(row))}`
                                   : "",
                               }}
                               className="text-primary hover:text-secondary"
@@ -241,7 +259,7 @@ export default function FooterPagesManagement() {
                               <FaEye />
                             </Link>
                             <Link
-                              to={`/admin/footer-pages/edit/${page._id || page.id}`}
+                              to={`/admin/footer-pages/edit/${row._id || row.id}`}
                               className="text-primary hover:text-secondary"
                               title="Edit"
                             >
@@ -249,7 +267,7 @@ export default function FooterPagesManagement() {
                             </Link>
                             <button
                               type="button"
-                              onClick={() => handleDelete(page._id || page.id, page.title)}
+                              onClick={() => handleDelete(row._id || row.id, row.title)}
                               className="text-red-600 hover:text-red-800"
                               title="Delete"
                             >
@@ -261,6 +279,32 @@ export default function FooterPagesManagement() {
                     ))}
                   </tbody>
                 </table>
+                {filteredPages.length > PAGE_SIZE ? (
+                  <div className="flex flex-col gap-2 border-t border-gray-200 bg-gray-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm text-gray-600">
+                      Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filteredPages.length)} of{' '}
+                      {filteredPages.length}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={page <= 1}
+                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                        className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Previous
+                      </button>
+                      <button
+                        type="button"
+                        disabled={page >= totalPages}
+                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                        className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             )}
           </div>

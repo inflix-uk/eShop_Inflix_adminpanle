@@ -39,6 +39,7 @@ class EditProductService {
     formData.append("producturl", productUrl);
     formData.append("category", product.category);
     formData.append("subcategory", product.subCategory);
+    formData.append("mainCategory", product.mainCategory || "");
     formData.append("condition", product.condition);
     formData.append("brand", product.brand || "");
     formData.append("tags", product.tags);

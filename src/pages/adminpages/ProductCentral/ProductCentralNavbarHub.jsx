@@ -17,8 +17,9 @@ import {
   FiTag,
   FiUser,
 } from "react-icons/fi";
-import NavbarOrderEditor from "../../../components/ProductCentralComponents/NavbarOrderEditor";
-import HomepageNavLinksEditor from "../../../components/ProductCentralComponents/HomepageNavLinksEditor";
+import { GiFlame } from "react-icons/gi";
+// import NavbarOrderEditor from "../../../components/ProductCentralComponents/NavbarOrderEditor";
+// import HomepageNavLinksEditor from "../../../components/ProductCentralComponents/HomepageNavLinksEditor";
 import { useAuth } from "../../../context/Auth";
 
 const TAB_ORDER = "order";
@@ -72,6 +73,12 @@ const NAVBAR_LAYOUT_PRESETS = [
     variant: "wing-split",
     label: "Wing split bar",
     preview: "Colored wing | Logo | 60% links strip (same bg)",
+  },
+  {
+    id: "centered",
+    variant: "pill-black",
+    label: "Black pill bar",
+    preview: "Black pill | White logo disc | Center links | White CTA pill",
   },
 ];
 const DEFAULT_NAVBAR_LINKS = [
@@ -189,8 +196,10 @@ function resolveNavbarIcon(code) {
 function normalizeTab(raw) {
   const t = String(raw || "").toLowerCase().trim();
   if (t === TAB_VARIANTS) return TAB_VARIANTS;
-  if (t === TAB_LINKS) return TAB_LINKS;
-  return TAB_ORDER;
+  /* Navbar order + Storefront nav links tabs temporarily hidden — default here. */
+  // if (t === TAB_LINKS) return TAB_LINKS;
+  // return TAB_ORDER;
+  return TAB_VARIANTS;
 }
 
 export default function ProductCentralNavbarHub() {
@@ -255,7 +264,7 @@ export default function ProductCentralNavbarHub() {
     [setSearchParams]
   );
 
-  const tabIndex = selectedTab === TAB_LINKS ? 1 : selectedTab === TAB_VARIANTS ? 2 : 0;
+  const tabIndex = 0;
   const selectedPresetId = presetKey(selectedPreset);
   const selectedConfig =
     variantConfigs[selectedPresetId] || createInitialVariantConfig(selectedPreset);
@@ -472,13 +481,13 @@ export default function ProductCentralNavbarHub() {
 
             <Tab.Group
               selectedIndex={tabIndex}
-              onChange={(index) => {
-                const next = index === 2 ? TAB_VARIANTS : index === 1 ? TAB_LINKS : TAB_ORDER;
-                setSelectedTab(next);
-                syncTabToUrl(next);
+              onChange={() => {
+                setSelectedTab(TAB_VARIANTS);
+                syncTabToUrl(TAB_VARIANTS);
               }}
             >
               <Tab.List className="mb-6 flex space-x-1 overflow-x-auto rounded-xl bg-gray-100 p-1 max-w-2xl">
+                {/*
                 <Tab
                   className={({ selected }) =>
                     `rounded-lg py-2.5 px-4 text-sm font-medium leading-5 whitespace-nowrap w-full
@@ -503,6 +512,7 @@ export default function ProductCentralNavbarHub() {
                 >
                   Storefront nav links
                 </Tab>
+                */}
                 <Tab
                   className={({ selected }) =>
                     `rounded-lg py-2.5 px-4 text-sm font-medium leading-5 whitespace-nowrap w-full
@@ -518,6 +528,7 @@ export default function ProductCentralNavbarHub() {
               </Tab.List>
 
               <Tab.Panels>
+                {/*
                 <Tab.Panel>
                   <div className="mb-4 rounded-xl border border-gray-200 bg-white p-4">
                     <h2 className="text-lg font-medium text-gray-900 mb-1">
@@ -539,6 +550,7 @@ export default function ProductCentralNavbarHub() {
                     <HomepageNavLinksEditor />
                   </div>
                 </Tab.Panel>
+                */}
                 <Tab.Panel>
                   <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-6">
                     <div className="mb-5">
@@ -1499,6 +1511,41 @@ export default function ProductCentralNavbarHub() {
                                     </>
                                   ) : null}
                                 </div>
+                              </div>
+                            </div>
+                          ) : selectedConfig.variant === "pill-black" ? (
+                            <div className="flex min-w-[720px] justify-center bg-neutral-200/90 py-10">
+                              <div
+                                className="flex w-full max-w-3xl items-center justify-between gap-4 rounded-full px-5 py-2.5 shadow-[0_10px_36px_rgba(0,0,0,0.28)]"
+                                style={{
+                                  backgroundColor: selectedConfig.navbarBgColor?.trim() || "#000000",
+                                }}
+                              >
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-md ring-1 ring-black/10">
+                                  {selectedConfig.logoUrl ? (
+                                    <img
+                                      src={selectedConfig.logoUrl}
+                                      alt=""
+                                      className="h-[70%] w-[70%] object-contain"
+                                    />
+                                  ) : (
+                                    <GiFlame className="h-6 w-6 text-[#2563eb]" aria-hidden />
+                                  )}
+                                </div>
+                                <div className="flex min-w-0 flex-1 justify-center gap-7 text-[15px] font-medium text-white">
+                                  {previewLinks.map((link) => (
+                                    <span key={link.id} className="shrink-0 whitespace-nowrap">
+                                      {link.linkType === "icon" ? link.icon || "FiGrid" : link.label || "Link"}
+                                    </span>
+                                  ))}
+                                </div>
+                                {selectedConfig.showPrimaryButton !== false ? (
+                                  <span className="max-w-[12rem] truncate rounded-full bg-white px-5 py-2.5 text-sm font-medium text-black shadow-sm ring-1 ring-black/10">
+                                    {selectedConfig.primaryButtonLabel || "fire@email.com"}
+                                  </span>
+                                ) : (
+                                  <span className="w-10 shrink-0" aria-hidden />
+                                )}
                               </div>
                             </div>
                           ) : (

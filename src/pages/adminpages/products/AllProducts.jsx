@@ -8,6 +8,10 @@ import { useAuth } from "../../../context/Auth";
 import { toast } from "react-toastify";
 import { ClipboardDocumentIcon } from "@heroicons/react/24/outline"; // Cli
 import { Helmet } from "react-helmet-async";
+import {
+  buildCategoryGooglePathMap,
+  resolveGoogleProductCategoryForExport,
+} from "../productsNew/Components/allProducts/utils";
 
 const PLACEHOLDER_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Ccircle cx='8.5' cy='8.5' r='1.5'%3E%3C/circle%3E%3Cpolyline points='21 15 16 10 5 21'%3E%3C/polyline%3E%3C/svg%3E";
 
@@ -34,6 +38,7 @@ export default function AllProducts() {
   const [exportAllLoading, setExportAllLoading] = useState(false); // Loading state for Export All button
   const [exportLoading, setExportLoading] = useState(false); // Loading state for Export button
   const [accessoriesLoading, setAccessoriesLoading] = useState(false); // Loading state for Accessories button
+  const [categoryGooglePathMap, setCategoryGooglePathMap] = useState(null);
 
   const filteredProducts = products.filter(product => {
     const nameMatch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -116,6 +121,21 @@ export default function AllProducts() {
     getProducts(true); // Fetch products and show success message
   }, []);
 
+  useEffect(() => {
+    axios
+      .get(`${auth.ip}get/product/category`)
+      .then((response) => {
+        if (response.data.status === 201) {
+          setCategoryGooglePathMap(
+            buildCategoryGooglePathMap(response.data.productCategories || [])
+          );
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching store categories for export:", error);
+      });
+  }, [auth.ip]);
+
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState(null);
@@ -145,14 +165,6 @@ export default function AllProducts() {
     const baseUrl = auth.ip.endsWith("/") ? auth.ip.slice(0, -1) : auth.ip;
     return `${baseUrl}/uploads/${correctedPath}`;
   };
-  const categoryMapping = {
-    "Mobile-Phones": "/ Electronics / Communications / Telephony / Mobile Phones / Unlocked Mobile Phones",
-    "iPads-and-Tablets": "/ Electronics / Computers / Tablet Computers",
-    "Laptops-and-Macbooks": "/ Electronics / Computers / Laptops",
-    "Game-Consoles": "/ Electronics / Video Game Consoles",
-    "Accessories": "/ Electronics / Communications / Telephony / Mobile Phone Accessories",
-  };
-
   // Generate random SKU when product/variant doesn't have one
   const generateRandomSKU = (productName, variantName = '') => {
     const timestamp = Date.now().toString(36).toUpperCase();
@@ -161,14 +173,9 @@ export default function AllProducts() {
     const variantPrefix = variantName ? variantName.substring(0, 2).toUpperCase().replace(/[^A-Z0-9]/g, '') : '';
     return `ZEX-${namePrefix}${variantPrefix}-${timestamp}-${randomPart}`;
   };
-  function getGoogleProductCategory(productCategory) {
-    for (let key in categoryMapping) {
-      if (productCategory.includes(key)) {
-        return categoryMapping[key];
-      }
-    }
-    return ""; // Return an empty string or a default category if no match is found
-  }
+
+  const googleCategoryForProduct = (product) =>
+    resolveGoogleProductCategoryForExport(product, categoryGooglePathMap);
 
   // Helper to get image URL - handles both url (Blob) and path (local) properties
   const getImageUrl = (img) => {
@@ -198,7 +205,7 @@ export default function AllProducts() {
           "Refurbished",
           "Used",
         ];
-        const googleProductCategory = getGoogleProductCategory(product.category);
+        const googleProductCategory = googleCategoryForProduct(product);
 
         if (product.productType?.type === 'single') {
           // Check product stock for single-type products
@@ -316,7 +323,7 @@ export default function AllProducts() {
         // if (product.category.includes("Accessories") || product.category.includes("PAYG SIM Card")) {
         //   return []; // Return an empty array to exclude this product
         // }
-        const googleProductCategory = getGoogleProductCategory(product.category);
+        const googleProductCategory = googleCategoryForProduct(product);
 
         if (product.productType?.type === 'single') {
           // Check product stock for single-type products
@@ -443,7 +450,7 @@ export default function AllProducts() {
           "Refurbished",
           "Used",
         ];
-        const googleProductCategory = getGoogleProductCategory(product.category);
+        const googleProductCategory = googleCategoryForProduct(product);
 
         if (product.productType?.type === 'single') {
           const productNameSlug = product.producturl;
@@ -623,6 +630,7 @@ export default function AllProducts() {
 
                             {/* Action buttons */}
                             <div className="flex items-center gap-3">
+                              {/* Standard Export temporarily disabled — use Export All only
                               <button
                                 className={`px-4 py-2 rounded-lg text-white font-medium flex items-center gap-2 whitespace-nowrap ${exportLoading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
                                 onClick={handleExportClick}
@@ -645,6 +653,7 @@ export default function AllProducts() {
                                   </>
                                 )}
                               </button>
+                              */}
 
                               <button
                                 className={`px-4 py-2 rounded-lg text-white font-medium flex items-center gap-2 whitespace-nowrap ${exportAllLoading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
@@ -669,6 +678,7 @@ export default function AllProducts() {
                                 )}
                               </button>
 
+                              {/* Accessories export temporarily disabled
                               <button
                                 className={`px-4 py-2 rounded-lg text-white font-medium flex items-center gap-2 whitespace-nowrap ${accessoriesLoading ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
                                 onClick={handleAccessoriesClick}
@@ -691,6 +701,7 @@ export default function AllProducts() {
                                   </>
                                 )}
                               </button>
+                              */}
                             </div>
                           </div>
 
