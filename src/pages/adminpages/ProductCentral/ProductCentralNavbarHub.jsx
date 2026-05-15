@@ -17,8 +17,9 @@ import {
   FiTag,
   FiUser,
 } from "react-icons/fi";
-import NavbarOrderEditor from "../../../components/ProductCentralComponents/NavbarOrderEditor";
-import HomepageNavLinksEditor from "../../../components/ProductCentralComponents/HomepageNavLinksEditor";
+import { GiFlame } from "react-icons/gi";
+// import NavbarOrderEditor from "../../../components/ProductCentralComponents/NavbarOrderEditor";
+// import HomepageNavLinksEditor from "../../../components/ProductCentralComponents/HomepageNavLinksEditor";
 import { useAuth } from "../../../context/Auth";
 
 const TAB_ORDER = "order";
@@ -66,6 +67,18 @@ const NAVBAR_LAYOUT_PRESETS = [
     variant: "retail-two-row",
     label: "Retail two row",
     preview: "Top search + contact/icons | Bottom links bar",
+  },
+  {
+    id: "split",
+    variant: "wing-split",
+    label: "Wing split bar",
+    preview: "Colored wing | Logo | 60% links strip (same bg)",
+  },
+  {
+    id: "centered",
+    variant: "pill-black",
+    label: "Black pill bar",
+    preview: "Black pill | White logo disc | Center links | White CTA pill",
   },
 ];
 const DEFAULT_NAVBAR_LINKS = [
@@ -183,8 +196,10 @@ function resolveNavbarIcon(code) {
 function normalizeTab(raw) {
   const t = String(raw || "").toLowerCase().trim();
   if (t === TAB_VARIANTS) return TAB_VARIANTS;
-  if (t === TAB_LINKS) return TAB_LINKS;
-  return TAB_ORDER;
+  /* Navbar order + Storefront nav links tabs temporarily hidden — default here. */
+  // if (t === TAB_LINKS) return TAB_LINKS;
+  // return TAB_ORDER;
+  return TAB_VARIANTS;
 }
 
 export default function ProductCentralNavbarHub() {
@@ -249,7 +264,7 @@ export default function ProductCentralNavbarHub() {
     [setSearchParams]
   );
 
-  const tabIndex = selectedTab === TAB_LINKS ? 1 : selectedTab === TAB_VARIANTS ? 2 : 0;
+  const tabIndex = 0;
   const selectedPresetId = presetKey(selectedPreset);
   const selectedConfig =
     variantConfigs[selectedPresetId] || createInitialVariantConfig(selectedPreset);
@@ -466,13 +481,13 @@ export default function ProductCentralNavbarHub() {
 
             <Tab.Group
               selectedIndex={tabIndex}
-              onChange={(index) => {
-                const next = index === 2 ? TAB_VARIANTS : index === 1 ? TAB_LINKS : TAB_ORDER;
-                setSelectedTab(next);
-                syncTabToUrl(next);
+              onChange={() => {
+                setSelectedTab(TAB_VARIANTS);
+                syncTabToUrl(TAB_VARIANTS);
               }}
             >
               <Tab.List className="mb-6 flex space-x-1 overflow-x-auto rounded-xl bg-gray-100 p-1 max-w-2xl">
+                {/*
                 <Tab
                   className={({ selected }) =>
                     `rounded-lg py-2.5 px-4 text-sm font-medium leading-5 whitespace-nowrap w-full
@@ -497,6 +512,7 @@ export default function ProductCentralNavbarHub() {
                 >
                   Storefront nav links
                 </Tab>
+                */}
                 <Tab
                   className={({ selected }) =>
                     `rounded-lg py-2.5 px-4 text-sm font-medium leading-5 whitespace-nowrap w-full
@@ -512,6 +528,7 @@ export default function ProductCentralNavbarHub() {
               </Tab.List>
 
               <Tab.Panels>
+                {/*
                 <Tab.Panel>
                   <div className="mb-4 rounded-xl border border-gray-200 bg-white p-4">
                     <h2 className="text-lg font-medium text-gray-900 mb-1">
@@ -533,6 +550,7 @@ export default function ProductCentralNavbarHub() {
                     <HomepageNavLinksEditor />
                   </div>
                 </Tab.Panel>
+                */}
                 <Tab.Panel>
                   <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-6">
                     <div className="mb-5">
@@ -1296,78 +1314,238 @@ export default function ProductCentralNavbarHub() {
 
                         <p className="mb-3 text-xs font-medium text-gray-600">
                           Live preview (matches storefront variant style)
+                          {selectedConfig.variant === "retail-two-row" ? (
+                            <span className="ml-1 block text-[11px] font-normal text-gray-500 sm:inline">
+                              Scroll the preview area to test sticky.
+                            </span>
+                          ) : null}
                         </p>
                         <div className="overflow-x-auto">
                           {selectedConfig.variant === "retail-two-row" ? (
                             <div
-                              className="min-w-[920px] rounded-xl border p-3 shadow-sm"
+                              className="min-w-[920px] max-h-[min(70vh,520px)] overflow-y-auto rounded-xl border bg-gray-50 p-3 shadow-inner"
                               style={{ backgroundColor: selectedConfig.navbarBgColor || "#ffffff" }}
                             >
-                              <div className="flex items-center justify-between gap-4 pb-3">
-                                <div className="flex items-center gap-2">
+                              <div className="space-y-3 pb-32">
+                                <p className="text-center text-[11px] text-gray-400">
+                                  Page content above the navbar (scroll down)
+                                </p>
+                                <div className="h-16 rounded-lg bg-gradient-to-r from-slate-100 to-slate-200" />
+                                <div
+                                  className="rounded-xl border p-3 shadow-sm"
+                                  style={{ backgroundColor: selectedConfig.navbarBgColor || "#ffffff" }}
+                                >
+                                  <div
+                                    className={`flex items-center justify-between gap-4 ${
+                                      selectedConfig.stickyNavbar === true
+                                        ? "sticky top-0 z-10 rounded-t-lg border-b border-slate-100 pb-3 shadow-sm"
+                                        : "pb-3"
+                                    }`}
+                                    style={
+                                      selectedConfig.stickyNavbar === true
+                                        ? { backgroundColor: selectedConfig.navbarBgColor || "#ffffff" }
+                                        : undefined
+                                    }
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      {selectedConfig.logoUrl ? (
+                                        <img src={selectedConfig.logoUrl} alt="logo" className="h-10 w-auto rounded-md object-contain" />
+                                      ) : (
+                                        <span className="text-sm font-semibold text-gray-900">
+                                          {selectedConfig.logoText || "Brand"}
+                                        </span>
+                                      )}
+                                    </div>
+                                    {selectedConfig.showSearch !== false ? (
+                                      <div className="flex h-10 w-[42%] items-center rounded-md border border-slate-300 bg-white px-3 text-xs text-slate-400">
+                                        Search for products
+                                      </div>
+                                    ) : (
+                                      <div className="min-w-0 flex-1" />
+                                    )}
+                                    <div className="flex shrink-0 items-center gap-2">
+                                      {selectedConfig.showButtons !== false ? (
+                                        <>
+                                          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full"
+                                            style={{
+                                              backgroundColor: selectedConfig.actionIcon1BgColor || "#0e9f6e",
+                                              color: selectedConfig.actionIcon1Color || "#ffffff",
+                                            }}>
+                                            <PreviewActionIcon1 className="h-4 w-4" />
+                                          </span>
+                                          <span className="text-[11px] text-slate-600">Basket £0.00</span>
+                                          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full"
+                                            style={{
+                                              backgroundColor: selectedConfig.actionIcon2BgColor || "#0e9f6e",
+                                              color: selectedConfig.actionIcon2Color || "#ffffff",
+                                            }}>
+                                            <PreviewActionIcon2 className="h-4 w-4" />
+                                          </span>
+                                        </>
+                                      ) : null}
+                                    </div>
+                                  </div>
+                                  <div
+                                    className="rounded-md px-4 py-2"
+                                    style={{
+                                      backgroundColor:
+                                        selectedConfig.classicRightSectionBgColor || "#fdf4df",
+                                    }}
+                                  >
+                                    <div className="flex items-center justify-center gap-8 text-sm">
+                                      {previewLinks.map((link) => {
+                                        const c = selectedConfig.menuLinkTextColor || "#334155";
+                                        if (link.linkType === "icon_label") {
+                                          const Cmp = resolveNavbarIcon(link.icon || "FiGrid");
+                                          return (
+                                            <span key={link.id} className="inline-flex items-center gap-1" style={{ color: c }}>
+                                              <Cmp className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                                              <span>{link.label || "Link"}</span>
+                                            </span>
+                                          );
+                                        }
+                                        return (
+                                          <span key={link.id} style={{ color: c }}>
+                                            {link.linkType === "icon" ? link.icon || "FiGrid" : link.label || "Link"}
+                                          </span>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                </div>
+                                <p className="text-center text-[11px] text-gray-400">
+                                  More page content below (keeps scroll going)
+                                </p>
+                                <div className="h-40 rounded-lg bg-gradient-to-r from-slate-100 to-slate-200" />
+                                <div className="h-40 rounded-lg bg-gradient-to-r from-slate-200 to-slate-100" />
+                              </div>
+                            </div>
+                          ) : selectedConfig.variant === "wing-split" ? (
+                            <div
+                              className="min-w-[860px] overflow-hidden rounded-xl border shadow-sm"
+                              style={{
+                                backgroundColor:
+                                  selectedConfig.navbarBgColor ||
+                                  selectedConfig.classicRightSectionBgColor ||
+                                  "#f1f5f9",
+                              }}
+                            >
+                              <div className="flex min-h-[52px] w-full items-stretch">
+                                <div
+                                  className="min-w-0 flex-1"
+                                  style={{
+                                    backgroundColor:
+                                      selectedConfig.navbarBgColor ||
+                                      selectedConfig.classicRightSectionBgColor ||
+                                      "#f1f5f9",
+                                  }}
+                                />
+                                <div className="flex shrink-0 items-center bg-white px-4">
                                   {selectedConfig.logoUrl ? (
-                                    <img src={selectedConfig.logoUrl} alt="logo" className="h-10 w-auto rounded-md object-contain" />
+                                    <img
+                                      src={selectedConfig.logoUrl}
+                                      alt="logo"
+                                      className="h-9 w-auto max-w-[140px] rounded-md object-contain"
+                                    />
                                   ) : (
                                     <span className="text-sm font-semibold text-gray-900">
                                       {selectedConfig.logoText || "Brand"}
                                     </span>
                                   )}
                                 </div>
-                                {selectedConfig.showSearch !== false ? (
-                                  <div className="flex h-10 w-[42%] items-center rounded-md border border-slate-300 bg-white px-3 text-xs text-slate-400">
-                                    Search for products
+                                <div
+                                  className="flex w-[60%] shrink-0 flex-wrap items-center justify-end gap-3 px-3 py-2"
+                                  style={{
+                                    backgroundColor:
+                                      selectedConfig.navbarBgColor ||
+                                      selectedConfig.classicRightSectionBgColor ||
+                                      "#f1f5f9",
+                                  }}
+                                >
+                                  <div
+                                    className="flex flex-wrap justify-end gap-4 text-sm"
+                                    style={{ color: selectedConfig.menuLinkTextColor || "#334155" }}
+                                  >
+                                    {previewLinks.map((link) => {
+                                      if (link.linkType === "icon_label") {
+                                        const Cmp = resolveNavbarIcon(link.icon || "FiGrid");
+                                        return (
+                                          <span key={link.id} className="inline-flex items-center gap-1">
+                                            <Cmp className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                                            <span>{link.label || "Link"}</span>
+                                          </span>
+                                        );
+                                      }
+                                      return (
+                                        <span key={link.id}>
+                                          {link.linkType === "icon" ? link.icon || "FiGrid" : link.label || "Link"}
+                                        </span>
+                                      );
+                                    })}
                                   </div>
-                                ) : (
-                                  <div className="flex-1" />
-                                )}
-                                <div className="flex items-center gap-2">
+                                  {selectedConfig.showSearch !== false ? (
+                                    <span className="rounded-md border border-slate-300/80 bg-white/90 px-2 py-1 text-[11px] text-slate-600">
+                                      Search
+                                    </span>
+                                  ) : null}
                                   {selectedConfig.showButtons !== false ? (
                                     <>
-                                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full"
+                                      <span
+                                        className="inline-flex h-8 w-8 items-center justify-center rounded-full"
                                         style={{
                                           backgroundColor: selectedConfig.actionIcon1BgColor || "#0e9f6e",
                                           color: selectedConfig.actionIcon1Color || "#ffffff",
-                                        }}>
+                                        }}
+                                      >
                                         <PreviewActionIcon1 className="h-4 w-4" />
                                       </span>
-                                      <span className="text-[11px] text-slate-600">Basket £0.00</span>
-                                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full"
+                                      <span
+                                        className="inline-flex h-8 w-8 items-center justify-center rounded-full"
                                         style={{
                                           backgroundColor: selectedConfig.actionIcon2BgColor || "#0e9f6e",
                                           color: selectedConfig.actionIcon2Color || "#ffffff",
-                                        }}>
+                                        }}
+                                      >
                                         <PreviewActionIcon2 className="h-4 w-4" />
                                       </span>
                                     </>
                                   ) : null}
                                 </div>
                               </div>
+                            </div>
+                          ) : selectedConfig.variant === "pill-black" ? (
+                            <div className="flex min-w-[720px] justify-center bg-neutral-200/90 py-10">
                               <div
-                                className="rounded-md px-4 py-2"
+                                className="flex w-full max-w-3xl items-center justify-between gap-4 rounded-full px-5 py-2.5 shadow-[0_10px_36px_rgba(0,0,0,0.28)]"
                                 style={{
-                                  backgroundColor:
-                                    selectedConfig.classicRightSectionBgColor || "#fdf4df",
+                                  backgroundColor: selectedConfig.navbarBgColor?.trim() || "#000000",
                                 }}
                               >
-                                <div className="flex items-center justify-center gap-8 text-sm">
-                                  {previewLinks.map((link) => {
-                                    const c = selectedConfig.menuLinkTextColor || "#334155";
-                                    if (link.linkType === "icon_label") {
-                                      const Cmp = resolveNavbarIcon(link.icon || "FiGrid");
-                                      return (
-                                        <span key={link.id} className="inline-flex items-center gap-1" style={{ color: c }}>
-                                          <Cmp className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                                          <span>{link.label || "Link"}</span>
-                                        </span>
-                                      );
-                                    }
-                                    return (
-                                      <span key={link.id} style={{ color: c }}>
-                                        {link.linkType === "icon" ? link.icon || "FiGrid" : link.label || "Link"}
-                                      </span>
-                                    );
-                                  })}
+                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-md ring-1 ring-black/10">
+                                  {selectedConfig.logoUrl ? (
+                                    <img
+                                      src={selectedConfig.logoUrl}
+                                      alt=""
+                                      className="h-[70%] w-[70%] object-contain"
+                                    />
+                                  ) : (
+                                    <GiFlame className="h-6 w-6 text-[#2563eb]" aria-hidden />
+                                  )}
                                 </div>
+                                <div className="flex min-w-0 flex-1 justify-center gap-7 text-[15px] font-medium text-white">
+                                  {previewLinks.map((link) => (
+                                    <span key={link.id} className="shrink-0 whitespace-nowrap">
+                                      {link.linkType === "icon" ? link.icon || "FiGrid" : link.label || "Link"}
+                                    </span>
+                                  ))}
+                                </div>
+                                {selectedConfig.showPrimaryButton !== false ? (
+                                  <span className="max-w-[12rem] truncate rounded-full bg-white px-5 py-2.5 text-sm font-medium text-black shadow-sm ring-1 ring-black/10">
+                                    {selectedConfig.primaryButtonLabel || "fire@email.com"}
+                                  </span>
+                                ) : (
+                                  <span className="w-10 shrink-0" aria-hidden />
+                                )}
                               </div>
                             </div>
                           ) : (

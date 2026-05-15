@@ -10,6 +10,10 @@ import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchBlogs } from "../../../redux/reducers/blogsSlice";
 import { Helmet } from "react-helmet-async";
+import { blogListCardImageSrc } from "./blogListImageUrl";
+
+const BLOG_CARD_IMAGE_PLACEHOLDER =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='360'%3E%3Crect fill='%23e5e7eb' width='100%25' height='100%25'/%3E%3C/svg%3E";
 
 export default function AllBlogs() {
   const [selectedPage, setSelectedPage] = useState("blogs");
@@ -204,9 +208,9 @@ export default function AllBlogs() {
                     >
                       <div className="relative aspect-video">
                         <img
-                          src={`${auth.ip}${post.thumbnailImage}`}
+                          src={blogListCardImageSrc(auth.ip, post) || BLOG_CARD_IMAGE_PLACEHOLDER}
                           className="w-full h-full object-cover"
-                          alt={post.name}
+                          alt={post.name || post.title || "Blog"}
                           loading="lazy"
                         />
                         <div className="absolute inset-0 bg-black bg-opacity-40 transition-opacity hover:bg-opacity-30" />

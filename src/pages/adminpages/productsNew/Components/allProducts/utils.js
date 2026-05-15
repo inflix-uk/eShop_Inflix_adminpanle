@@ -1,3 +1,10 @@
+import {
+  buildCategoryGooglePathMap,
+  resolveGoogleProductCategoryForExport,
+} from "../../../../../utils/googleProductCategoryExport";
+
+export { buildCategoryGooglePathMap, resolveGoogleProductCategoryForExport };
+
 export const filterProducts = (products, searchQuery) => {
   return products.filter(product => {
     const nameMatch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -118,31 +125,25 @@ export function getStorefrontProductUrl(productSlug) {
   return finalUrl;
 }
 
-export const categoryMapping = {
-  "Mobile-Phones": "/ Electronics / Communications / Telephony / Mobile Phones / Unlocked Mobile Phones",
-  "iPads-and-Tablets": "/ Electronics / Computers / Tablet Computers",
-  "Laptops-and-Macbooks": "/ Electronics / Computers / Laptops",
-  "Game-Consoles": "/ Electronics / Video Game Consoles",
-  "Accessories": "/ Electronics / Communications / Telephony / Mobile Phone Accessories",
-};
+/** @deprecated Use resolveGoogleProductCategoryForExport(product, categoryMap) */
+export const getGoogleProductCategory = (productCategory) =>
+  resolveGoogleProductCategoryForExport({ category: productCategory }, null);
 
-export const getGoogleProductCategory = (productCategory) => {
-  for (let key in categoryMapping) {
-    if (productCategory.includes(key)) {
-      return categoryMapping[key];
-    }
-  }
-  return "";
-};
-
-export const transformProductsForExport = (products, includeAccessories = false) => {
+export const transformProductsForExport = (
+  products,
+  includeAccessories = false,
+  categoryGooglePathMap = null
+) => {
   return products.flatMap(product => {
     // Filter out accessories and SIM cards for standard export
     if (!includeAccessories && (product.category.includes("Accessories") || product.category.includes("PAYG-SIM-Card"))) {
       return [];
     }
 
-    const googleProductCategory = getGoogleProductCategory(product.category);
+    const googleProductCategory = resolveGoogleProductCategoryForExport(
+      product,
+      categoryGooglePathMap
+    );
 
     if (product.productType?.type === 'single') {
       // Check product stock for single-type products

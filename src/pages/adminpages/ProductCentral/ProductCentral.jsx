@@ -111,6 +111,24 @@ export default function ProductCentral() {
       iconColor: "text-blue-600",
       shadowColor: "shadow-blue-200"
     },
+    {
+      id: "google-categories",
+      title: "Google Categories",
+      description: "Google product taxonomy — browse, search, and activate for feeds & SEO",
+      path: "/admin/product-central/google-categories",
+      numericCount: false,
+      icon: (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+        </svg>
+      ),
+      count: 0,
+      subCount: null,
+      bgGradient: "from-amber-500 to-orange-600",
+      iconBg: "bg-amber-100",
+      iconColor: "text-amber-600",
+      shadowColor: "shadow-amber-200"
+    },
   ];
 
   return (
@@ -167,14 +185,20 @@ export default function ProductCentral() {
                         {section.icon}
                       </div>
                       <div className="text-right">
-                        <p className={`text-4xl font-bold bg-gradient-to-r ${section.bgGradient} bg-clip-text text-transparent`}>
-                          {isLoading ? (
-                            <span className="inline-block w-12 h-10 bg-gray-200 rounded animate-pulse"></span>
-                          ) : (
-                            section.count
-                          )}
+                        {isLoading ? (
+                          <span className="inline-block w-12 h-10 bg-gray-200 rounded animate-pulse"></span>
+                        ) : section.numericCount === false ? (
+                          <p className="text-sm font-semibold text-gray-600 leading-tight max-w-[7rem] ml-auto">
+                            Google taxonomy
+                          </p>
+                        ) : (
+                          <p className={`text-4xl font-bold bg-gradient-to-r ${section.bgGradient} bg-clip-text text-transparent`}>
+                            {section.count}
+                          </p>
+                        )}
+                        <p className="text-xs text-gray-400 mt-1">
+                          {section.numericCount === false ? "Browse & edit" : "Total Items"}
                         </p>
-                        <p className="text-xs text-gray-400 mt-1">Total Items</p>
                       </div>
                     </div>
 
