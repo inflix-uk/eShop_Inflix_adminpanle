@@ -116,13 +116,18 @@ export function getStorefrontOrigin() {
   return origin;
 }
 
-/** Full URL to a product page on the public storefront (slug = producturl). */
+/** Full URL to a product page on the public storefront (slug = producturl or variant path segment). */
 export function getStorefrontProductUrl(productSlug) {
   const origin = getStorefrontOrigin();
   const slug = productSlug ? String(productSlug).replace(/^\/+/, "").replace(/\/+$/, "") : "";
   const finalUrl = !slug ? `${origin}/products` : `${origin}/products/${slug}`;
   logStorefrontDiagnostics(origin, slug, finalUrl);
   return finalUrl;
+}
+
+/** Storefront product URL with ?mobile=true for Google Merchant mobile_link. */
+export function getStorefrontMobileProductUrl(productSlug) {
+  return `${getStorefrontProductUrl(productSlug)}?mobile=true`;
 }
 
 /** @deprecated Use resolveGoogleProductCategoryForExport(product, categoryMap) */
@@ -159,7 +164,7 @@ export const transformProductsForExport = (
         title: `${product.name}`,
         description: product.Product_summary || '',
         availability: 'in_stock',
-        link: `${import.meta.env.VITE_BACKEND_URL}products/${productNameSlug}`,
+        link: getStorefrontProductUrl(productNameSlug),
         image_link: `${import.meta.env.VITE_BACKEND_URL}${product.thumbnail_image.path}`,
         additional_image_link: product.Gallery_Images.map(img => `${import.meta.env.VITE_BACKEND_URL}/${img.path}`).join(", "),
         price: `${product.variantValues[0].Price} GBP`,
@@ -174,7 +179,7 @@ export const transformProductsForExport = (
         capacity: 'N/A',
         shipping: product.shipping_cost || '0.00 GBP',
         tax: product.tax_rate || '0%',
-        mobile_link: `${import.meta.env.VITE_BACKEND_URL}products/${productNameSlug}?mobile=true`,
+        mobile_link: getStorefrontMobileProductUrl(productNameSlug),
         google_product_category: googleProductCategory
       }];
     } else {
@@ -219,7 +224,7 @@ export const transformProductsForExport = (
           title: `${product.name} - ${colorName} - ${storage}`,
           description: product.Product_summary || '',
           availability: 'in_stock',
-          link: `${import.meta.env.VITE_BACKEND_URL}/products/${fullProductNameSlug}`,
+          link: getStorefrontProductUrl(fullProductNameSlug),
           image_link: firstImageLink,
           additional_image_link: variant.variantImages.map(img => `${import.meta.env.VITE_BACKEND_URL}/${img.path}`).join(", "),
           price: `${variant.Price} GBP`,
@@ -234,7 +239,7 @@ export const transformProductsForExport = (
           capacity: storage || 'N/A',
           shipping: product.shipping_cost || '0.00 GBP',
           tax: product.tax_rate || '0%',
-          mobile_link: `${import.meta.env.VITE_BACKEND_URL}products/${fullProductNameSlug}?mobile=true`,
+          mobile_link: getStorefrontMobileProductUrl(fullProductNameSlug),
           google_product_category: googleProductCategory
         };
       });

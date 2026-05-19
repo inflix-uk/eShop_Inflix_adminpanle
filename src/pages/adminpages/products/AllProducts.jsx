@@ -10,6 +10,8 @@ import { ClipboardDocumentIcon } from "@heroicons/react/24/outline"; // Cli
 import { Helmet } from "react-helmet-async";
 import {
   buildCategoryGooglePathMap,
+  getStorefrontMobileProductUrl,
+  getStorefrontProductUrl,
   resolveGoogleProductCategoryForExport,
 } from "../productsNew/Components/allProducts/utils";
 
@@ -220,7 +222,7 @@ export default function AllProducts() {
             title: `${product.name}`,
             description: product.Product_summary || '',
             availability: 'in_stock',
-            link: `${import.meta.env.VITE_BACKEND_URL}products/${productNameSlug}`,
+            link: getStorefrontProductUrl(productNameSlug),
             image_link: getImageUrl(product.thumbnail_image),
             additional_image_link: (product.Gallery_Images || []).map(img => getImageUrl(img)).filter(Boolean).join(", "),
             price: `${product.variantValues[0].Price} GBP`,
@@ -235,7 +237,7 @@ export default function AllProducts() {
             capacity: 'N/A',
             shipping: product.shipping_cost || '0.00 GBP',
             tax: product.tax_rate || '0%',
-            mobile_link: `${import.meta.env.VITE_BACKEND_URL}products/${productNameSlug}?mobile=true`,
+            mobile_link: getStorefrontMobileProductUrl(productNameSlug),
             google_product_category: googleProductCategory
           }];
         } else {
@@ -262,7 +264,7 @@ export default function AllProducts() {
               title: `${product.name}  - ${colorName} - ${storage}`,
               description: product.Product_summary || '',
               availability: 'in_stock',
-              link: `${import.meta.env.VITE_BACKEND_URL}products/${fullProductNameSlug}`,
+              link: getStorefrontProductUrl(fullProductNameSlug),
               image_link: firstImageLink,
               additional_image_link: (variant.variantImages || []).map(img => getImageUrl(img)).filter(Boolean).join(", "),
               price: `${variant.Price} GBP`,
@@ -277,7 +279,7 @@ export default function AllProducts() {
               capacity: storage || 'N/A',
               shipping: product.shipping_cost || '0.00 GBP',
               tax: product.tax_rate || '0%',
-              mobile_link: `${import.meta.env.VITE_BACKEND_URL}products/${fullProductNameSlug}?mobile=true`,
+              mobile_link: getStorefrontMobileProductUrl(fullProductNameSlug),
               google_product_category: googleProductCategory
             };
           });
@@ -337,7 +339,7 @@ export default function AllProducts() {
             title: `${product.name}`,
             description: product.Product_summary || '',
             availability: 'in_stock',
-            link: `${import.meta.env.VITE_BACKEND_URL}products/${productNameSlug}`,
+            link: getStorefrontProductUrl(productNameSlug),
             image_link: getImageUrl(product.thumbnail_image),
             additional_image_link: (product.Gallery_Images || []).map(img => getImageUrl(img)).filter(Boolean).join(", "),
             price: `${product.variantValues[0].Price} GBP`,
@@ -352,7 +354,7 @@ export default function AllProducts() {
             capacity: 'N/A',
             shipping: product.shipping_cost || '0.00 GBP',
             tax: product.tax_rate || '0%',
-            mobile_link: `${import.meta.env.VITE_BACKEND_URL}products/${productNameSlug}?mobile=true`,
+            mobile_link: getStorefrontMobileProductUrl(productNameSlug),
             google_product_category: googleProductCategory
           }];
         } else {
@@ -379,7 +381,7 @@ export default function AllProducts() {
               title: `${product.name}  - ${colorName} - ${storage}`,
               description: product.Product_summary || '',
               availability: 'in_stock',
-              link: `${import.meta.env.VITE_BACKEND_URL}products/${fullProductNameSlug}`,
+              link: getStorefrontProductUrl(fullProductNameSlug),
               image_link: firstImageLink,
               additional_image_link: (variant.variantImages || []).map(img => getImageUrl(img)).filter(Boolean).join(", "),
               price: `${variant.Price} GBP`,
@@ -394,7 +396,7 @@ export default function AllProducts() {
               capacity: storage || 'N/A',
               shipping: product.shipping_cost || '0.00 GBP',
               tax: product.tax_rate || '0%',
-              mobile_link: `${import.meta.env.VITE_BACKEND_URL}products/${fullProductNameSlug}?mobile=true`,
+              mobile_link: getStorefrontMobileProductUrl(fullProductNameSlug),
               google_product_category: googleProductCategory
             };
           });
@@ -464,7 +466,7 @@ export default function AllProducts() {
             title: `${product.name}`,
             description: product.Product_summary || '',
             availability: availability,
-            link: `${import.meta.env.VITE_BACKEND_URL}products/${productNameSlug}`,
+            link: getStorefrontProductUrl(productNameSlug),
             image_link: getImageUrl(product.thumbnail_image),
             additional_image_link: (product.Gallery_Images || []).map(img => getImageUrl(img)).filter(Boolean).join(", "),
             price: `${product.variantValues[0].Price} GBP`,
@@ -479,7 +481,7 @@ export default function AllProducts() {
             capacity: 'N/A',
             shipping: product.shipping_cost || '0.00 GBP',
             tax: product.tax_rate || '0%',
-            mobile_link: `${import.meta.env.VITE_BACKEND_URL}products/${productNameSlug}?mobile=true`,
+            mobile_link: getStorefrontMobileProductUrl(productNameSlug),
             google_product_category: googleProductCategory
           }];
         } else {
@@ -506,7 +508,7 @@ export default function AllProducts() {
               title: `${product.name}  - ${colorName} - ${storage}`,
               description: product.Product_summary || '',
               availability: availability,
-              link: `${import.meta.env.VITE_BACKEND_URL}products/${fullProductNameSlug}`,
+              link: getStorefrontProductUrl(fullProductNameSlug),
               image_link: firstImageLink,
               additional_image_link: (variant.variantImages || []).map(img => getImageUrl(img)).filter(Boolean).join(", "),
               price: `${variant.Price} GBP`,
@@ -521,7 +523,7 @@ export default function AllProducts() {
               capacity: storage || 'N/A',
               shipping: product.shipping_cost || '0.00 GBP',
               tax: product.tax_rate || '0%',
-              mobile_link: `${import.meta.env.VITE_BACKEND_URL}products/${fullProductNameSlug}?mobile=true`,
+              mobile_link: getStorefrontMobileProductUrl(fullProductNameSlug),
               google_product_category: googleProductCategory
             };
           });
