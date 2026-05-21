@@ -15,6 +15,21 @@ import {
 function createEmptyForm(order = 1) {
   return {
     type: "simple",
+    backgroundMedia: "image",
+    videoLarge: null,
+    videoLargePreview: null,
+    videoSmall: null,
+    videoSmallPreview: null,
+    removeVideoLarge: false,
+    removeVideoSmall: false,
+    overlayColor: "#000000",
+    overlayOpacity: 35,
+    videoDesktopLayout: "hero",
+    videoDesktopWidthPx: "",
+    videoDesktopHeightPx: "",
+    videoMobileLayout: "hero",
+    videoMobileWidthPx: "",
+    videoMobileHeightPx: "",
     imageLarge: null,
     imageLargePreview: null,
     imageSmall: null,
@@ -51,6 +66,24 @@ function createEmptyForm(order = 1) {
 function mapBannerToForm(banner) {
   return {
     type: banner.type || "simple",
+    backgroundMedia: banner.backgroundMedia === "video" ? "video" : "image",
+    videoLarge: null,
+    videoLargePreview: banner.videoLarge || null,
+    videoSmall: null,
+    videoSmallPreview: banner.videoSmall || null,
+    removeVideoLarge: false,
+    removeVideoSmall: false,
+    overlayColor: banner.overlayColor || "#000000",
+    overlayOpacity:
+      banner.overlayOpacity !== undefined && banner.overlayOpacity !== null
+        ? Number(banner.overlayOpacity)
+        : 35,
+    videoDesktopLayout: banner.videoDesktopLayout || "hero",
+    videoDesktopWidthPx: banner.videoDesktopWidthPx ?? "",
+    videoDesktopHeightPx: banner.videoDesktopHeightPx ?? "",
+    videoMobileLayout: banner.videoMobileLayout || "hero",
+    videoMobileWidthPx: banner.videoMobileWidthPx ?? "",
+    videoMobileHeightPx: banner.videoMobileHeightPx ?? "",
     imageLarge: null,
     imageLargePreview: banner.imageLarge || null,
     imageSmall: null,
@@ -143,10 +176,42 @@ export default function BannerEditorPage() {
     try {
       const bannerData = {
         type: formData.type,
+        backgroundMedia: formData.backgroundMedia === "video" ? "video" : "image",
+        overlayColor: formData.overlayColor || "#000000",
+        overlayOpacity: Math.min(
+          100,
+          Math.max(0, Math.round(Number(formData.overlayOpacity ?? 35)))
+        ),
+        videoDesktopLayout: formData.videoDesktopLayout || "hero",
+        videoMobileLayout: formData.videoMobileLayout || "hero",
+        videoDesktopWidthPx:
+          formData.videoDesktopWidthPx === "" ||
+          formData.videoDesktopWidthPx === undefined
+            ? undefined
+            : Math.round(Number(formData.videoDesktopWidthPx)),
+        videoDesktopHeightPx:
+          formData.videoDesktopHeightPx === "" ||
+          formData.videoDesktopHeightPx === undefined
+            ? undefined
+            : Math.round(Number(formData.videoDesktopHeightPx)),
+        videoMobileWidthPx:
+          formData.videoMobileWidthPx === "" ||
+          formData.videoMobileWidthPx === undefined
+            ? undefined
+            : Math.round(Number(formData.videoMobileWidthPx)),
+        videoMobileHeightPx:
+          formData.videoMobileHeightPx === "" ||
+          formData.videoMobileHeightPx === undefined
+            ? undefined
+            : Math.round(Number(formData.videoMobileHeightPx)),
         altText: formData.altText,
         order: parseInt(formData.order, 10) || 1,
         isActive: formData.isActive,
       };
+      if (formData.removeVideoLarge) bannerData.removeVideoLarge = true;
+      if (formData.removeVideoSmall) bannerData.removeVideoSmall = true;
+      if (formData.videoLarge instanceof File) bannerData.videoLarge = formData.videoLarge;
+      if (formData.videoSmall instanceof File) bannerData.videoSmall = formData.videoSmall;
       if (formData.type === "simple") {
         bannerData.buttonText = formData.buttonText;
         bannerData.buttonLink = formData.buttonLink;

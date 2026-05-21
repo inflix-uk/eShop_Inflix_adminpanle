@@ -94,6 +94,14 @@ export const createBanner = async (bannerData) => {
       formData.append('extraImage', bannerData.extraImage);
       delete bannerData.extraImage;
     }
+    if (bannerData.videoLarge && bannerData.videoLarge instanceof File) {
+      formData.append('videoLarge', bannerData.videoLarge);
+      delete bannerData.videoLarge;
+    }
+    if (bannerData.videoSmall && bannerData.videoSmall instanceof File) {
+      formData.append('videoSmall', bannerData.videoSmall);
+      delete bannerData.videoSmall;
+    }
     
     // Append all other banner data as JSON string
     formData.append('bannerData', JSON.stringify(bannerData));
@@ -141,6 +149,14 @@ export const updateBanner = async (id, bannerData) => {
     if (bannerData.extraImage && bannerData.extraImage instanceof File) {
       formData.append('extraImage', bannerData.extraImage);
       delete bannerData.extraImage;
+    }
+    if (bannerData.videoLarge && bannerData.videoLarge instanceof File) {
+      formData.append('videoLarge', bannerData.videoLarge);
+      delete bannerData.videoLarge;
+    }
+    if (bannerData.videoSmall && bannerData.videoSmall instanceof File) {
+      formData.append('videoSmall', bannerData.videoSmall);
+      delete bannerData.videoSmall;
     }
     
     // Append all other banner data as JSON string
