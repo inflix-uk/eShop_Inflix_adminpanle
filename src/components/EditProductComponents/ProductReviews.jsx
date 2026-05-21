@@ -27,7 +27,7 @@ export default function ProductReviews({ productId }) {
   const [newEmail, setNewEmail] = useState("");
   const [newRating, setNewRating] = useState("");
   const [newComment, setNewComment] = useState("");
-  const [newStatus, setNewStatus] = useState("Pending");
+  const [newStatus, setNewStatus] = useState("Approved");
   const [newCreatedTime, setNewCreatedTime] = useState(new Date());
 
   // Fetch reviews for this product
@@ -36,7 +36,7 @@ export default function ProductReviews({ productId }) {
     setIsLoading(true);
     try {
       const response = await axios.get(
-        `${auth.ip}get/all/product/reviews/${productId}`
+        `${auth.ip}get/all/product/reviews/${productId}?includeAll=true`
       );
       if (response.data.status === 201) {
         setReviews(response.data.product.reviewDetails || []);
@@ -150,7 +150,7 @@ export default function ProductReviews({ productId }) {
     setNewEmail(auth.user?.email || "");
     setNewRating("");
     setNewComment("");
-    setNewStatus("Pending");
+    setNewStatus("Approved");
     setNewCreatedTime(new Date());
     setIsAddModalOpen(true);
   };

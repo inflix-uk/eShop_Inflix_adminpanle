@@ -46,6 +46,13 @@ export function blockHasValidContent(block) {
     block.content &&
     block.content.widgetType === "video"
   ) {
+    const items = block.content.items;
+    if (Array.isArray(items)) {
+      return items.some(
+        (it) =>
+          it?.videoUrl && typeof it.videoUrl === "string" && it.videoUrl.trim().length > 0
+      );
+    }
     const u = block.content.videoUrl;
     return typeof u === "string" && u.trim().length > 0;
   }
@@ -485,8 +492,9 @@ export function extractVideoWidgetDataUrls(
         ) {
           return;
         }
-        const url = block.content.videoUrl;
-        if (typeof url === "string" && url.startsWith("data:")) {
+
+        const pushDataUrlVideo = (url, pathSuffix) => {
+          if (typeof url !== "string" || !url.startsWith("data:")) return null;
           let ext = "mp4";
           if (url.startsWith("data:video/webm")) ext = "webm";
           else if (
@@ -495,19 +503,40 @@ export function extractVideoWidgetDataUrls(
           ) {
             ext = "ogg";
           }
-          const filename = `block-widget-video-${rowIndex}-${colIndex}-${blockIndex}-${Date.now()}.${ext}`;
+          const filename = `block-widget-video-${rowIndex}-${colIndex}-${blockIndex}-${blockImageIndex}-${Date.now()}.${ext}`;
           try {
             const file = dataURLToFile(url, filename);
             blockImageFiles.push({
               file,
-              path: `blocks[${rowIndex}][columns][${colIndex}][blocks][${blockIndex}][content][videoUrl]`,
+              path: `blocks[${rowIndex}][columns][${colIndex}][blocks][${blockIndex}][content]${pathSuffix}`,
             });
-            block.content.videoUrl = `__FILE_REFERENCE__${blockImageIndex}__`;
             blockImageIndex += 1;
+            return `__FILE_REFERENCE__${blockImageIndex - 1}__`;
           } catch (e) {
             console.error("Video widget data URL conversion failed:", e);
+            return null;
           }
+        };
+
+        const items = Array.isArray(block.content.items) ? block.content.items : [];
+        if (items.length > 0) {
+          items.forEach((item, itemIndex) => {
+            const ref = pushDataUrlVideo(
+              item?.videoUrl,
+              `[items][${itemIndex}][videoUrl]`
+            );
+            if (ref && item) item.videoUrl = ref;
+          });
+          const first = items.find((it) => it?.videoUrl)?.videoUrl;
+          if (first) block.content.videoUrl = first;
+          return;
         }
+
+        const ref = pushDataUrlVideo(
+          block.content.videoUrl,
+          "[videoUrl]"
+        );
+        if (ref) block.content.videoUrl = ref;
       });
     });
   });

@@ -89,6 +89,10 @@ function createGalleryItem() {
   return { id: nanoid(), imageUrl: "", caption: "", alt: "" };
 }
 
+function createVideoItem() {
+  return { id: nanoid(), videoUrl: "" };
+}
+
 function createIconBoxItem() {
   return { id: nanoid(), iconCode: "", title: "", description: "" };
 }
@@ -1168,25 +1172,79 @@ export default function WidgetBlock({
   }
 
   if (widgetType === "video") {
-    const videoUrl = content?.videoUrl ?? "";
     const heading = content?.heading ?? "";
     const caption = content?.caption ?? "";
+    const legacyVideoUrl = String(content?.videoUrl ?? "").trim();
+    const rawItems = Array.isArray(content?.items) ? content.items : [];
+    const videoItems =
+      rawItems.length > 0
+        ? rawItems.map((it) => ({
+            id: it?.id || nanoid(),
+            videoUrl: it?.videoUrl ?? "",
+          }))
+        : legacyVideoUrl
+          ? [{ id: nanoid(), videoUrl: legacyVideoUrl }]
+          : [createVideoItem()];
+    const VIDEO_ASPECT_RATIO_OPTIONS = [
+      { value: "16:9", label: "16:9 Widescreen", hint: "YouTube, TV, website heroes" },
+      { value: "9:16", label: "9:16 Vertical", hint: "TikTok, Reels, Stories, Shorts" },
+      { value: "1:1", label: "1:1 Square", hint: "Instagram / LinkedIn square" },
+      { value: "4:5", label: "4:5 Portrait", hint: "Instagram / Facebook feed portrait" },
+      { value: "4:3", label: "4:3 Standard", hint: "Classic TV, slides" },
+      { value: "21:9", label: "21:9 Ultrawide", hint: "Cinematic banners" },
+      { value: "2:3", label: "2:3 Tall", hint: "Pinterest, tall promos" },
+    ];
+    const allowedRatios = VIDEO_ASPECT_RATIO_OPTIONS.map((o) => o.value);
+    const rawRatio = String(content?.aspectRatio || "16:9").trim();
+    const aspectRatio = allowedRatios.includes(rawRatio) ? rawRatio : "16:9";
+    const playerWidthPx = content?.playerWidthPx;
+    const playerHeightPx = content?.playerHeightPx;
+    const playbackMuted =
+      content?.playbackMuted === true ||
+      content?.playbackMuted === 1 ||
+      String(content?.playbackMuted || "").toLowerCase() === "true";
 
-    const patchVideo = (partial) =>
+    const parseVideoPxInput = (raw) => {
+      if (raw === "" || raw === undefined || raw === null) return undefined;
+      const n = Number(raw);
+      if (!Number.isFinite(n) || n <= 0) return undefined;
+      return Math.round(n);
+    };
+
+    const patchVideo = (partial) => {
+      const nextItems = partial.items ?? videoItems;
+      const firstUrl = nextItems[0]?.videoUrl ?? "";
       onChange(id, {
         widgetType: "video",
-        videoUrl,
         heading,
         caption,
+        aspectRatio,
+        items: nextItems,
+        videoUrl: firstUrl,
+        playerWidthPx: content?.playerWidthPx,
+        playerHeightPx: content?.playerHeightPx,
         ...partial,
+        playbackMuted:
+          partial.playbackMuted !== undefined
+            ? Boolean(partial.playbackMuted)
+            : playbackMuted,
       });
+    };
 
-    const handleVideoFilePick = (e) => {
+    const updateVideoItem = (itemId, patch) => {
+      patchVideo({
+        items: videoItems.map((it) =>
+          it.id === itemId ? { ...it, ...patch } : it
+        ),
+      });
+    };
+
+    const handleVideoFilePick = (itemId, e) => {
       const file = e.target.files?.[0];
       if (!file) return;
       const reader = new FileReader();
       reader.onload = (ev) => {
-        patchVideo({ videoUrl: ev.target?.result || "" });
+        updateVideoItem(itemId, { videoUrl: ev.target?.result || "" });
       };
       reader.readAsDataURL(file);
       e.target.value = "";
@@ -1230,57 +1288,192 @@ export default function WidgetBlock({
 
         <div className="space-y-3">
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
-              Video URL <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="url"
-              value={videoUrl.startsWith("data:") ? "" : videoUrl}
-              onChange={(e) => patchVideo({ videoUrl: e.target.value })}
-              className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm font-mono"
-              placeholder="https://www.youtube.com/watch?v=… or Vimeo / .mp4 URL"
-            />
-            <p className="mt-1 text-xs text-gray-500">
-              Or upload a file (saved to your server when you publish). YouTube, Vimeo, or direct
-              .mp4 / .webm / .ogg links also work.
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <label className="block text-xs font-medium text-gray-600">
+                Videos <span className="text-red-500">*</span>
+                <span className="ml-1 font-normal text-gray-500">(slider on storefront)</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => patchVideo({ items: [...videoItems, createVideoItem()] })}
+                className="inline-flex items-center gap-1 rounded border border-orange-300 bg-white px-2 py-1 text-xs font-medium text-orange-800 hover:bg-orange-50"
+              >
+                <PlusCircle size={14} />
+                Add video
+              </button>
+            </div>
+            <div className="space-y-3">
+              {videoItems.map((item, index) => {
+                const url = item.videoUrl ?? "";
+                return (
+                  <div
+                    key={item.id}
+                    className="rounded-lg border border-orange-200/80 bg-white p-2.5 space-y-2"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-semibold text-orange-900">
+                        Video {index + 1}
+                      </span>
+                      {videoItems.length > 1 ? (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            patchVideo({
+                              items: videoItems.filter((v) => v.id !== item.id),
+                            })
+                          }
+                          className="text-xs text-red-600 hover:underline"
+                        >
+                          Remove
+                        </button>
+                      ) : null}
+                    </div>
+                    <input
+                      type="url"
+                      value={url.startsWith("data:") ? "" : url}
+                      onChange={(e) =>
+                        updateVideoItem(item.id, { videoUrl: e.target.value })
+                      }
+                      className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm font-mono"
+                      placeholder="YouTube, Vimeo, or .mp4 URL"
+                    />
+                    {url.startsWith("data:") ? (
+                      <p className="text-xs font-medium text-orange-800">
+                        File ready — uploads on save.{" "}
+                        <button
+                          type="button"
+                          className="text-red-600 underline"
+                          onClick={() => updateVideoItem(item.id, { videoUrl: "" })}
+                        >
+                          Clear
+                        </button>
+                      </p>
+                    ) : null}
+                    <input
+                      type="file"
+                      accept="video/mp4,video/webm,video/ogg,.mp4,.webm,.ogg"
+                      onChange={(e) => handleVideoFilePick(item.id, e)}
+                      className="text-xs w-full"
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <p className="mt-2 text-xs text-gray-500">
+              Multiple videos appear as a slider on the blog. YouTube, Vimeo, or .mp4 / .webm / .ogg.
             </p>
-            {videoUrl.startsWith("data:") ? (
-              <p className="mt-1 text-xs font-medium text-orange-800">
-                Uploaded video ready — will upload on save.{" "}
-                <button
-                  type="button"
-                  className="text-red-600 underline"
-                  onClick={() => patchVideo({ videoUrl: "" })}
-                >
-                  Remove file
-                </button>
-              </p>
-            ) : null}
-            <input
-              type="file"
-              accept="video/mp4,video/webm,video/ogg,.mp4,.webm,.ogg"
-              onChange={handleVideoFilePick}
-              className="text-xs w-full mt-2"
-            />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Heading (optional)</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Video layout (aspect ratio)</label>
+            <select
+              value={aspectRatio}
+              onChange={(e) => patchVideo({ aspectRatio: e.target.value })}
+              className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm bg-white"
+            >
+              {VIDEO_ASPECT_RATIO_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <p className="mt-1 text-xs text-gray-500">
+              {VIDEO_ASPECT_RATIO_OPTIONS.find((o) => o.value === aspectRatio)?.hint ??
+                "How the player is shaped on the live blog."}
+            </p>
+            <div className="mt-2 flex items-center gap-3">
+              <div
+                className="shrink-0 rounded border-2 border-orange-300 bg-orange-100/60"
+                style={{
+                  width: playerWidthPx
+                    ? `${Math.min(playerWidthPx, 144)}px`
+                    : aspectRatio === "9:16" || aspectRatio === "2:3" || aspectRatio === "4:5"
+                      ? "2.5rem"
+                      : "4.5rem",
+                  height: playerHeightPx ? `${Math.min(playerHeightPx, 96)}px` : undefined,
+                  aspectRatio: playerHeightPx
+                    ? undefined
+                    : aspectRatio.replace(":", " / "),
+                }}
+                aria-hidden
+              />
+              <span className="text-xs text-gray-600">Preview size on storefront</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Player width (px)
+              </label>
+              <input
+                type="number"
+                min={1}
+                value={playerWidthPx ?? ""}
+                onChange={(e) => {
+                  patchVideo({ playerWidthPx: parseVideoPxInput(e.target.value) });
+                }}
+                className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                placeholder="Full width (empty)"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Custom width in px (e.g. 360, 800). Leave empty for 100% column width.
+              </p>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">
+                Player height (px)
+              </label>
+              <input
+                type="number"
+                min={1}
+                value={playerHeightPx ?? ""}
+                onChange={(e) => {
+                  patchVideo({ playerHeightPx: parseVideoPxInput(e.target.value) });
+                }}
+                className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
+                placeholder="Auto from ratio (empty)"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Custom height in px (e.g. 400, 520). Leave empty to use aspect ratio height.
+              </p>
+            </div>
+          </div>
+          <div className="rounded-lg border border-orange-200/80 bg-white px-3 py-2.5">
+            <label className="flex cursor-pointer items-start gap-2.5">
+              <input
+                type="checkbox"
+                checked={playbackMuted}
+                onChange={(e) => patchVideo({ playbackMuted: e.target.checked })}
+                className="mt-0.5 h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-500"
+              />
+              <span>
+                <span className="block text-xs font-medium text-gray-700">
+                  Mute on live site
+                </span>
+                <span className="mt-0.5 block text-xs text-gray-500">
+                  When enabled, videos play without sound on the blog. Visitors cannot
+                  unmute from the player — toggle here anytime to unmute.
+                </span>
+              </span>
+            </label>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Title (optional)</label>
             <input
               type="text"
               value={heading}
               onChange={(e) => patchVideo({ heading: e.target.value })}
               className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
-              placeholder="Title above the player"
+              placeholder="Shown above the video, left aligned"
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Caption (optional)</label>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Description (optional)</label>
             <textarea
               value={caption}
               onChange={(e) => patchVideo({ caption: e.target.value })}
-              rows={2}
+              rows={3}
               className="w-full rounded border border-gray-300 px-2 py-1.5 text-sm"
-              placeholder="Short text below the video"
+              placeholder="Shown below the video, left aligned"
             />
           </div>
         </div>
@@ -3390,6 +3583,16 @@ WidgetBlock.propTypes = {
     sectionHeading: PropTypes.string,
     sectionDescription: PropTypes.string,
     videoUrl: PropTypes.string,
+    aspectRatio: PropTypes.string,
+    playerWidthPx: PropTypes.number,
+    playerHeightPx: PropTypes.number,
+    playbackMuted: PropTypes.bool,
+    items: PropTypes.arrayOf(
+      PropTypes.shape({
+        id: PropTypes.string,
+        videoUrl: PropTypes.string,
+      })
+    ),
     caption: PropTypes.string,
     embedUrl: PropTypes.string,
     heightPx: PropTypes.number,

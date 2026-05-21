@@ -120,8 +120,11 @@ export default function BlockEditor({ blocks, setBlocks, className, collapsibleR
         newBlock.content = {
           widgetType: 'video',
           videoUrl: '',
+          aspectRatio: '16:9',
           heading: '',
           caption: '',
+          playbackMuted: false,
+          items: [{ id: nanoid(), videoUrl: '' }],
         };
       } else if (widgetSubtype === 'map') {
         newBlock.content = {

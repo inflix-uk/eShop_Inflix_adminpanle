@@ -143,26 +143,30 @@ export default function EditBlogForm({ blogData = {}, availableCategories = [] }
               },
             };
           }
-          if (
-            block.type === "widget" &&
-            block.content?.widgetType === "video" &&
-            block.content.videoUrl &&
-            typeof block.content.videoUrl === "string" &&
-            !block.content.videoUrl.startsWith("data:")
-          ) {
-            const v = block.content.videoUrl.trim();
-            const base = (API_BASE_URL || "").replace(/\/$/, "");
-            const resolved =
-              v.startsWith("http://") || v.startsWith("https://")
-                ? v
-                : v.startsWith("/")
-                  ? `${base}${v}`
-                  : getFullImageUrl(v);
+          if (block.type === "widget" && block.content?.widgetType === "video") {
+            const resolveVideoUrl = (raw) => {
+              const v = String(raw || "").trim();
+              if (!v || v.startsWith("data:")) return v;
+              const base = (API_BASE_URL || "").replace(/\/$/, "");
+              if (v.startsWith("http://") || v.startsWith("https://")) return v;
+              if (v.startsWith("/")) return `${base}${v}`;
+              return getFullImageUrl(v);
+            };
+            const items = Array.isArray(block.content.items)
+              ? block.content.items.map((it) => ({
+                  ...it,
+                  videoUrl: it?.videoUrl ? resolveVideoUrl(it.videoUrl) : "",
+                }))
+              : undefined;
+            const legacy = block.content.videoUrl
+              ? resolveVideoUrl(block.content.videoUrl)
+              : items?.[0]?.videoUrl ?? "";
             return {
               ...block,
               content: {
                 ...block.content,
-                videoUrl: resolved,
+                ...(items ? { items } : {}),
+                videoUrl: legacy,
               },
             };
           }
