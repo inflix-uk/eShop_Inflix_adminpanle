@@ -23,7 +23,9 @@ import { fetchPricingGroups } from '../pricing-groups/api/groupsApi';
 import {
     fetchUserPricingProducts,
     fetchUserProductPrices,
+    normalizeUserExcludedIds,
     saveUserProductPrice,
+    setUserProductInclusion,
 } from './services/userPricingService';
 import {
     flattenProductsToPricingRows,
@@ -52,6 +54,8 @@ const EditUser = () => {
     const [priceInputByProduct, setPriceInputByProduct] = useState({});
     const [pricingLoading, setPricingLoading] = useState(false);
     const [pricingSearch, setPricingSearch] = useState('');
+    const [excludedProductIds, setExcludedProductIds] = useState(() => new Set());
+    const [togglingProductId, setTogglingProductId] = useState(null);
     const [saveTimers, setSaveTimers] = useState({});
     const saveTimersRef = useRef({});
     const [userOrderHistory, setUserOrderHistory] = useState([]);
@@ -92,6 +96,7 @@ const EditUser = () => {
                 }
 
                 setUserData(user);
+                setExcludedProductIds(new Set(normalizeUserExcludedIds(user)));
             } else {
                 toast.error(userResult.message);
                 navigate('/admin/users');
@@ -249,7 +254,70 @@ const EditUser = () => {
         loadOrderHistory();
     }, [activeTab, userId]);
 
+    const isProductIncluded = (productId) =>
+        !excludedProductIds.has(String(productId));
+
+    const clearLocalUserPricesForProduct = (productId) => {
+        const pid = String(productId);
+        setSaveTimers((prev) => {
+            const next = { ...prev };
+            Object.keys(next).forEach((key) => {
+                if (key === pid || key.startsWith(`${pid}::`)) {
+                    clearTimeout(next[key]);
+                    delete next[key];
+                }
+            });
+            return next;
+        });
+        setPricingOverrides((prev) => {
+            const next = { ...prev };
+            Object.keys(next).forEach((key) => {
+                if (key === pid || key.startsWith(`${pid}::`)) delete next[key];
+            });
+            return next;
+        });
+        setPriceInputByProduct((prev) => {
+            const next = { ...prev };
+            Object.keys(next).forEach((key) => {
+                if (key === pid || key.startsWith(`${pid}::`)) delete next[key];
+            });
+            return next;
+        });
+    };
+
+    const toggleProductInclusion = async (productId, included) => {
+        if (!userId) return;
+        const pid = String(productId);
+        setTogglingProductId(pid);
+        const prevExcluded = new Set(excludedProductIds);
+        setExcludedProductIds((prev) => {
+            const next = new Set(prev);
+            if (included) next.delete(pid);
+            else next.add(pid);
+            return next;
+        });
+        if (!included) clearLocalUserPricesForProduct(pid);
+
+        try {
+            const updated = await setUserProductInclusion(userId, pid, included);
+            const nextIds = normalizeUserExcludedIds(updated);
+            setExcludedProductIds(new Set(nextIds));
+            setUserData((prev) =>
+                prev ? { ...prev, excludedProductIds: updated?.excludedProductIds ?? [] } : prev
+            );
+            toast.success(
+                included ? 'Product included for user pricing' : 'Product excluded from user pricing'
+            );
+        } catch (error) {
+            setExcludedProductIds(prevExcluded);
+            toast.error(error?.response?.data?.message || 'Failed to update product inclusion');
+        } finally {
+            setTogglingProductId(null);
+        }
+    };
+
     const onPriceInputChange = (productId, variantKey, value) => {
+        if (!isProductIncluded(productId)) return;
         const pid = String(productId);
         const vk = variantKey != null ? String(variantKey).trim() : '';
         const rk = priceMapKey(pid, vk);
@@ -722,11 +790,10 @@ const EditUser = () => {
                                 <div className="mb-4">
                                     <h2 className="text-lg font-semibold text-gray-900">User Custom Product Pricing</h2>
                                     <p className="mt-1 text-sm text-gray-600">
-                                        One row per product variation (same as pricing groups). For products with variations,
-                                        set a custom user price per variation; that price applies only to that variation for this user.
-                                        Precedence per row: user custom &gt; group custom for that variation &gt; base price.
-                                        Products without variations use a single product-level custom price.
-                                        Clear the field and pause briefly to remove a custom price and resolve conflicts with group pricing.
+                                        One row per product variation (same as pricing groups). Uncheck a product to
+                                        exclude it from this user&apos;s custom prices. For products with variations,
+                                        set a custom user price per variation. Precedence per row: user custom &gt; group
+                                        custom &gt; base price. Clear the field and pause briefly to remove a custom price.
                                     </p>
                                 </div>
                                 <div className="mb-4">
@@ -742,6 +809,7 @@ const EditUser = () => {
                                     <table className="min-w-[800px] w-full divide-y divide-gray-200">
                                         <thead className="bg-gray-50">
                                             <tr>
+                                                <th className="w-12 px-3 py-3 text-center text-xs font-semibold uppercase text-gray-600">Include</th>
                                                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">Product</th>
                                                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">Variation</th>
                                                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase text-gray-600">SKU</th>
@@ -752,18 +820,23 @@ const EditUser = () => {
                                         <tbody className="divide-y divide-gray-100 bg-white">
                                             {pricingLoading ? (
                                                 <tr>
-                                                    <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-500">
+                                                    <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-500">
                                                         Loading products...
                                                     </td>
                                                 </tr>
                                             ) : filteredPricingRows.length === 0 ? (
                                                 <tr>
-                                                    <td colSpan={5} className="px-4 py-8 text-center text-sm text-gray-500">
+                                                    <td colSpan={6} className="px-4 py-8 text-center text-sm text-gray-500">
                                                         No products found.
                                                     </td>
                                                 </tr>
                                             ) : (
-                                                filteredPricingRows.map((row) => {
+                                                (() => {
+                                                    let lastProductId = null;
+                                                    return filteredPricingRows.map((row) => {
+                                                    const isFirstOfProduct = row.productId !== lastProductId;
+                                                    lastProductId = row.productId;
+                                                    const included = isProductIncluded(row.productId);
                                                     const rowKey = row.rowKey;
                                                     const currentOverride = pricingOverrides[rowKey];
                                                     const ph =
@@ -773,7 +846,36 @@ const EditUser = () => {
                                                             ? String(Number(row.basePrice).toFixed(2))
                                                             : 'e.g. 99.99';
                                                     return (
-                                                        <tr key={rowKey} className="hover:bg-gray-50">
+                                                        <tr
+                                                            key={rowKey}
+                                                            className={
+                                                                included
+                                                                    ? 'hover:bg-gray-50'
+                                                                    : 'bg-gray-50/80 opacity-70 hover:bg-gray-100'
+                                                            }
+                                                        >
+                                                            <td className="px-3 py-3 text-center align-top">
+                                                                {isFirstOfProduct ? (
+                                                                    <input
+                                                                        type="checkbox"
+                                                                        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                                                        checked={included}
+                                                                        disabled={togglingProductId === String(row.productId)}
+                                                                        onChange={(e) =>
+                                                                            toggleProductInclusion(
+                                                                                row.productId,
+                                                                                e.target.checked
+                                                                            )
+                                                                        }
+                                                                        aria-label={`Include ${row.productName} for user custom pricing`}
+                                                                        title={
+                                                                            included
+                                                                                ? 'Uncheck to exclude this product from user custom prices'
+                                                                                : 'Check to include this product for user custom prices'
+                                                                        }
+                                                                    />
+                                                                ) : null}
+                                                            </td>
                                                             <td className="px-4 py-3 text-sm text-gray-900">{row.productName}</td>
                                                             <td className="px-4 py-3 text-sm text-gray-700">{row.variantLabel}</td>
                                                             <td className="px-4 py-3 text-sm text-gray-600">{row.sku || '—'}</td>
@@ -785,22 +887,19 @@ const EditUser = () => {
                                                                     type="number"
                                                                     min="0.01"
                                                                     step="0.01"
+                                                                    disabled={!included}
                                                                     value={priceInputByProduct[rowKey] ?? ''}
                                                                     onChange={(e) =>
                                                                         onPriceInputChange(row.productId, row.variantKey, e.target.value)
                                                                     }
-                                                                    placeholder={
-                                                                        currentOverride != null &&
-                                                                        Number.isFinite(Number(currentOverride))
-                                                                            ? String(currentOverride)
-                                                                            : ph
-                                                                    }
-                                                                    className="w-40 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:ring-2 focus:ring-primary focus:border-primary"
+                                                                    placeholder={included ? ph : 'Excluded'}
+                                                                    className="w-40 rounded-md border border-gray-300 px-2 py-1.5 text-sm focus:ring-2 focus:ring-primary focus:border-primary disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400"
                                                                 />
                                                             </td>
                                                         </tr>
                                                     );
-                                                })
+                                                });
+                                                })()
                                             )}
                                         </tbody>
                                     </table>

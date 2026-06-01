@@ -28,6 +28,21 @@ export async function fetchUserProductPrices(userId) {
  * @param {object} [opts]
  * @param {boolean} [opts.clear] - Remove per-user override for this product/variant.
  */
+export function normalizeUserExcludedIds(user) {
+  const raw = user?.excludedProductIds;
+  if (!Array.isArray(raw)) return [];
+  return raw.map((id) => String(id?._id ?? id ?? "")).filter(Boolean);
+}
+
+export async function setUserProductInclusion(userId, productId, included) {
+  const base = normalizeApiBase(BACKEND_URL);
+  const body = { productId: String(productId), included: Boolean(included) };
+  const res = await axios.post(`${base}api/users/${userId}/product-inclusion`, body, {
+    headers: { "x-user-role": "admin" },
+  });
+  return res?.data?.data ?? null;
+}
+
 export async function saveUserProductPrice(userId, productId, price, variantKey = "", opts = {}) {
   const base = normalizeApiBase(BACKEND_URL);
   const vk = variantKey != null ? String(variantKey).trim() : "";
