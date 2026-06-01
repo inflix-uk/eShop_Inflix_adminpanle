@@ -13,6 +13,8 @@ import {
   priceMapKey,
   saveGroupProductPrice,
 } from "./api/productsApi";
+import { setGroupProductInclusion } from "./api/groupsApi";
+import { usePricingGroup } from "./usePricingGroup";
 
 export default function PricingGroupProducts() {
   const { groupId } = useParams();
@@ -34,6 +36,13 @@ export default function PricingGroupProducts() {
   const closeSidebar = () => setIsSidebarOpen(false);
 
   const apiBase = auth?.ip || import.meta.env.VITE_BACKEND_URL || "";
+  const {
+    groupName,
+    excludedProductIds,
+    setExcludedProductIds,
+    loading: loadingGroup,
+  } = usePricingGroup(apiBase, groupId);
+  const [togglingProductId, setTogglingProductId] = useState(null);
 
   useEffect(() => {
     if (!apiBase) return;
@@ -122,7 +131,55 @@ export default function PricingGroupProducts() {
     setPriceDraftByKey((prev) => ({ ...prev, [key]: value }));
   };
 
+  const isProductIncluded = (productId) =>
+    !excludedProductIds.has(String(productId));
+
+  const clearLocalPricesForProduct = (productId) => {
+    const pid = String(productId);
+    setGroupPrices((prev) => {
+      const next = { ...prev };
+      for (const key of Object.keys(next)) {
+        if (key === pid || key.startsWith(`${pid}::`)) delete next[key];
+      }
+      return next;
+    });
+    setPriceDraftByKey((prev) => {
+      const next = { ...prev };
+      for (const key of Object.keys(next)) {
+        if (key === pid || key.startsWith(`${pid}::`)) delete next[key];
+      }
+      return next;
+    });
+  };
+
+  const toggleProductInclusion = async (productId, included) => {
+    if (!apiBase || !groupId) return;
+    const pid = String(productId);
+    setTogglingProductId(pid);
+    const prevExcluded = new Set(excludedProductIds);
+    setExcludedProductIds((prev) => {
+      const next = new Set(prev);
+      if (included) next.delete(pid);
+      else next.add(pid);
+      return next;
+    });
+    if (!included) clearLocalPricesForProduct(pid);
+
+    try {
+      const updated = await setGroupProductInclusion(apiBase, groupId, pid, included);
+      setExcludedProductIds(new Set(updated.excludedProductIds || []));
+      toast.success(included ? "Product included in group" : "Product excluded from group");
+    } catch (error) {
+      console.error("Failed to update product inclusion:", error);
+      setExcludedProductIds(prevExcluded);
+      toast.error(error?.response?.data?.message || "Failed to update product inclusion");
+    } finally {
+      setTogglingProductId(null);
+    }
+  };
+
   const savePriceOnBlur = async (productId, variantKey, rawFromInput) => {
+    if (!isProductIncluded(productId)) return;
     const key = rowKey(productId, variantKey);
     const raw = String(rawFromInput ?? "").trim();
     if (raw === "") {
@@ -218,11 +275,14 @@ export default function PricingGroupProducts() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
               <div className="min-w-0 flex-1">
                 <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Pricing Group Products</h1>
-                <p className="mt-1 truncate text-sm text-gray-600" title={groupId}>
-                  Group <span className="font-mono text-xs text-gray-500">{groupId}</span>
-                </p>
+                {groupName ? (
+                  <p className="mt-1 text-sm font-medium text-gray-700">Group: {groupName}</p>
+                ) : loadingGroup ? (
+                  <p className="mt-1 text-sm text-gray-400">Loading group…</p>
+                ) : null}
                 <p className="mt-2 text-xs text-gray-500">
-                  Blur field to save. Clear price and blur to remove override.
+                  Uncheck a product to exclude it from this group. Blur the price field to save;
+                  clear price and blur to remove override.
                 </p>
               </div>
               <div className="flex shrink-0 flex-wrap items-center gap-2 sm:pt-1">
@@ -303,6 +363,9 @@ export default function PricingGroupProducts() {
                 <table className="min-w-[800px] w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
+                      <th className="w-12 px-3 py-3 text-center text-xs font-semibold uppercase tracking-wide text-gray-500">
+                        Include
+                      </th>
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
                         Product
                       </th>
@@ -326,18 +389,23 @@ export default function PricingGroupProducts() {
                   <tbody className="divide-y divide-gray-100 bg-white">
                     {loadingProducts ? (
                       <tr>
-                        <td colSpan={6} className="px-4 py-6 text-center text-sm text-gray-500">
+                        <td colSpan={7} className="px-4 py-6 text-center text-sm text-gray-500">
                           Loading products...
                         </td>
                       </tr>
                     ) : filteredRows.length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="px-4 py-6 text-center text-sm text-gray-500">
+                        <td colSpan={7} className="px-4 py-6 text-center text-sm text-gray-500">
                           No rows found for selected filters.
                         </td>
                       </tr>
                     ) : (
-                      filteredRows.map((row) => {
+                      (() => {
+                        let lastProductId = null;
+                        return filteredRows.map((row) => {
+                        const isFirstOfProduct = row.productId !== lastProductId;
+                        lastProductId = row.productId;
+                        const included = isProductIncluded(row.productId);
                         const saved = getSavedCustomGroupPrice(row.productId, row.variantKey);
                         const rk = rowKey(row.productId, row.variantKey);
                         const hasDraft = Object.prototype.hasOwnProperty.call(priceDraftByKey, rk);
@@ -351,7 +419,31 @@ export default function PricingGroupProducts() {
                             ? String(Number(row.basePrice).toFixed(2))
                             : "e.g. 99.99";
                         return (
-                        <tr key={row.rowKey} className="hover:bg-gray-50">
+                        <tr
+                          key={row.rowKey}
+                          className={
+                            included ? "hover:bg-gray-50" : "bg-gray-50/80 opacity-70 hover:bg-gray-100"
+                          }
+                        >
+                          <td className="px-3 py-3 text-center align-top">
+                            {isFirstOfProduct ? (
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                                checked={included}
+                                disabled={togglingProductId === String(row.productId)}
+                                onChange={(e) =>
+                                  toggleProductInclusion(row.productId, e.target.checked)
+                                }
+                                aria-label={`Include ${row.productName} in ${groupName || "pricing group"}`}
+                                title={
+                                  included
+                                    ? "Uncheck to exclude this product from the group"
+                                    : "Check to include this product in the group"
+                                }
+                              />
+                            ) : null}
+                          </td>
                           <td className="px-4 py-3">
                             <p className="text-sm font-medium text-gray-900">{row.productName}</p>
                             <p className="text-xs text-gray-500">SKU: {row.sku}</p>
@@ -372,7 +464,8 @@ export default function PricingGroupProducts() {
                               inputMode="decimal"
                               autoComplete="off"
                               value={inputValue}
-                              placeholder={ph}
+                              placeholder={included ? ph : "Excluded"}
+                              disabled={!included}
                               onChange={(e) => onPriceDraftChange(row.productId, row.variantKey, e.target.value)}
                               onBlur={(e) => savePriceOnBlur(row.productId, row.variantKey, e.target.value)}
                               onKeyDown={(e) => {
@@ -381,13 +474,18 @@ export default function PricingGroupProducts() {
                                   e.currentTarget.blur();
                                 }
                               }}
-                              className="inline-block min-w-[8.5rem] max-w-[10rem] rounded-md border-2 border-gray-400 bg-white px-2 py-2 text-right text-sm font-medium tabular-nums text-gray-900 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
-                              title="Type a price and click outside (or press Enter) to save for this pricing group"
+                              className="inline-block min-w-[8.5rem] max-w-[10rem] rounded-md border-2 border-gray-400 bg-white px-2 py-2 text-right text-sm font-medium tabular-nums text-gray-900 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400"
+                              title={
+                                included
+                                  ? "Type a price and click outside (or press Enter) to save for this pricing group"
+                                  : "Check Include to enable group pricing for this product"
+                              }
                             />
                           </td>
                         </tr>
                         );
-                      })
+                      });
+                      })()
                     )}
                   </tbody>
                 </table>

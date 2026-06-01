@@ -407,12 +407,12 @@ export default function CreateFooterPage() {
             {/* Header */}
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-gray-800">
-                {isEditing ? "Edit Footer Page" : "Create New Footer Page"}
+                {isEditing ? "Edit Footer Page" : "Create New Page"}
               </h1>
               <p className="text-gray-600 mt-2">
                 {isEditing
-                  ? "Update your footer page content"
-                  : "Create a new footer page (Terms & Conditions, Privacy Policy, etc.)"}
+                  ? "Update your page content"
+                  : "Create a new page (Terms & Conditions, Privacy Policy, etc.)"}
               </p>
               <p className="text-sm text-gray-500 mt-2">
                 Optional parent page uses a path like /parent-slug/page-slug; leave

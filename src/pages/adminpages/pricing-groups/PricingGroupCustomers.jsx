@@ -10,6 +10,7 @@ import {
   fetchPricingGroupUsers,
   removeUserFromPricingGroup,
 } from "./api/customerApi";
+import { usePricingGroup } from "./usePricingGroup";
 
 export default function PricingGroupCustomers() {
   const { groupId } = useParams();
@@ -20,6 +21,9 @@ export default function PricingGroupCustomers() {
   const [groupUsers, setGroupUsers] = useState([]);
   const [users, setUsers] = useState([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
+
+  const apiBase = auth?.ip || import.meta.env.VITE_BACKEND_URL || "";
+  const { groupName, loading: loadingGroup } = usePricingGroup(apiBase, groupId);
 
   const toggleSidebar = () => setIsSidebarOpen((prev) => !prev);
   const closeSidebar = () => setIsSidebarOpen(false);
@@ -125,7 +129,11 @@ export default function PricingGroupCustomers() {
                 <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
                   Pricing Group Customers
                 </h1>
-                <p className="mt-1 text-sm text-gray-600">Group: {groupId}</p>
+                {groupName ? (
+                  <p className="mt-1 text-sm font-medium text-gray-700">{groupName}</p>
+                ) : loadingGroup ? (
+                  <p className="mt-1 text-sm text-gray-400">Loading group…</p>
+                ) : null}
               </div>
               <Link
                 to={`/admin/pricing-groups/${groupId}`}
