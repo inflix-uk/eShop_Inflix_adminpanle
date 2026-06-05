@@ -13,6 +13,10 @@ const UserTable = ({ users, isLoading = false }) => {
         navigate(`/admin/users/edit/${userId}`);
     };
 
+    const handleViewCrm = (userId) => {
+        navigate(`/admin/crm/customers/${userId}`);
+    };
+
     if (isLoading) {
         return (
             <div className="flex items-center justify-center py-12">
@@ -84,26 +88,37 @@ const UserTable = ({ users, isLoading = false }) => {
                                     })}
                                 </td>
                                 <td className="px-6 py-4 max-w-60">
-                                    <button
-                                        onClick={() => handleEditUser(user._id)}
-                                        className="text-primary hover:text-blue-900"
-                                        title="Edit User"
-                                    >
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            strokeWidth="1.5"
-                                            stroke="currentColor"
-                                            className="w-6 h-6"
+                                    <div className="flex items-center gap-2">
+                                        {user.role !== 'admin' && (
+                                            <button
+                                                onClick={() => handleViewCrm(user._id)}
+                                                className="rounded border border-primary px-2 py-1 text-xs font-semibold text-primary hover:bg-primary hover:text-white"
+                                                title="View CRM"
+                                            >
+                                                CRM
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={() => handleEditUser(user._id)}
+                                            className="text-primary hover:text-blue-900"
+                                            title="Edit User"
                                         >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"
-                                            />
-                                        </svg>
-                                    </button>
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                fill="none"
+                                                viewBox="0 0 24 24"
+                                                strokeWidth="1.5"
+                                                stroke="currentColor"
+                                                className="w-6 h-6"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"
+                                                />
+                                            </svg>
+                                        </button>
+                                    </div>
                                 </td>
                             </tr>
                         ))

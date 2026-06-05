@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
 import { getStorefrontProductUrl } from './utils';
+import { isProductMissingBrand } from '../../constants/brandConstants';
 
 function getThumbUrl(image, ip) {
   if (!image) return "";
@@ -53,6 +54,11 @@ const ProductRow = ({
             >
               {product.name}
             </a>
+            {isProductMissingBrand(product) && (
+              <span className="mt-1 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+                No brand
+              </span>
+            )}
           </div>
         </div>
       </td>

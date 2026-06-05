@@ -1,11 +1,16 @@
 import { useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { useAuth } from "../../../../../context/Auth";
+import {
+  UNASSIGNED_BRAND_KEY,
+  UNASSIGNED_BRAND_LABEL,
+} from '../../constants/brandConstants';
+
 const BrandsView = ({
   brands = [],
   brandsLoading = false,
+  unassignedProductCount = 0,
   onBrandSelect,
-
 }) => {
   const auth = useAuth();
     // Brand search and filter
@@ -35,6 +40,10 @@ const BrandsView = ({
             <h3 className="text-lg font-semibold text-gray-700 mb-3">
               Select a brand to explore and manage its products
             </h3>
+            <p className="text-sm text-gray-500 mb-3">
+              Products saved without a brand appear under{' '}
+              <span className="font-semibold text-amber-700">{UNASSIGNED_BRAND_LABEL}</span>.
+            </p>
 
             {/* Search */}
             <div className="relative flex-1 max-w-2xl">
@@ -130,8 +139,43 @@ const BrandsView = ({
           )}
         </div>
       ) : (
-        // Brands Grid
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {(unassignedProductCount > 0 ||
+            (searchTerm && UNASSIGNED_BRAND_LABEL.toLowerCase().includes(searchTerm.toLowerCase()))) && (
+            <div
+              onClick={() => onBrandSelect(UNASSIGNED_BRAND_KEY)}
+              className="group bg-white rounded-2xl shadow-sm overflow-hidden cursor-pointer transform transition-all duration-300 hover:shadow-lg hover:scale-[1.02] border-2 border-amber-200 hover:border-amber-300 relative"
+            >
+              <div className="absolute top-3 right-3 bg-amber-100 text-amber-800 text-xs font-semibold px-2.5 py-1 rounded-full z-10">
+                Needs brand
+              </div>
+              <div className="relative h-48 bg-gradient-to-br from-amber-50 to-orange-50 flex items-center justify-center">
+                <div className="text-center px-6">
+                  <div className="w-16 h-16 mx-auto mb-3 bg-amber-100 rounded-2xl flex items-center justify-center">
+                    <svg className="w-8 h-8 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                    </svg>
+                  </div>
+                  <p className="text-sm font-medium text-amber-700">Missing brand assignment</p>
+                </div>
+                <div className="absolute bottom-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-md">
+                  <span className="text-sm font-semibold text-gray-800">
+                    {unassignedProductCount}{' '}
+                    {unassignedProductCount === 1 ? 'product' : 'products'}
+                  </span>
+                </div>
+              </div>
+              <div className="p-6">
+                <h3 className="text-xl font-bold text-gray-900 group-hover:text-amber-700 transition-colors duration-300 mb-2">
+                  {UNASSIGNED_BRAND_LABEL}
+                </h3>
+                <p className="text-gray-600 text-sm">
+                  Open these products and assign a brand from Product Central.
+                </p>
+              </div>
+            </div>
+          )}
+
           {filteredAndSortedBrands.map((brand) => (
             <div
               key={brand._id}
@@ -302,15 +346,25 @@ BrandsView.propTypes = {
   brandsLoading: PropTypes.bool.isRequired,
   
   /**
+   * Number of products with no brand assigned
+   */
+  unassignedProductCount: PropTypes.number,
+
+  /**
    * Callback function called when a brand is selected
-   * @param {string} brandName - The name of the selected brand
+   * @param {string} brandName - The name of the selected brand, or UNASSIGNED_BRAND_KEY
    */
   onBrandSelect: PropTypes.func.isRequired,
-  
+
   /**
    * Authentication object containing user info and API base URL
    */
-  auth: AuthPropTypes.isRequired
+  auth: AuthPropTypes
+};
+
+BrandsView.defaultProps = {
+  unassignedProductCount: 0,
+  auth: undefined,
 };
 
 export default BrandsView;

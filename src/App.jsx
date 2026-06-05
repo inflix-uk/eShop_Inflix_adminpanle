@@ -26,6 +26,10 @@ const PricingGroupCustomers = lazy(() =>
   import("./pages/adminpages/pricing-groups/PricingGroupCustomers")
 );
 const EditUser = lazy(() => import("./pages/adminpages/users/EditUser"));
+const CustomersList = lazy(() =>
+  import("./pages/adminpages/crm/CustomersList")
+);
+const Customer360 = lazy(() => import("./pages/adminpages/crm/Customer360"));
 const ProductCentral = lazy(() =>
   import("./pages/adminpages/ProductCentral/ProductCentral")
 );
@@ -539,6 +543,34 @@ function App() {
                     <Suspense fallback={<div>Loading...</div>}>
                       <PermissionRoute permission="zextons.view_users">
                         <EditUser />
+                      </PermissionRoute>
+                    </Suspense>
+                  </ErrorBoundary>
+                </>
+              }
+            />
+            <Route
+              path="/admin/crm/customers"
+              element={
+                <>
+                  <ErrorBoundary fallback={<div>Error</div>}>
+                    <Suspense fallback={<div>Loading...</div>}>
+                      <PermissionRoute permission="zextons.view_users">
+                        <CustomersList />
+                      </PermissionRoute>
+                    </Suspense>
+                  </ErrorBoundary>
+                </>
+              }
+            />
+            <Route
+              path="/admin/crm/customers/:userId"
+              element={
+                <>
+                  <ErrorBoundary fallback={<div>Error</div>}>
+                    <Suspense fallback={<div>Loading...</div>}>
+                      <PermissionRoute permission="zextons.view_users">
+                        <Customer360 />
                       </PermissionRoute>
                     </Suspense>
                   </ErrorBoundary>

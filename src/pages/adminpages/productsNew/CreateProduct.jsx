@@ -442,6 +442,11 @@ export default function NewProduct() {
       return;
     }
 
+    if (!isDraft && !productBrand?.trim()) {
+      toast.error("Please select a brand before publishing. You can save as draft without a brand.");
+      return;
+    }
+
     setProgress(50);
 
     try {

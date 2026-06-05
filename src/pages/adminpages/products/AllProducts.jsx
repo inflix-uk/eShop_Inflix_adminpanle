@@ -14,6 +14,7 @@ import {
   getStorefrontProductUrl,
   resolveGoogleProductCategoryForExport,
 } from "../productsNew/Components/allProducts/utils";
+import { isProductMissingBrand } from "../productsNew/constants/brandConstants";
 
 const PLACEHOLDER_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Ccircle cx='8.5' cy='8.5' r='1.5'%3E%3C/circle%3E%3Cpolyline points='21 15 16 10 5 21'%3E%3C/polyline%3E%3C/svg%3E";
 
@@ -763,7 +764,11 @@ export default function AllProducts() {
                                       </div>
                                       <div>
                                         <p className="text-base line-clamp-2">{product.name}</p>
-                                        {/* <p className="text-base line-clamp-1">{product.producturl}</p> */}
+                                        {isProductMissingBrand(product) && (
+                                          <span className="mt-1 inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+                                            No brand
+                                          </span>
+                                        )}
                                       </div>
                                     </div>
                                   </td>
