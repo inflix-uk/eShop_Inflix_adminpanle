@@ -739,6 +739,12 @@ export default function AllProducts() {
                               >
                                 Condition
                               </th>
+                              <th
+                                scope="col"
+                                className="px-6 py-5 max-w-60 font-semibold"
+                              >
+                                Actions
+                              </th>
                             </tr>
                           </thead>
                           <tbody className="text-left bg-white">
@@ -886,7 +892,15 @@ export default function AllProducts() {
                                   
                                   </td>
                                   <td className="whitespace-nowrap px-6 py-3 max-w-60 text-sm text-gray-500">
-                                    {product.condition}
+                                    {product.condition || '—'}
+                                  </td>
+                                  <td className="whitespace-nowrap px-6 py-3 max-w-60 text-sm">
+                                    <Link
+                                      to={`/admin/edit-product/${product._id}`}
+                                      className="font-semibold text-primary hover:underline"
+                                    >
+                                      Edit
+                                    </Link>
                                   </td>
                                 </tr>
                               )
