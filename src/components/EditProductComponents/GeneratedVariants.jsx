@@ -1,7 +1,34 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import EditVariantCard from "./EditVariantCard";
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
+const SORT_FIELDS = [
+  { value: "name", label: "Name" },
+  { value: "price", label: "Price" },
+  { value: "salePrice", label: "Sale Price" },
+  { value: "quantity", label: "Quantity" },
+];
+
+function SortHeaderButton({ label, field, sortField, sortDir, onSort }) {
+  const active = sortField === field;
+  return (
+    <button
+      type="button"
+      onClick={() => onSort(field)}
+      className={`inline-flex items-center gap-1 hover:text-primary ${
+        active ? "text-primary" : ""
+      }`}
+    >
+      {label}
+      {active ? (
+        <span className="text-[10px] font-normal">{sortDir === "asc" ? "↑" : "↓"}</span>
+      ) : (
+        <span className="text-[10px] font-normal text-gray-400">↕</span>
+      )}
+    </button>
+  );
+}
 
 export default function GeneratedVariants({
   product,
@@ -17,6 +44,73 @@ export default function GeneratedVariants({
     salePrice: "",
     Quantity: "",
   });
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortField, setSortField] = useState("name");
+  const [sortDir, setSortDir] = useState("asc");
+  const [stockFilter, setStockFilter] = useState("all");
+
+  const displayRows = useMemo(() => {
+    let rows = (product?.variantValues || []).map((variant, index) => ({
+      variant,
+      index,
+    }));
+
+    const query = searchQuery.trim().toLowerCase();
+    if (query) {
+      rows = rows.filter((row) =>
+        String(row.variant?.name || "").toLowerCase().includes(query)
+      );
+    }
+
+    if (stockFilter === "in_stock") {
+      rows = rows.filter((row) => Number(row.variant?.Quantity) > 0);
+    } else if (stockFilter === "out_of_stock") {
+      rows = rows.filter(
+        (row) => !row.variant?.Quantity || Number(row.variant?.Quantity) === 0
+      );
+    } else if (stockFilter === "low_stock") {
+      rows = rows.filter((row) => {
+        const qty = Number(row.variant?.Quantity);
+        return qty > 0 && qty <= 5;
+      });
+    }
+
+    rows.sort((a, b) => {
+      let av;
+      let bv;
+      switch (sortField) {
+        case "price":
+          av = parseFloat(a.variant?.Price) || 0;
+          bv = parseFloat(b.variant?.Price) || 0;
+          break;
+        case "salePrice":
+          av = parseFloat(a.variant?.salePrice) || 0;
+          bv = parseFloat(b.variant?.salePrice) || 0;
+          break;
+        case "quantity":
+          av = parseFloat(a.variant?.Quantity) || 0;
+          bv = parseFloat(b.variant?.Quantity) || 0;
+          break;
+        default:
+          av = String(a.variant?.name || "").toLowerCase();
+          bv = String(b.variant?.name || "").toLowerCase();
+      }
+      if (av < bv) return sortDir === "asc" ? -1 : 1;
+      if (av > bv) return sortDir === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return rows;
+  }, [product?.variantValues, searchQuery, sortField, sortDir, stockFilter]);
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDir((prev) => (prev === "asc" ? "desc" : "asc"));
+    } else {
+      setSortField(field);
+      setSortDir(field === "name" ? "asc" : "desc");
+    }
+  };
 
   const handleSelectVariant = (index) => {
     setSelectedVariants((prev) =>
@@ -27,12 +121,16 @@ export default function GeneratedVariants({
   };
 
   const handleSelectAll = () => {
-    if (selectedVariants.length === product?.variantValues?.length) {
-      setSelectedVariants([]);
-    } else {
-      setSelectedVariants(
-        product?.variantValues?.map((_, index) => index) || []
+    const visibleIndices = displayRows.map((row) => row.index);
+    const allVisibleSelected =
+      visibleIndices.length > 0 &&
+      visibleIndices.every((i) => selectedVariants.includes(i));
+    if (allVisibleSelected) {
+      setSelectedVariants((prev) =>
+        prev.filter((i) => !visibleIndices.includes(i))
       );
+    } else {
+      setSelectedVariants((prev) => [...new Set([...prev, ...visibleIndices])]);
     }
   };
 
@@ -162,7 +260,8 @@ export default function GeneratedVariants({
                 </span>
               )}
             </div>
-            {selectedVariants.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2">
+              {selectedVariants.length > 0 && (
               <button
                 type="button"
                 className="inline-flex items-center gap-x-2 rounded-md bg-primary px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary/90"
@@ -183,8 +282,64 @@ export default function GeneratedVariants({
                 </svg>
                 Bulk Edit ({selectedVariants.length})
               </button>
-            )}
+              )}
+            </div>
           </div>
+
+          <div className="flex flex-col gap-2 rounded-lg border border-gray-200 bg-gray-50 p-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search variants..."
+              className="w-full min-w-[180px] flex-1 rounded-md border border-gray-300 px-3 py-1.5 text-sm sm:max-w-xs"
+            />
+            <select
+              value={stockFilter}
+              onChange={(e) => setStockFilter(e.target.value)}
+              className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm"
+            >
+              <option value="all">All stock</option>
+              <option value="in_stock">In stock</option>
+              <option value="out_of_stock">Out of stock</option>
+              <option value="low_stock">Low stock (1–5)</option>
+            </select>
+            <select
+              value={sortField}
+              onChange={(e) => setSortField(e.target.value)}
+              className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm"
+            >
+              {SORT_FIELDS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  Sort: {opt.label}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => setSortDir((prev) => (prev === "asc" ? "desc" : "asc"))}
+              className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium hover:bg-gray-100"
+              title="Toggle sort direction"
+            >
+              {sortDir === "asc" ? "Ascending ↑" : "Descending ↓"}
+            </button>
+            {(searchQuery || stockFilter !== "all") && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery("");
+                  setStockFilter("all");
+                }}
+                className="text-sm text-gray-600 hover:text-gray-900"
+              >
+                Clear filters
+              </button>
+            )}
+            <span className="text-xs text-gray-500 sm:ml-auto">
+              Showing {displayRows.length} of {product?.variantValues?.length || 0}
+            </span>
+          </div>
+
           <div className="px-1 sm:px-6 ">
             {/* Mobile Card View - visible on small screens */}
             <div className="block md:hidden mt-8 overflow-hidden">
@@ -219,14 +374,17 @@ export default function GeneratedVariants({
                   type="checkbox"
                   className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
                   checked={
-                    product?.variantValues?.length > 0 &&
-                    selectedVariants.length === product?.variantValues?.length
+                    displayRows.length > 0 &&
+                    displayRows.every((row) => selectedVariants.includes(row.index))
                   }
                   onChange={handleSelectAll}
                 />
-                <span className="text-sm font-medium text-gray-700">Select All</span>
+                <span className="text-sm font-medium text-gray-700">Select All (visible)</span>
               </div>
-              {product?.variantValues?.map((variant, index) => (
+              {displayRows.length === 0 ? (
+                <p className="py-6 text-center text-sm text-gray-500">No variants match your filters.</p>
+              ) : null}
+              {displayRows.map(({ variant, index }) => (
                 <div key={variant?.name || variant?._tempId || variant?._id || `variant-${index}`} className={`relative ${selectedVariants.includes(index) ? "ring-2 ring-primary rounded-lg" : ""}`}>
                   <div className="absolute top-2 left-2 z-10">
                     <input
@@ -263,8 +421,10 @@ export default function GeneratedVariants({
                             type="checkbox"
                             className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
                             checked={
-                              product?.variantValues?.length > 0 &&
-                              selectedVariants.length === product?.variantValues?.length
+                              displayRows.length > 0 &&
+                              displayRows.every((row) =>
+                                selectedVariants.includes(row.index)
+                              )
                             }
                             onChange={handleSelectAll}
                           />
@@ -273,7 +433,13 @@ export default function GeneratedVariants({
                           scope="col"
                           className="sticky top-0 z-10 border-b border-gray-300 bg-white bg-opacity-75   text-left text-sm font-semibold text-gray-900 backdrop-blur backdrop-filter  "
                         >
-                          Name
+                          <SortHeaderButton
+                            label="Name"
+                            field="name"
+                            sortField={sortField}
+                            sortDir={sortDir}
+                            onSort={handleSort}
+                          />
                         </th>
 
                         <th
@@ -286,19 +452,37 @@ export default function GeneratedVariants({
                           scope="col"
                           className="sticky top-0 z-10 border-b border-gray-300 bg-white bg-opacity-75   text-left text-sm font-semibold text-gray-900 backdrop-blur backdrop-filter  "
                         >
-                          Price
+                          <SortHeaderButton
+                            label="Price"
+                            field="price"
+                            sortField={sortField}
+                            sortDir={sortDir}
+                            onSort={handleSort}
+                          />
                         </th>
                         <th
                           scope="col"
                           className="sticky top-0 z-10 border-b border-gray-300 bg-white bg-opacity-75   text-left text-sm font-semibold text-gray-900 backdrop-blur backdrop-filter  "
                         >
-                          Sale Price
+                          <SortHeaderButton
+                            label="Sale Price"
+                            field="salePrice"
+                            sortField={sortField}
+                            sortDir={sortDir}
+                            onSort={handleSort}
+                          />
                         </th>
                         <th
                           scope="col"
                           className="sticky top-0 z-10 border-b border-gray-300 bg-white bg-opacity-75   text-left text-sm font-semibold text-gray-900 backdrop-blur backdrop-filter  "
                         >
-                          Quantity
+                          <SortHeaderButton
+                            label="Quantity"
+                            field="quantity"
+                            sortField={sortField}
+                            sortDir={sortDir}
+                            onSort={handleSort}
+                          />
                         </th>
                         <th
                           scope="col"
@@ -327,7 +511,17 @@ export default function GeneratedVariants({
                       </tr>
                     </thead>
                     <tbody>
-                      {product?.variantValues?.map((variant, index) => (
+                      {displayRows.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={11}
+                            className="py-8 text-center text-sm text-gray-500"
+                          >
+                            No variants match your filters.
+                          </td>
+                        </tr>
+                      ) : null}
+                      {displayRows.map(({ variant, index }) => (
                         <React.Fragment key={variant?.name || variant?._tempId || variant?._id || `variant-${index}`}>
                           <tr className={selectedVariants.includes(index) ? "bg-primary/5" : ""}>
                             <td className="whitespace-nowrap py-1 text-sm font-medium text-gray-900 px-2">
