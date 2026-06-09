@@ -148,15 +148,15 @@ export default function ProductVariantImages({
                 </div>
 
                 {/* Images Grid */}
-                <div className="flex flex-wrap gap-2 items-center">
+                <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
                   {getImagesForOption(option.slug)?.length > 0 ? (
                     <>
                       {getImagesForOption(option.slug).map((image, imgIndex) => (
-                        <div key={imgIndex} className="relative group">
+                        <div key={imgIndex} className="relative group aspect-square">
                           <img
                             src={getImageSrc(image)}
                             alt=""
-                            className="h-16 w-16 object-cover rounded-md border border-gray-200 shadow-sm"
+                            className="h-full w-full object-cover rounded-md border border-gray-200 shadow-sm"
                           />
                           <button
                             type="button"
@@ -172,12 +172,10 @@ export default function ProductVariantImages({
                         </div>
                       ))}
                     </>
-                  ) : (
-                    <span className="text-[10px] text-gray-400">No images uploaded</span>
-                  )}
+                  ) : null}
 
                   {/* Upload Button */}
-                  <label className="h-16 w-16 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors">
+                  <label className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors min-h-[4.5rem]">
                     <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
                     </svg>
