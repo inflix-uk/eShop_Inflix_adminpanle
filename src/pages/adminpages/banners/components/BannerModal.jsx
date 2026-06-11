@@ -6,10 +6,10 @@ import WarrantyList from "./WarrantyList";
 import ColorSelector from "./ColorSelector";
 import FontSizeSelector from "./FontSizeSelector";
 
-const HERO_LARGE_WIDTH = 1440;
-const HERO_LARGE_HEIGHT = 500;
-const HERO_SMALL_WIDTH = 1200;
-const HERO_SMALL_HEIGHT = 900;
+const HERO_LARGE_WIDTH = 1200;
+const HERO_LARGE_HEIGHT = 417;
+const HERO_SMALL_WIDTH = 1080;
+const HERO_SMALL_HEIGHT = 1920;
 const HERO_EXTRA_WIDTH = 600;
 const HERO_EXTRA_HEIGHT = 600;
 
@@ -414,7 +414,7 @@ const BannerModal = ({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <ImageUploader
                       label={`Large Image (Desktop ${HERO_LARGE_WIDTH}×${HERO_LARGE_HEIGHT})`}
-                      helperText="Storefront desktop hero uses this exact size. Upload JPG/PNG/WEBP at 1440×500 for best fit."
+                      helperText="Storefront desktop hero uses this exact size. Upload JPG/PNG/WEBP at 1200×417 for best fit."
                       value={formData.imageLargePreview || formData.imageLarge}
                       onChange={(file) => handleImageChange("imageLarge", file)}
                       error={errors.imageLarge}
@@ -426,7 +426,7 @@ const BannerModal = ({
                     />
                     <ImageUploader
                       label={`Small Image (Mobile ${HERO_SMALL_WIDTH}×${HERO_SMALL_HEIGHT})`}
-                      helperText="Storefront mobile hero uses this exact size. Upload JPG/PNG/WEBP at 1200×900."
+                      helperText={`Storefront mobile hero uses this exact size. Upload JPG/PNG/WEBP at ${HERO_SMALL_WIDTH}×${HERO_SMALL_HEIGHT} (9:16 portrait).`}
                       value={formData.imageSmallPreview || formData.imageSmall}
                       onChange={(file) => handleImageChange("imageSmall", file)}
                       error={errors.imageSmall}

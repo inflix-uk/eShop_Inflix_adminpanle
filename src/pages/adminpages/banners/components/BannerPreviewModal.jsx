@@ -244,8 +244,8 @@ const BannerPreviewModal = ({ isOpen, onClose, banners }) => {
                     src={getImageUrl(banner.imageLarge || banner.imageSmall)}
                     alt={banner.altText || "Banner"}
                     className="w-full h-auto object-cover min-h-[420px] sm:min-h-[300px] md:min-h-[400px]"
-                    width={1440}
-                    height={500}
+                    width={1200}
+                    height={417}
                     onError={(e) => {
                       e.target.src = '/placeholder.svg';
                     }}
