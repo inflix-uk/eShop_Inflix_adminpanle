@@ -30,6 +30,14 @@ async function verifyImageDimensions(file, width, height) {
   });
 }
 
+function isImageFile(file) {
+  if (!file) return false;
+  if (file.type && file.type.startsWith('image/')) return true;
+  if (file.type === 'application/octet-stream') return true;
+  const ext = (file.name.slice(file.name.lastIndexOf('.')) || '').toLowerCase();
+  return ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.avif'].includes(ext);
+}
+
 const ImageUploader = ({
   label,
   helperText = null,
@@ -49,9 +57,8 @@ const ImageUploader = ({
   const handleFileSelect = async (file) => {
     if (!file) return;
 
-    // Validate file type
-    if (!file.type.startsWith('image/') && file.type !== 'application/octet-stream') {
-      alert('Please select an image file');
+    if (!isImageFile(file)) {
+      alert('Please select an image file (JPG, PNG, WEBP, GIF)');
       return;
     }
 
@@ -79,14 +86,20 @@ const ImageUploader = ({
       }
     }
 
-    onChange(file);
+    try {
+      await onChange(file);
+    } catch (err) {
+      console.error('Image upload handler failed:', err);
+      alert('Could not process this image. Please try another file.');
+    }
   };
 
   const handleFileInputChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
-      handleFileSelect(file);
+      void handleFileSelect(file);
     }
+    e.target.value = '';
   };
 
   const handleDrag = (e) => {
@@ -133,14 +146,30 @@ const ImageUploader = ({
               className="max-h-28 w-auto object-contain"
             />
           </div>
-          <button
-            type="button"
-            onClick={handleRemove}
-            className="absolute top-2 right-2 bg-white rounded-full p-1 shadow-md hover:bg-gray-100 transition-colors"
-            aria-label="Remove image"
-          >
-            <FiX size={16} className="text-gray-700" />
-          </button>
+          <div className="absolute top-2 right-2 flex gap-1">
+            <button
+              type="button"
+              onClick={handleClick}
+              className="rounded-md bg-white px-2 py-1 text-xs font-medium text-gray-700 shadow-md hover:bg-gray-100 transition-colors"
+            >
+              Change
+            </button>
+            <button
+              type="button"
+              onClick={handleRemove}
+              className="bg-white rounded-full p-1 shadow-md hover:bg-gray-100 transition-colors"
+              aria-label="Remove image"
+            >
+              <FiX size={16} className="text-gray-700" />
+            </button>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={accept}
+            onChange={handleFileInputChange}
+            className="hidden"
+          />
         </div>
       ) : (
         <div

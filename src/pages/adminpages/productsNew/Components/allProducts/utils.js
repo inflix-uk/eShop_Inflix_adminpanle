@@ -125,6 +125,35 @@ export function getStorefrontProductUrl(productSlug) {
   return finalUrl;
 }
 
+/**
+ * Storefront path for CSV export — uses saved variant.slug (same as live site), not legacy phone parsing.
+ */
+export function buildExportVariantProductSlug(product, variant) {
+  const base = product?.producturl
+    ? String(product.producturl).replace(/^\/+|\/+$/g, "")
+    : "";
+
+  if (product?.productType?.type === "single") {
+    return base;
+  }
+
+  let variantSlug = "";
+  if (variant?.slug) {
+    variantSlug = String(variant.slug).replace(/^\/+|\/+$/g, "");
+  } else if (variant?.name) {
+    variantSlug = String(variant.name)
+      .toLowerCase()
+      .replace(/_/g, "-")
+      .replace(/[^a-z0-9-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .replace(/-+/g, "-");
+  }
+
+  if (!base) return variantSlug;
+  if (!variantSlug) return base;
+  return `${base}-${variantSlug}`;
+}
+
 /** Storefront product URL with ?mobile=true for Google Merchant mobile_link. */
 export function getStorefrontMobileProductUrl(productSlug) {
   return `${getStorefrontProductUrl(productSlug)}?mobile=true`;
@@ -192,21 +221,7 @@ export const transformProductsForExport = (
 
         const productNameSlug = product.producturl;
 
-        // Use SEO-friendly slug field if available, otherwise convert variant name
-        let variantSlug;
-        if (variant.slug) {
-          variantSlug = variant.slug;
-        } else {
-          // Fallback: convert variant name to SEO slug (replace underscores with hyphens)
-          variantSlug = (variant.name || '')
-            .toLowerCase()
-            .replace(/_/g, '-')
-            .replace(/[^a-z0-9-]+/g, '-')
-            .replace(/^-+|-+$/g, '')
-            .replace(/-+/g, '-');
-        }
-
-        const fullProductNameSlug = `${productNameSlug}-${variantSlug}`;
+        const fullProductNameSlug = buildExportVariantProductSlug(product, variant);
 
         // Extract color and storage for title (dynamic parsing)
         const variantName = variant.name || '';

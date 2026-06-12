@@ -30,6 +30,10 @@ function createEmptyForm(order = 1) {
     videoMobileLayout: "hero",
     videoMobileWidthPx: "",
     videoMobileHeightPx: "",
+    imageLargeWidthPx: 1200,
+    imageLargeHeightPx: 417,
+    imageSmallWidthPx: 1080,
+    imageSmallHeightPx: 1920,
     imageLarge: null,
     imageLargePreview: null,
     imageSmall: null,
@@ -84,6 +88,10 @@ function mapBannerToForm(banner) {
     videoMobileLayout: banner.videoMobileLayout || "hero",
     videoMobileWidthPx: banner.videoMobileWidthPx ?? "",
     videoMobileHeightPx: banner.videoMobileHeightPx ?? "",
+    imageLargeWidthPx: banner.imageLargeWidthPx ?? 1200,
+    imageLargeHeightPx: banner.imageLargeHeightPx ?? 417,
+    imageSmallWidthPx: banner.imageSmallWidthPx ?? 1080,
+    imageSmallHeightPx: banner.imageSmallHeightPx ?? 1920,
     imageLarge: null,
     imageLargePreview: banner.imageLarge || null,
     imageSmall: null,
@@ -204,6 +212,10 @@ export default function BannerEditorPage() {
           formData.videoMobileHeightPx === undefined
             ? undefined
             : Math.round(Number(formData.videoMobileHeightPx)),
+        imageLargeWidthPx: Math.round(Number(formData.imageLargeWidthPx) || 1200),
+        imageLargeHeightPx: Math.round(Number(formData.imageLargeHeightPx) || 417),
+        imageSmallWidthPx: Math.round(Number(formData.imageSmallWidthPx) || 1080),
+        imageSmallHeightPx: Math.round(Number(formData.imageSmallHeightPx) || 1920),
         altText: formData.altText,
         order: parseInt(formData.order, 10) || 1,
         isActive: formData.isActive,
@@ -218,8 +230,21 @@ export default function BannerEditorPage() {
       } else {
         bannerData.content = formData.content;
       }
-      if (formData.imageLarge instanceof File) bannerData.imageLarge = formData.imageLarge;
-      if (formData.imageSmall instanceof File) bannerData.imageSmall = formData.imageSmall;
+      const isPersistedImageUrl = (value) =>
+        typeof value === "string" &&
+        value.trim() !== "" &&
+        !value.startsWith("blob:");
+
+      if (formData.imageLarge instanceof File) {
+        bannerData.imageLarge = formData.imageLarge;
+      } else if (isPersistedImageUrl(formData.imageLargePreview)) {
+        bannerData.imageLarge = formData.imageLargePreview;
+      }
+      if (formData.imageSmall instanceof File) {
+        bannerData.imageSmall = formData.imageSmall;
+      } else if (isPersistedImageUrl(formData.imageSmallPreview)) {
+        bannerData.imageSmall = formData.imageSmallPreview;
+      }
       if (formData.type === "full" && formData.extraImage instanceof File) {
         bannerData.extraImage = formData.extraImage;
       }

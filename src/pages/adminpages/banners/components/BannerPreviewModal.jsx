@@ -222,6 +222,8 @@ const BannerPreviewModal = ({ isOpen, onClose, banners }) => {
           {activeBanners.map((banner, index) => {
             const textAlign = resolveBannerTextAlign(banner.content);
             const textPos = resolveTextPosition(banner.content);
+            const previewWidth = banner.imageLargeWidthPx || 1200;
+            const previewHeight = banner.imageLargeHeightPx || 417;
             return (
             <div
               key={banner._id}
@@ -244,8 +246,8 @@ const BannerPreviewModal = ({ isOpen, onClose, banners }) => {
                     src={getImageUrl(banner.imageLarge || banner.imageSmall)}
                     alt={banner.altText || "Banner"}
                     className="w-full h-auto object-cover min-h-[420px] sm:min-h-[300px] md:min-h-[400px]"
-                    width={1200}
-                    height={417}
+                    width={previewWidth}
+                    height={previewHeight}
                     onError={(e) => {
                       e.target.src = '/placeholder.svg';
                     }}

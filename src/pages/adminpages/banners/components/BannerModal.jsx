@@ -5,19 +5,66 @@ import VideoUploader from "./VideoUploader";
 import WarrantyList from "./WarrantyList";
 import ColorSelector from "./ColorSelector";
 import FontSizeSelector from "./FontSizeSelector";
+import { resolveBackendAssetUrl } from "../../../../utils/backendAssetUrl";
 
-const HERO_LARGE_WIDTH = 1200;
-const HERO_LARGE_HEIGHT = 417;
-const HERO_SMALL_WIDTH = 1080;
-const HERO_SMALL_HEIGHT = 1920;
+const DEFAULT_HERO_LARGE_WIDTH = 1200;
+const DEFAULT_HERO_LARGE_HEIGHT = 417;
+const DEFAULT_HERO_SMALL_WIDTH = 1080;
+const DEFAULT_HERO_SMALL_HEIGHT = 1920;
 const HERO_EXTRA_WIDTH = 600;
 const HERO_EXTRA_HEIGHT = 600;
+
+function parseImagePxInput(raw) {
+  if (raw === "" || raw === undefined || raw === null) return "";
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n <= 0) return "";
+  return Math.min(3840, Math.round(n));
+}
+
+function resolveHeroImageDims(formData, variant) {
+  if (variant === "desktop") {
+    return {
+      width: parseImagePxInput(formData.imageLargeWidthPx) || DEFAULT_HERO_LARGE_WIDTH,
+      height: parseImagePxInput(formData.imageLargeHeightPx) || DEFAULT_HERO_LARGE_HEIGHT,
+    };
+  }
+  return {
+    width: parseImagePxInput(formData.imageSmallWidthPx) || DEFAULT_HERO_SMALL_WIDTH,
+    height: parseImagePxInput(formData.imageSmallHeightPx) || DEFAULT_HERO_SMALL_HEIGHT,
+  };
+}
+
+function formatAspectRatio(width, height) {
+  if (!width || !height) return "—";
+  const gcd = (a, b) => (b === 0 ? a : gcd(b, a % b));
+  const g = gcd(width, height);
+  return `${Math.round(width / g)}:${Math.round(height / g)}`;
+}
+
+function readImageFileDimensions(file) {
+  return new Promise((resolve) => {
+    const url = URL.createObjectURL(file);
+    const img = new window.Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve({
+        width: img.naturalWidth,
+        height: img.naturalHeight,
+      });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve(null);
+    };
+    img.src = url;
+  });
+}
 
 const VIDEO_LAYOUT_OPTIONS = [
   {
     value: "hero",
     label: "Match hero images",
-    hint: `Desktop ${HERO_LARGE_WIDTH}×${HERO_LARGE_HEIGHT}, mobile ${HERO_SMALL_WIDTH}×${HERO_SMALL_HEIGHT}`,
+    hint: "Uses your custom desktop/mobile image sizes below",
   },
   { value: "16:9", label: "16:9 Widescreen", hint: "Standard wide video" },
   { value: "21:9", label: "21:9 Ultrawide", hint: "Cinematic wide" },
@@ -26,15 +73,10 @@ const VIDEO_LAYOUT_OPTIONS = [
   { value: "custom", label: "Custom (px)", hint: "Your width × height in pixels" },
 ];
 
-const API_BASE = (import.meta.env.VITE_BACKEND_URL || "").replace(/\/$/, "");
-
 function resolveMediaPreviewUrl(url) {
   if (!url || typeof url !== "string") return url;
-  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("blob:")) {
-    return url;
-  }
-  const path = url.startsWith("/") ? url : `/${url}`;
-  return API_BASE ? `${API_BASE}${path}` : path;
+  if (url.startsWith("blob:") || url.startsWith("data:")) return url;
+  return resolveBackendAssetUrl(url) || url;
 }
 
 const BannerModal = ({
@@ -170,6 +212,16 @@ const BannerModal = ({
     return Math.round(n);
   };
 
+  const setImageDimensionField = (field, raw) => {
+    setFormData((prev) => ({ ...prev, [field]: parseImagePxInput(raw) }));
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: "" }));
+    }
+  };
+
+  const desktopImageDims = resolveHeroImageDims(formData, "desktop");
+  const mobileImageDims = resolveHeroImageDims(formData, "mobile");
+
   const setVideoLayoutField = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
@@ -207,14 +259,36 @@ const BannerModal = ({
     };
   };
 
-  // Handle image upload
-  const handleImageChange = (field, file) => {
+  // Handle image upload — preview immediately; sync custom size fields from file
+  const handleImageChange = async (field, file) => {
     if (file) {
+      const preview = URL.createObjectURL(file);
       setFormData((prev) => ({
         ...prev,
         [field]: file,
-        [`${field}Preview`]: URL.createObjectURL(file),
+        [`${field}Preview`]: preview,
       }));
+
+      const dims = await readImageFileDimensions(file);
+      if (dims?.width > 0 && dims?.height > 0) {
+        setFormData((prev) => {
+          if (field === "imageLarge") {
+            return {
+              ...prev,
+              imageLargeWidthPx: dims.width,
+              imageLargeHeightPx: dims.height,
+            };
+          }
+          if (field === "imageSmall") {
+            return {
+              ...prev,
+              imageSmallWidthPx: dims.width,
+              imageSmallHeightPx: dims.height,
+            };
+          }
+          return prev;
+        });
+      }
     } else {
       setFormData((prev) => ({
         ...prev,
@@ -260,6 +334,14 @@ const BannerModal = ({
         }
       }
     } else {
+      if (!desktopImageDims.width || !desktopImageDims.height) {
+        newErrors.imageLargeWidthPx =
+          "Desktop image width and height (px) are required";
+      }
+      if (!mobileImageDims.width || !mobileImageDims.height) {
+        newErrors.imageSmallWidthPx =
+          "Mobile image width and height (px) are required";
+      }
       if (!formData.imageLarge && !formData.imageLargePreview) {
         newErrors.imageLarge = "Large image is required";
       }
@@ -411,31 +493,148 @@ const BannerModal = ({
                 </div>
 
                 {mediaTab === "images" ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-4">
+                    <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-4">
+                      <div>
+                        <h4 className="text-sm font-semibold text-gray-800">
+                          Custom image size (pixels)
+                        </h4>
+                        <p className="mt-1 text-xs text-gray-500">
+                          Set width × height manually, or upload an image — sizes
+                          auto-fill from the file. The storefront uses these values
+                          with <span className="font-medium">object-cover</span> (edges
+                          may crop if the hero viewport ratio differs).
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2 rounded-md border border-gray-100 p-3">
+                          <span className="text-xs font-semibold text-gray-700">
+                            Desktop image size
+                          </span>
+                          <div className="grid grid-cols-2 gap-2">
+                            <label className="block text-xs text-gray-600">
+                              Width (px)
+                              <input
+                                type="number"
+                                min={1}
+                                max={3840}
+                                value={formData.imageLargeWidthPx ?? ""}
+                                onChange={(e) =>
+                                  setImageDimensionField(
+                                    "imageLargeWidthPx",
+                                    e.target.value
+                                  )
+                                }
+                                className="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                              />
+                            </label>
+                            <label className="block text-xs text-gray-600">
+                              Height (px)
+                              <input
+                                type="number"
+                                min={1}
+                                max={3840}
+                                value={formData.imageLargeHeightPx ?? ""}
+                                onChange={(e) =>
+                                  setImageDimensionField(
+                                    "imageLargeHeightPx",
+                                    e.target.value
+                                  )
+                                }
+                                className="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                              />
+                            </label>
+                          </div>
+                          <p className="text-xs text-gray-500">
+                            Aspect ratio:{" "}
+                            {formatAspectRatio(
+                              desktopImageDims.width,
+                              desktopImageDims.height
+                            )}{" "}
+                            · Storefront size: {desktopImageDims.width}×
+                            {desktopImageDims.height}px
+                          </p>
+                          {errors.imageLargeWidthPx ? (
+                            <p className="text-xs text-red-600">
+                              {errors.imageLargeWidthPx}
+                            </p>
+                          ) : null}
+                        </div>
+                        <div className="space-y-2 rounded-md border border-gray-100 p-3">
+                          <span className="text-xs font-semibold text-gray-700">
+                            Mobile image size
+                          </span>
+                          <div className="grid grid-cols-2 gap-2">
+                            <label className="block text-xs text-gray-600">
+                              Width (px)
+                              <input
+                                type="number"
+                                min={1}
+                                max={3840}
+                                value={formData.imageSmallWidthPx ?? ""}
+                                onChange={(e) =>
+                                  setImageDimensionField(
+                                    "imageSmallWidthPx",
+                                    e.target.value
+                                  )
+                                }
+                                className="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                              />
+                            </label>
+                            <label className="block text-xs text-gray-600">
+                              Height (px)
+                              <input
+                                type="number"
+                                min={1}
+                                max={3840}
+                                value={formData.imageSmallHeightPx ?? ""}
+                                onChange={(e) =>
+                                  setImageDimensionField(
+                                    "imageSmallHeightPx",
+                                    e.target.value
+                                  )
+                                }
+                                className="mt-1 w-full rounded-md border border-gray-300 px-2 py-1.5 text-sm"
+                              />
+                            </label>
+                          </div>
+                          <p className="text-xs text-gray-500">
+                            Aspect ratio:{" "}
+                            {formatAspectRatio(
+                              mobileImageDims.width,
+                              mobileImageDims.height
+                            )}{" "}
+                            · Storefront size: {mobileImageDims.width}×
+                            {mobileImageDims.height}px
+                          </p>
+                          {errors.imageSmallWidthPx ? (
+                            <p className="text-xs text-red-600">
+                              {errors.imageSmallWidthPx}
+                            </p>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <ImageUploader
-                      label={`Large Image (Desktop ${HERO_LARGE_WIDTH}×${HERO_LARGE_HEIGHT})`}
-                      helperText="Storefront desktop hero uses this exact size. Upload JPG/PNG/WEBP at 1200×417 for best fit."
-                      value={formData.imageLargePreview || formData.imageLarge}
+                      label={`Large Image (Desktop)`}
+                      helperText="Upload JPG/PNG/WEBP — custom size fields update automatically from your file."
+                      value={resolveMediaPreviewUrl(formData.imageLargePreview)}
                       onChange={(file) => handleImageChange("imageLarge", file)}
                       error={errors.imageLarge}
                       required={formData.backgroundMedia !== "video"}
-                      dimensionCheck={{
-                        width: HERO_LARGE_WIDTH,
-                        height: HERO_LARGE_HEIGHT,
-                      }}
+                      maxSizeMB={20}
                     />
                     <ImageUploader
-                      label={`Small Image (Mobile ${HERO_SMALL_WIDTH}×${HERO_SMALL_HEIGHT})`}
-                      helperText={`Storefront mobile hero uses this exact size. Upload JPG/PNG/WEBP at ${HERO_SMALL_WIDTH}×${HERO_SMALL_HEIGHT} (9:16 portrait).`}
-                      value={formData.imageSmallPreview || formData.imageSmall}
+                      label={`Small Image (Mobile)`}
+                      helperText="Upload JPG/PNG/WEBP — custom size fields update automatically from your file."
+                      value={resolveMediaPreviewUrl(formData.imageSmallPreview)}
                       onChange={(file) => handleImageChange("imageSmall", file)}
                       error={errors.imageSmall}
                       required={formData.backgroundMedia !== "video"}
-                      dimensionCheck={{
-                        width: HERO_SMALL_WIDTH,
-                        height: HERO_SMALL_HEIGHT,
-                      }}
+                      maxSizeMB={20}
                     />
+                    </div>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -514,7 +713,7 @@ const BannerModal = ({
                                     )
                                   }
                                   className="mt-0.5 w-full rounded border border-gray-300 px-2 py-1 text-sm"
-                                  placeholder={String(HERO_LARGE_WIDTH)}
+                                  placeholder={String(desktopImageDims.width)}
                                 />
                               </div>
                               <div>
@@ -530,7 +729,7 @@ const BannerModal = ({
                                     )
                                   }
                                   className="mt-0.5 w-full rounded border border-gray-300 px-2 py-1 text-sm"
-                                  placeholder={String(HERO_LARGE_HEIGHT)}
+                                  placeholder={String(desktopImageDims.height)}
                                 />
                               </div>
                             </div>
@@ -544,8 +743,8 @@ const BannerModal = ({
                               "videoDesktopLayout",
                               "videoDesktopWidthPx",
                               "videoDesktopHeightPx",
-                              HERO_LARGE_WIDTH,
-                              HERO_LARGE_HEIGHT
+                              desktopImageDims.width,
+                              desktopImageDims.height
                             )}
                             aria-hidden
                           />
@@ -587,7 +786,7 @@ const BannerModal = ({
                                     )
                                   }
                                   className="mt-0.5 w-full rounded border border-gray-300 px-2 py-1 text-sm"
-                                  placeholder={String(HERO_SMALL_WIDTH)}
+                                  placeholder={String(mobileImageDims.width)}
                                 />
                               </div>
                               <div>
@@ -603,7 +802,7 @@ const BannerModal = ({
                                     )
                                   }
                                   className="mt-0.5 w-full rounded border border-gray-300 px-2 py-1 text-sm"
-                                  placeholder={String(HERO_SMALL_HEIGHT)}
+                                  placeholder={String(mobileImageDims.height)}
                                 />
                               </div>
                             </div>
@@ -617,8 +816,8 @@ const BannerModal = ({
                               "videoMobileLayout",
                               "videoMobileWidthPx",
                               "videoMobileHeightPx",
-                              HERO_SMALL_WIDTH,
-                              HERO_SMALL_HEIGHT
+                              mobileImageDims.width,
+                              mobileImageDims.height
                             )}
                             aria-hidden
                           />
