@@ -28,6 +28,7 @@ export const ROUTE_PERMISSIONS = {
     '/admin/product-central/navbar': ['view_product_central'],
     '/admin/product-central/homepage-nav-links': ['view_product_central'],
     '/admin/product-central/navbar-order': ['view_product_central'],
+    '/admin/product-central/card-design': ['view_product_central'],
     '/admin/product-central/add-new-category': ['manage_product_central'],
     '/admin/product-central/edit-category/:id': ['manage_product_central'],
     '/admin/product-variants': ['view_product_central'],
