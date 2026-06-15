@@ -19,6 +19,11 @@ export default function ProductCentralTabs({ selectedTab, setSelectedTab }) {
             link: "/admin/product-options",
             current: selectedTab === "product-options",
         },
+        {
+            name: "Card Design",
+            link: "/admin/product-central/card-design",
+            current: selectedTab === "card-design",
+        },
     ];
 
     const handleTabChange = (event) => {

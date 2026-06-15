@@ -34,6 +34,7 @@ export const ADMIN_ROUTE_MODULES = [
       "/admin/product-central/variant-condition",
       "/admin/product-central/variant-storage",
       "/admin/product-central/variant-color",
+      "/admin/product-central/card-design",
       "/admin/product-central/add-new-category",
       "/admin/product-central/edit-category/:id",
       "/admin/product-central/category-display-products/:categoryId",

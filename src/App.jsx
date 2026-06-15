@@ -66,6 +66,9 @@ const ProductCentralVariantStorage = lazy(() =>
 const ProductCentralVariantColor = lazy(() =>
   import("./pages/adminpages/ProductCentral/ProductCentralVariantColor")
 );
+const ProductCentralCardDesign = lazy(() =>
+  import("./pages/adminpages/ProductCentral/ProductCentralCardDesign")
+);
 const Coupons = lazy(() => import("./pages/adminpages/Coupons/Coupons"));
 const Deals = lazy(() => import("./pages/adminpages/deals/Deals"));
 const Banners = lazy(() => import("./pages/adminpages/banners/Banners"));
@@ -1171,6 +1174,22 @@ function App() {
                       <PermissionRoute permission="zextons.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central/variant-color">
                           <ProductCentralVariantColor />
+                        </AdminRouteAccessGuard>
+                      </PermissionRoute>
+                    </Suspense>
+                  </ErrorBoundary>
+                </>
+              }
+            />
+            <Route
+              path="/admin/product-central/card-design"
+              element={
+                <>
+                  <ErrorBoundary fallback={<div>Error</div>}>
+                    <Suspense fallback={<div>Loading...</div>}>
+                      <PermissionRoute permission="zextons.view_product_central">
+                        <AdminRouteAccessGuard routePath="/admin/product-central/card-design">
+                          <ProductCentralCardDesign />
                         </AdminRouteAccessGuard>
                       </PermissionRoute>
                     </Suspense>
