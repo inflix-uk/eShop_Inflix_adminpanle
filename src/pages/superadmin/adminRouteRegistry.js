@@ -50,6 +50,12 @@ export const ADMIN_ROUTE_MODULES = [
     description: "Controls Stripe and Shipping settings pages in admin panel.",
     routes: ["/admin/settings/stripe", "/admin/settings/shipping"],
   },
+  {
+    id: "booking-management",
+    label: "Booking Management",
+    description: "Controls booking system settings, packages, availability, and appointments.",
+    routes: ["/admin/settings/booking"],
+  },
 ];
 
 export const normalizeRoutePath = (value) =>
