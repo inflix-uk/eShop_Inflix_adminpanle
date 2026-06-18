@@ -211,6 +211,9 @@ const Author = lazy(() => import("./pages/adminpages/author/Author"));
 const StripeSettings = lazy(() =>
   import("./pages/adminpages/settings/stripe/page")
 );
+const BookingManagement = lazy(() =>
+  import("./pages/adminpages/settings/booking/page")
+);
 const ShippingSettings = lazy(() =>
   import("./pages/adminpages/settings/shipping/page")
 );
@@ -1487,6 +1490,22 @@ function App() {
                         <PermissionRoute>
                           <AdminRouteAccessGuard routePath="/admin/settings/stripe">
                             <StripeSettings />
+                          </AdminRouteAccessGuard>
+                        </PermissionRoute>
+                      </Suspense>
+                    </ErrorBoundary>
+                  </>
+                }
+              />
+              <Route
+                path="/admin/settings/booking"
+                element={
+                  <>
+                    <ErrorBoundary fallback={<div>Error</div>}>
+                      <Suspense fallback={<div>Loading...</div>}>
+                        <PermissionRoute>
+                          <AdminRouteAccessGuard routePath="/admin/settings/booking">
+                            <BookingManagement />
                           </AdminRouteAccessGuard>
                         </PermissionRoute>
                       </Suspense>
