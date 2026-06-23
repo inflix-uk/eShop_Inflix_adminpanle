@@ -90,7 +90,7 @@ export default function Login() {
       <div className="flex  flex-col justify-center px-6 py-12 lg:px-8">
         <div className="sm:mx-auto sm:w-full sm:max-w-sm">
           {/* <Link to="/">
-            <img className="mx-auto h-20 w-auto" src={Zextons} alt="Your Company" />
+            <img className="mx-auto h-20 w-auto" src={our store} alt="Your Company" />
           </Link> */}
           <h2 className="mt-10 text-center text-2xl font-bold leading-9 tracking-tight text-gray-900">
             {otpRequired ? "Enter OTP" : "Admin Sign in"}

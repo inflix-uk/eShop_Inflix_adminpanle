@@ -135,134 +135,46 @@ export const getDefaultFooterSettings = () => {
   return {
     section1: {
       logo: {
-        image: "/assets/ZEXTONS-LOGO-WHITE1.png",
-        altText: "Zextons Tech Store Logo",
+        image: "",
+        altText: "Store logo",
         link: "/"
       },
       description: "",
-      socialMedia: [
-        {
-          name: "Twitter",
-          icon: "",
-          link: "https://twitter.com/zextons_uk",
-          isActive: true,
-          order: 0
-        },
-        {
-          name: "YouTube",
-          icon: "",
-          link: "https://www.youtube.com/channel/UCb5pBW9HkmUo7CjszeJwqqQ",
-          isActive: true,
-          order: 1
-        },
-        {
-          name: "Instagram",
-          icon: "",
-          link: "https://www.instagram.com/zextons.co.uk/",
-          isActive: true,
-          order: 2
-        },
-        {
-          name: "TikTok",
-          icon: "",
-          link: "https://www.tiktok.com/@zextons",
-          isActive: true,
-          order: 3
-        },
-        {
-          name: "Facebook",
-          icon: "",
-          link: "https://www.facebook.com/zextonstechstore",
-          isActive: true,
-          order: 4
-        },
-        {
-          name: "Pinterest",
-          icon: "",
-          link: "https://www.pinterest.co.uk/zextons",
-          isActive: true,
-          order: 5
-        }
-      ]
+      socialMedia: []
     },
     section2: {
-      title: "Useful Links",
-      links: [
-        { text: "Read Our Blogs", link: "/blogs", isActive: true, order: 0 },
-        { text: "Why Buying Refurbished iPhone is Good Idea?", link: "/why-buying-a-refurbished-iphone-is-a-good-idea", isActive: true, order: 1 },
-        { text: "Sell My Mobile Phone", link: "https://sell.zextons.co.uk/", isActive: true, order: 2 },
-        { text: "Buy Now Pay Later", link: "/buy-now-pay-later", isActive: true, order: 3 },
-        { text: "Customer Reviews", link: "/customer-reviews", isActive: true, order: 4 },
-        { text: "Bulk Recycling", link: "/recycle-mobile-phone", isActive: true, order: 5 },
-        { text: "Trade-in", link: "/zexton-trade-in", isActive: true, order: 6 },
-        { text: "Help Center", link: "https://zextons.tawk.help/", isActive: true, order: 7 },
-        { text: "Sustainability", link: "/Sustainability", isActive: true, order: 8 },
-        { text: "18 Months Warranty", link: "/18-months-warranty", isActive: true, order: 9 }
-      ]
+      title: "",
+      links: []
     },
     sectionNewsletter: {
-      isEnabled: true,
-      heading: "Stay in the loop",
-      description: "Get deals and product news straight to your inbox.",
-      placeholder: "Enter your email",
-      buttonLabel: "Subscribe",
+      isEnabled: false,
+      heading: "",
+      description: "",
+      placeholder: "",
+      buttonLabel: "",
       imageUrl: "",
     },
     bottomBar: {
-      textBeforeCredit:
-        "ZEXTONS TECH STORE © {{year}} All Rights Reserved. Company Number: 10256988. Designed and Developed by ",
-      creditLabel: "Inflix",
-      creditUrl: "https://inflix.co.uk",
+      textBeforeCredit: "© {{year}} All Rights Reserved.",
+      creditLabel: "",
+      creditUrl: "",
     },
     section3: {
-      title: "Customer Care",
-      links: [
-        { text: "Terms & Conditions", link: "/terms-and-conditions", isActive: true, order: 0 },
-        { text: "Trade-in Terms & Conditions", link: "/trade-in-terms-and-conditions", isActive: true, order: 1 },
-        { text: "Privacy Policy", link: "/privacy-policy", isActive: true, order: 2 },
-        { text: "Deals & Discounts", link: "/deals-and-discounts", isActive: true, order: 3 },
-        { text: "Returns & Refund Policy", link: "/refund-and-return-policy", isActive: true, order: 4 },
-        { text: "Shipping Policy", link: "/shipping-policy", isActive: true, order: 5 },
-        { text: "FAQs", link: "/faqs", isActive: true, order: 6 },
-        { text: "Contact Us", link: "/contact-us", isActive: true, order: 7 },
-        { text: "About Us", link: "/about-zextons", isActive: true, order: 8 },
-        { text: "Subscribe Our Newsletter", link: "/subscribe-newsletter", isActive: true, order: 9 }
-      ]
+      title: "",
+      links: []
     },
     section4: {
-      title: "Hot Selling Gadgets",
-      links: [
-        { text: "Apple iPhone 16", link: "/products/apple-iphone-16-unlocked-brand-new-128gb-black-brand-new", isActive: true, order: 0 },
-        { text: "Apple iPhone 16e", link: "/products/apple-iphone-16e-unlocked-brand-new-128gb-white-brand-new", isActive: true, order: 1 },
-        { text: "Apple iPhone 15", link: "/products/apple-iphone-15-unlocked-refurbished-128gb-green-excellent", isActive: true, order: 2 },
-        { text: "Apple iPad (2025)", link: "/products/apple-ipad-2025-11th-generation-brand-new-128gb-silver-brand-new", isActive: true, order: 3 },
-        { text: "Apple iPad 9th Generation (2021)", link: "/products/apple-ipad-9th-generation-2021-cellular-refurbished-64gb-space-gray-excellent", isActive: true, order: 4 },
-        { text: "Apple iPad 8th Generation (2020)", link: "/products/apple-ipad-8th-generation-2020-cellular-refurbished-32gb-silver-good", isActive: true, order: 5 },
-        { text: "Google Pixel 8 Pro", link: "/products/google-pixel-8-pro-unlocked-refurbished-128gb-bay-excellent", isActive: true, order: 6 },
-        { text: "Google Pixel 8", link: "/products/google-pixel-8-unlocked-refurbished-128gb-hazel-excellent", isActive: true, order: 7 },
-        { text: "Google Pixel 7a", link: "/products/google-pixel-7a-unlocked-refurbished-128gb-sea-excellent", isActive: true, order: 8 },
-        { text: "Samsung Galaxy S24", link: "/products/samsung-galaxy-s24-unlocked-refurbished-128gb-marble-gray-excellent", isActive: true, order: 9 },
-        { text: "Samsung Galaxy S23 Ultra", link: "/products/samsung-galaxy-s23-ultra-unlocked-refurbished-256gb-green-excellent", isActive: true, order: 10 },
-        { text: "Samsung Galaxy A55", link: "/products/samsung-galaxy-a55-unlocked-brand-new-128gb-navy-brand-new", isActive: true, order: 11 }
-      ]
+      title: "",
+      links: []
     },
     section5: {
-      title: "Our Climate Impact",
-      text: "We plant a tree with every order",
-      ecologiLogo: "/assets/ecologinewlogo.png",
+      title: "",
+      text: "",
+      ecologiLogo: "",
       ecologiLink: "",
       paymentMethods: {
-        heading: "We accept the following payment methods:",
-        logos: [
-          { name: "Visa", image: "", isActive: true, order: 0 },
-          { name: "Mastercard", image: "", isActive: true, order: 1 },
-          { name: "American Express", image: "", isActive: true, order: 2 },
-          { name: "PayPal", image: "", isActive: true, order: 3 },
-          { name: "Apple Pay", image: "", isActive: true, order: 4 },
-          { name: "Google Pay", image: "", isActive: true, order: 5 },
-          { name: "Klarna", image: "", isActive: true, order: 6 },
-          { name: "Zilch", image: "", isActive: true, order: 7 }
-        ]
+        heading: "",
+        logos: []
       }
     }
   };

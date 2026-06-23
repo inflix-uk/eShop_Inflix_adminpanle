@@ -98,7 +98,7 @@ const OrderPrintView = ({
                   <div className="text-gray-600 text-xs leading-tight">
                     <p>27 Church Street</p>
                     <p>St Helens, WA10 1AX</p>
-                    <p>support@zextons.co.uk</p>
+                    <p>support@</p>
                   </div>
                 </div>
                 {/* Customer Info */}
@@ -239,7 +239,7 @@ const OrderPrintView = ({
                   </h3>
                   <p className="text-gray-600 text-xs leading-relaxed">
                     We appreciate your business. For any questions, contact our customer service at
-                    <strong> support@zextons.co.uk</strong>.
+                    <strong> support@</strong>.
                   </p>
                 </div>
                 {/* Order Summary */}
@@ -287,11 +287,11 @@ const OrderPrintView = ({
               <div className="flex flex-col print:flex-row md:flex-col items-center gap-4 md:gap-6 w-full md:w-auto justify-around md:justify-end">
                 <div className="text-center md:text-right">
                   <p className="text-xs opacity-80 mb-0.5">CONTACT</p>
-                  <p className="text-xs"><strong>support@zextons.co.uk</strong></p>
+                  <p className="text-xs"><strong>support@</strong></p>
                 </div>
                 <div className="text-center md:text-right">
                   <p className="text-xs opacity-80 mb-0.5">WEBSITE</p>
-                  <p className="text-xs"><strong>www.zextons.co.uk</strong></p>
+                  <p className="text-xs"><strong>www.</strong></p>
                 </div>
               </div>
             </div>

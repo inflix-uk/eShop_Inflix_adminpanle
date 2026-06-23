@@ -4,7 +4,7 @@
  */
 
 export const PERMISSION_GROUPS = {
-    zextons: [
+    store: [
         {
             name: 'Dashboard',
             permissions: [
@@ -132,7 +132,7 @@ export const PERMISSION_GROUPS = {
 };
 
 // Export individual sections for convenience
-export const ZEXTONS_PERMISSIONS = PERMISSION_GROUPS.zextons;
+export const STORE_PERMISSIONS = PERMISSION_GROUPS.store;
 export const ROLES_PERMISSIONS = PERMISSION_GROUPS.rolesandpermissions;
 export const STATIC_META_PERMISSIONS = PERMISSION_GROUPS.staticMeta;
 

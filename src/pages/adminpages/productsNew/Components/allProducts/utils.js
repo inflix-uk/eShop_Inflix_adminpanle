@@ -43,7 +43,7 @@ export const correctFilePath = (path) => {
   return `${import.meta.env.VITE_BACKEND_URL}uploads/${correctedPath}`;
 };
 
-const DEFAULT_STOREFRONT_ORIGIN = "https://aromadesire.co.uk";
+const DEFAULT_STOREFRONT_ORIGIN = "";
 
 /** @type {{ key: string, value: string } | null} */
 let cachedStorefrontPick = undefined;
@@ -90,7 +90,7 @@ function logStorefrontDiagnostics(resolvedOrigin, slug, finalUrl) {
     pickedFromEnv: picked
       ? { variable: picked.key, rawValue: picked.value, normalizedOrigin: resolvedOrigin }
       : null,
-    usingAromaDefaultFallback: !picked,
+    usingEnvFallback: !picked,
     sampleProductUrl: finalUrl,
     slugUsed: slug || "(none)",
     allViteKeysInBundle: viteKeys,
@@ -100,7 +100,7 @@ function logStorefrontDiagnostics(resolvedOrigin, slug, finalUrl) {
       VITE_STOREFRONT_URL: env.VITE_STOREFRONT_URL,
     },
     ifWrongUrl:
-      "If `usingAromaDefaultFallback` is true, no VITE_* storefront URL was set; links use https://aromadesire.co.uk. Override with VITE_PUBLIC_SITE_URL in .env and restart Vite (stop + npm run dev).",
+      "If `usingEnvFallback` is true, no VITE_* storefront URL was set. Set VITE_PUBLIC_SITE_URL or VITE_FRONTEND_URL in .env and restart Vite.",
   });
 }
 
