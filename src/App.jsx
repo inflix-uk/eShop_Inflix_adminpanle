@@ -14,6 +14,7 @@ const ForgotPassword = lazy(() =>
 );
 // admin components
 const Profile = lazy(() => import("./pages/adminpages/profile/Profile"));
+const Logs = lazy(() => import("./pages/adminpages/logs/Logs"));
 const Orders = lazy(() => import("./pages/adminpages/orders/Orders"));
 const Users = lazy(() => import("./pages/adminpages/users/Users"));
 const PricingGroups = lazy(() =>
@@ -465,6 +466,20 @@ function App() {
                     <Suspense fallback={<div>Loading...</div>}>
                       <PrivateRoute>
                         <Profile />
+                      </PrivateRoute>
+                    </Suspense>
+                  </ErrorBoundary>
+                </>
+              }
+            />
+            <Route
+              path="/admin/logs"
+              element={
+                <>
+                  <ErrorBoundary fallback={<div>Error</div>}>
+                    <Suspense fallback={<div>Loading...</div>}>
+                      <PrivateRoute>
+                        <Logs />
                       </PrivateRoute>
                     </Suspense>
                   </ErrorBoundary>
