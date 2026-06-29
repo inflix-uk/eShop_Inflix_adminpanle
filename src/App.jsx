@@ -14,6 +14,7 @@ const ForgotPassword = lazy(() =>
 );
 // admin components
 const Profile = lazy(() => import("./pages/adminpages/profile/Profile"));
+const Logs = lazy(() => import("./pages/adminpages/logs/Logs"));
 const Orders = lazy(() => import("./pages/adminpages/orders/Orders"));
 const Users = lazy(() => import("./pages/adminpages/users/Users"));
 const PricingGroups = lazy(() =>
@@ -26,6 +27,10 @@ const PricingGroupCustomers = lazy(() =>
   import("./pages/adminpages/pricing-groups/PricingGroupCustomers")
 );
 const EditUser = lazy(() => import("./pages/adminpages/users/EditUser"));
+const CustomersList = lazy(() =>
+  import("./pages/adminpages/crm/CustomersList")
+);
+const Customer360 = lazy(() => import("./pages/adminpages/crm/Customer360"));
 const ProductCentral = lazy(() =>
   import("./pages/adminpages/ProductCentral/ProductCentral")
 );
@@ -468,6 +473,20 @@ function App() {
               }
             />
             <Route
+              path="/admin/logs"
+              element={
+                <>
+                  <ErrorBoundary fallback={<div>Error</div>}>
+                    <Suspense fallback={<div>Loading...</div>}>
+                      <PrivateRoute>
+                        <Logs />
+                      </PrivateRoute>
+                    </Suspense>
+                  </ErrorBoundary>
+                </>
+              }
+            />
+            <Route
               path="/admin/orders"
               element={
                 <>
@@ -545,6 +564,34 @@ function App() {
                     <Suspense fallback={<div>Loading...</div>}>
                       <PermissionRoute permission="store.view_users">
                         <EditUser />
+                      </PermissionRoute>
+                    </Suspense>
+                  </ErrorBoundary>
+                </>
+              }
+            />
+            <Route
+              path="/admin/crm/customers"
+              element={
+                <>
+                  <ErrorBoundary fallback={<div>Error</div>}>
+                    <Suspense fallback={<div>Loading...</div>}>
+                      <PermissionRoute permission="zextons.view_users">
+                        <CustomersList />
+                      </PermissionRoute>
+                    </Suspense>
+                  </ErrorBoundary>
+                </>
+              }
+            />
+            <Route
+              path="/admin/crm/customers/:userId"
+              element={
+                <>
+                  <ErrorBoundary fallback={<div>Error</div>}>
+                    <Suspense fallback={<div>Loading...</div>}>
+                      <PermissionRoute permission="zextons.view_users">
+                        <Customer360 />
                       </PermissionRoute>
                     </Suspense>
                   </ErrorBoundary>

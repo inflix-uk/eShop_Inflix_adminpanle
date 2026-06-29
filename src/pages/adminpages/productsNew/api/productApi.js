@@ -175,7 +175,7 @@ class ProductApi {
    * Fetch all products with optional brand filtering
    * @param {number} batchSize - Number of products per batch
    * @param {number} skip - Number of products to skip
-   * @param {string|null} brandName - Optional brand name to filter by
+   * @param {string|null} brandName - Brand name, or UNASSIGNED_BRAND_KEY (`__unassigned__`) for brand-less products
    * @returns {Promise} - Axios response
    */
   async getAllProductsWithBrand(batchSize = 50, skip = 0, brandName = null) {

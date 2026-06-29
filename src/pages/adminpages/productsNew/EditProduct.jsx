@@ -168,6 +168,10 @@ export default function EditProduct() {
             productData.variantValues = uniqueVariants;
           }
 
+          productData.varImgGroup = editProductService.normalizeVarImgGroup(
+            productData.varImgGroup || []
+          );
+
           setProduct(productData);
           console.log("Variant Desc", response.data.product);
 
@@ -736,22 +740,13 @@ export default function EditProduct() {
 
   // Auto-select attribute that has images
   useEffect(() => {
-    console.log('=== DEBUG Auto-select useEffect ===');
-    console.log('product?.varImgGroup?.length:', product?.varImgGroup?.length);
-    console.log('variantNames?.length:', variantNames?.length);
-    console.log('selectedAttr:', selectedAttr);
-
     if (product?.varImgGroup?.length > 0 && variantNames?.length > 0 && !selectedAttr) {
       let foundAttr = null;
 
-      // Find which attribute has images saved
       for (const attr of variantNames) {
-        console.log('Checking attr:', attr.name, 'options:', attr.options);
-        const hasImages = attr.options?.some(opt => {
-          const slug = opt.slug || opt.value?.toLowerCase().replace(/[^a-z0-9]+/g, '_');
-          const found = product.varImgGroup.some(group => group.name === slug && group.varImg?.length > 0);
-          console.log('  Option slug:', slug, 'hasImages:', found);
-          return found;
+        const hasImages = attr.options?.some((opt) => {
+          const slug = opt.slug || editProductService.normalizeVariantSlug(opt.value);
+          return editProductService.getImagesForOption(product, slug).length > 0;
         });
         if (hasImages) {
           foundAttr = attr.name;
@@ -759,8 +754,6 @@ export default function EditProduct() {
         }
       }
 
-      console.log('Setting selectedAttr to:', foundAttr || variantNames[0]?.name);
-      // Set the attribute with images, or first one as fallback
       setSelectedAttr(foundAttr || variantNames[0]?.name);
     }
   }, [product?.varImgGroup, variantNames, selectedAttr]);
@@ -799,14 +792,8 @@ export default function EditProduct() {
     setProduct(updatedProduct);
   };
 
-  const getImagesForOption = (option) => {
-    console.log('=== DEBUG getImagesForOption ===');
-    console.log('Looking for option:', option);
-    console.log('product.varImgGroup:', product?.varImgGroup);
-    const result = editProductService.getImagesForOption(product, option);
-    console.log('Result:', result);
-    return result;
-  };
+  const getImagesForOption = (option) =>
+    editProductService.getImagesForOption(product, option);
 
   useEffect(() => {
     if (

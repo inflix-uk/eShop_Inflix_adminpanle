@@ -117,6 +117,7 @@ export default function Side({
   const [isOpenRoles, setIsOpenRoles] = useState(false);
   const [isOpenHomePage, setIsOpenHomePage] = useState(false);
   const [isOpenSettings, setIsOpenSettings] = useState(false);
+  const [isOpenCrm, setIsOpenCrm] = useState(false);
 
   const toggleSection = useCallback((setter, isCurrentlyOpen) => {
     setIsOpenOrders(false);
@@ -125,6 +126,7 @@ export default function Side({
     setIsOpenRoles(false);
     setIsOpenHomePage(false);
     setIsOpenSettings(false);
+    setIsOpenCrm(false);
     if (!isCurrentlyOpen) setter(true);
   }, []);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
@@ -298,6 +300,8 @@ export default function Side({
     ];
 
     // Close all sections first
+    const crmPages = ["crm-customers"];
+
     const closeAll = () => {
       setIsOpenOrders(false);
       setIsOpenProducts(false);
@@ -305,12 +309,15 @@ export default function Side({
       setIsOpenRoles(false);
       setIsOpenHomePage(false);
       setIsOpenSettings(false);
+      setIsOpenCrm(false);
     };
 
     closeAll();
 
     if (ordersPages.includes(selectedPage)) {
       setIsOpenOrders(true);
+    } else if (crmPages.includes(selectedPage)) {
+      setIsOpenCrm(true);
     } else if (productsPages.includes(selectedPage)) {
       setIsOpenProducts(true);
     } else if (contentPages.includes(selectedPage)) {
@@ -452,6 +459,55 @@ export default function Side({
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 d="M6 6h.008v.008H6V6Z"
+              />
+            </svg>
+          ),
+        },
+      ],
+    },
+    {
+      sectionTitle: "CRM",
+      state: isOpenCrm,
+      toggle: () => toggleSection(setIsOpenCrm, isOpenCrm),
+      icon: (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={1.5}
+          stroke="currentColor"
+          className="h-5 w-5 shrink-0 text-gray-400 group-hover:text-primary my-auto"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z"
+          />
+        </svg>
+      ),
+      links: [
+        {
+          label: "Customers",
+          to: "/admin/crm/customers",
+          selectedKey: "crm-customers",
+          permissionCheck: (p) => p?.zextons?.view_users,
+          icon: (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className={`h-5 w-5 shrink-0 ${
+                selectedPage === "crm-customers"
+                  ? "text-primary"
+                  : "text-gray-400 group-hover:text-primary"
+              } my-auto`}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z"
               />
             </svg>
           ),
@@ -1747,6 +1803,30 @@ export default function Side({
                   isActive={selectedPage === "profile"}
                 />
               </li>
+              {/* Logs - standalone link */}
+              <li>
+                <SidebarLink
+                  to="/admin/logs"
+                  icon={
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth="1.5"
+                      stroke="currentColor"
+                      className="h-5 w-5"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2Z"
+                      />
+                    </svg>
+                  }
+                  label="Logs"
+                  isActive={selectedPage === "logs"}
+                />
+              </li>
             </ul>
           </nav>
         </div>
@@ -1865,6 +1945,30 @@ export default function Side({
                 }
                 label="Profile"
                 isActive={selectedPage === "profile"}
+              />
+            </li>
+            {/* Logs - standalone link */}
+            <li>
+              <SidebarLink
+                to="/admin/logs"
+                icon={
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth="1.5"
+                    stroke="currentColor"
+                    className="h-5 w-5"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2Z"
+                    />
+                  </svg>
+                }
+                label="Logs"
+                isActive={selectedPage === "logs"}
               />
             </li>
           </ul>

@@ -24,6 +24,41 @@ class EditProductService {
     // Service class no longer needs baseURL - API calls are handled by ProductApi
   }
 
+  /** Normalize attribute option slugs for consistent varImgGroup keys (excellent, black, 64gb). */
+  normalizeVariantSlug(slug) {
+    if (!slug) return "";
+    return String(slug)
+      .toLowerCase()
+      .trim()
+      .replace(/^variant\s+/, "")
+      .replace(/_/g, "-")
+      .replace(/[^a-z0-9-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .replace(/-+/g, "-");
+  }
+
+  /** Merge duplicate varImgGroup rows and normalize group names after load/save. */
+  normalizeVarImgGroup(varImgGroup) {
+    if (!Array.isArray(varImgGroup)) return [];
+    const merged = {};
+    for (const group of varImgGroup) {
+      const key = this.normalizeVariantSlug(group?.name);
+      if (!key) continue;
+      if (!merged[key]) {
+        merged[key] = { name: key, varImg: [] };
+      }
+      for (const img of group.varImg || []) {
+        const exists = merged[key].varImg.some(
+          (existing) =>
+            (existing?.url && img?.url && existing.url === img.url) ||
+            (existing?.path && img?.path && existing.path === img.path)
+        );
+        if (!exists) merged[key].varImg.push(img);
+      }
+    }
+    return Object.values(merged);
+  }
+
   /**
    * Prepare form data for product update
    * @param {Object} product - The product object
@@ -168,23 +203,23 @@ class EditProductService {
 
       // Handle varImgGroup FIRST - this is the primary source for attribute-based images
       // Send new files only once per attribute value (e.g., per color, per condition, etc.)
-      product.varImgGroup.forEach((group) => {
-        group.varImg.forEach((image) => {
+      this.normalizeVarImgGroup(product.varImgGroup || []).forEach((group) => {
+        const groupName = this.normalizeVariantSlug(group.name);
+        (group.varImg || []).forEach((image) => {
           if (image instanceof File) {
             const fileKey = getFileKey(image);
             if (!sentFileKeys.has(fileKey)) {
-              formData.append(`varImg[${group.name}]`, image);
+              formData.append(`varImg[${groupName}]`, image);
               sentFileKeys.add(fileKey);
             }
           } else {
-            formData.append(`varImg[${group.name}]`, JSON.stringify(image));
+            formData.append(`varImg[${groupName}]`, JSON.stringify(image));
           }
         });
       });
 
-      // Handle images for variants
-      // For variantImages: only send JSON references for existing images
-      // New files were already sent via varImg above
+      // Variant images are sent only via varImgGroup above (per attribute option slug).
+      // Do not also send variantImages[full-variant-name] — backend would merge them into the wrong group.
       product.variantValues.forEach((variant) => {
         const variantName = variant.name;
 
@@ -198,18 +233,6 @@ class EditProductService {
           } else {
             formData.append(`variantMetaImage[${variantName}]`, JSON.stringify(variant.metaImage));
           }
-        }
-
-        if (Array.isArray(variant.variantImages)) {
-          variant.variantImages.forEach((variantImage) => {
-            if (variantImage instanceof File) {
-              // Skip - already sent via varImg[attributeValue]
-              // The backend should map varImg images to variants based on the first variant attribute
-            } else {
-              // Send existing image references as JSON
-              formData.append(`variantImages[${variantName}]`, JSON.stringify(variantImage));
-            }
-          });
         }
       });
 
@@ -725,10 +748,13 @@ class EditProductService {
    * @returns {Array} - Array of images for the option
    */
   getImagesForOption(product, option) {
-    if (!product || !product.varImgGroup) return [];
+    if (!product || !product.varImgGroup || !option) return [];
 
-    const variantGroup = product.varImgGroup.find(group => group.name === option);
-    return variantGroup ? variantGroup.varImg : [];
+    const normalizedOption = this.normalizeVariantSlug(option);
+    const variantGroup = product.varImgGroup.find(
+      (group) => this.normalizeVariantSlug(group.name) === normalizedOption
+    );
+    return variantGroup?.varImg || [];
   }
 
   /**
@@ -761,44 +787,62 @@ class EditProductService {
    */
   processVariantImages(product, option, data, action) {
     const updatedProduct = this.deepCloneWithFiles(product);
+    const groupKey = this.normalizeVariantSlug(option);
+    if (!groupKey) return updatedProduct;
 
-    if (action === 'add') {
+    if (!Array.isArray(updatedProduct.varImgGroup)) {
+      updatedProduct.varImgGroup = [];
+    }
+
+    const variantNameIncludesOption = (variantName) => {
+      const parts = String(variantName || "").split("-");
+      return parts.some((part) => this.normalizeVariantSlug(part) === groupKey);
+    };
+
+    if (action === "add") {
       const images = data;
 
-      // Update variantValues
-      updatedProduct.variantValues.forEach(variant => {
-        if (variant.name.includes(option)) {
-          variant.variantImages = [...variant.variantImages, ...images];
+      updatedProduct.variantValues.forEach((variant) => {
+        if (variantNameIncludesOption(variant.name)) {
+          variant.variantImages = [...(variant.variantImages || []), ...images];
         }
       });
 
-      // Update varImgGroup
-      const variantGroup = updatedProduct.varImgGroup.find(group => group.name === option);
+      const variantGroup = updatedProduct.varImgGroup.find(
+        (group) => this.normalizeVariantSlug(group.name) === groupKey
+      );
       if (variantGroup) {
-        variantGroup.varImg = [...variantGroup.varImg, ...images];
+        variantGroup.name = groupKey;
+        variantGroup.varImg = [...(variantGroup.varImg || []), ...images];
       } else {
         updatedProduct.varImgGroup.push({
-          name: option,
-          varImg: images
+          name: groupKey,
+          varImg: images,
         });
       }
-    } else if (action === 'delete') {
+    } else if (action === "delete") {
       const imgIndex = data;
 
-      // Update varImgGroup
-      const variantGroup = updatedProduct.varImgGroup.find(group => group.name === option);
+      const variantGroup = updatedProduct.varImgGroup.find(
+        (group) => this.normalizeVariantSlug(group.name) === groupKey
+      );
       if (variantGroup) {
-        variantGroup.varImg = variantGroup.varImg.filter((_, index) => index !== imgIndex);
+        variantGroup.name = groupKey;
+        variantGroup.varImg = (variantGroup.varImg || []).filter(
+          (_, index) => index !== imgIndex
+        );
       }
 
-      // Update variantValues
-      updatedProduct.variantValues.forEach(variant => {
-        if (variant.name.includes(option)) {
-          variant.variantImages = variant.variantImages.filter((_, index) => index !== imgIndex);
+      updatedProduct.variantValues.forEach((variant) => {
+        if (variantNameIncludesOption(variant.name)) {
+          variant.variantImages = (variant.variantImages || []).filter(
+            (_, index) => index !== imgIndex
+          );
         }
       });
     }
 
+    updatedProduct.varImgGroup = this.normalizeVarImgGroup(updatedProduct.varImgGroup);
     return updatedProduct;
   }
 
@@ -815,21 +859,23 @@ class EditProductService {
       return variantValues;
     }
 
-    return variantValues.map(variant => {
-      // Split variant name into individual attribute values
-      // Format: "attribute1_value-attribute2_value-attribute3_value" (e.g., "brand_new-red-32gb")
-      const variantAttributes = variant.name.split('-');
+    const normalizedGroups = this.normalizeVarImgGroup(varImgGroup);
 
-      // Find a matching image group by checking ALL attribute values (not just position [1])
+    return variantValues.map((variant) => {
+      const variantAttributes = String(variant.name || "").split("-");
       let matchedGroup = null;
+
       for (const attrValue of variantAttributes) {
-        matchedGroup = varImgGroup.find(group => group.name === attrValue);
+        const key = this.normalizeVariantSlug(attrValue);
+        matchedGroup = normalizedGroups.find(
+          (group) => this.normalizeVariantSlug(group.name) === key && group.varImg?.length
+        );
         if (matchedGroup) break;
       }
 
       return {
         ...variant,
-        variantImages: matchedGroup ? matchedGroup.varImg : variant.variantImages
+        variantImages: matchedGroup ? matchedGroup.varImg : variant.variantImages || [],
       };
     });
   }

@@ -20,6 +20,11 @@ import {
 // Import API and Service
 import ProductApi from "./api/productApi";
 import AllProductsService from "./service/allProductsService";
+import {
+  getBrandDisplayName,
+  isUnassignedBrandKey,
+  UNASSIGNED_BRAND_KEY,
+} from "./constants/brandConstants";
 
 export default function NewProducts() {
   const auth = useAuth();
@@ -45,6 +50,7 @@ export default function NewProducts() {
   const brandFromUrl = searchParams.get("brand");
   const [selectedBrand, setSelectedBrand] = useState(brandFromUrl);
   const [brandsLoading, setBrandsLoading] = useState(true);
+  const [unassignedProductCount, setUnassignedProductCount] = useState(0);
   const [viewMode, setViewMode] = useState(brandFromUrl ? "products" : "brands"); // 'brands' or 'products'
 
   // Filter and paginate products using service
@@ -253,8 +259,8 @@ export default function NewProducts() {
       const response = await productApi.getBrandsWithProductCount();
 
       if (response.data.status === 200) {
-        // Brands already come with productCount from backend
         setBrands(response.data.brands);
+        setUnassignedProductCount(response.data.unassignedProductCount || 0);
         console.log(`Loaded ${response.data.totalBrands} brands with ${response.data.totalProducts} total products`);
       } else if (response.data.status === 404) {
         console.error("Brands attribute not found");
@@ -289,8 +295,8 @@ export default function NewProducts() {
     setProducts([]);
     setCurrentPage(1);
     setSearchQuery("");
-    // Remove brand from URL
     setSearchParams({});
+    getBrands();
   };
 
   // Fetch products with batch processing
@@ -422,6 +428,7 @@ export default function NewProducts() {
                 <BrandsView
                   brands={brands}
                   brandsLoading={brandsLoading}
+                  unassignedProductCount={unassignedProductCount}
                   onBrandSelect={handleBrandSelect}
                   auth={auth}
                 />
@@ -451,11 +458,15 @@ export default function NewProducts() {
                       </button>
                       <h1 className="text-xl font-bold tracking-tight text-gray-900 absolute left-1/2 transform -translate-x-1/2">
                         {selectedBrand
-                          ? `${selectedBrand} Products`
+                          ? `${getBrandDisplayName(selectedBrand)} Products`
                           : "New Products"}
                       </h1>
                       {selectedBrand && (
-                        <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                          isUnassignedBrandKey(selectedBrand)
+                            ? 'bg-amber-100 text-amber-800'
+                            : 'bg-blue-100 text-blue-700'
+                        }`}>
                           {filteredProducts.length} products
                         </span>
                       )}

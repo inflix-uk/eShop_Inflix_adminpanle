@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Tab } from "@headlessui/react";
 import axios from "axios";
 import { toast } from "react-toastify";
@@ -21,6 +21,11 @@ import { GiFlame } from "react-icons/gi";
 // import NavbarOrderEditor from "../../../components/ProductCentralComponents/NavbarOrderEditor";
 // import HomepageNavLinksEditor from "../../../components/ProductCentralComponents/HomepageNavLinksEditor";
 import { useAuth } from "../../../context/Auth";
+import { getLogo } from "../logo/service/logoService";
+import {
+  resolveBackendAssetUrl,
+  withCacheBust,
+} from "../../../utils/backendAssetUrl";
 
 const TAB_ORDER = "order";
 const TAB_LINKS = "links";
@@ -113,6 +118,12 @@ function presetKey(preset) {
   return `${preset.id}::${preset.variant}`;
 }
 
+/** Navbar logo always comes from Logo Management — never persist a local override. */
+function withoutNavbarLogoOverride(config) {
+  if (!config || typeof config !== "object" || Array.isArray(config)) return config;
+  return { ...config, logoUrl: "" };
+}
+
 /** Merge saved per-preset snapshots + active storefront `config` into hub state. */
 function mergeVariantConfigsFromApi(cfg, presets) {
   const presetMap =
@@ -121,17 +132,20 @@ function mergeVariantConfigsFromApi(cfg, presets) {
   NAVBAR_LAYOUT_PRESETS.forEach((preset) => {
     const k = presetKey(preset);
     const fromPresets = presetMap[k] && typeof presetMap[k] === "object" && !Array.isArray(presetMap[k]);
-    next[k] = {
+    next[k] = withoutNavbarLogoOverride({
       ...createInitialVariantConfig(preset),
       ...(fromPresets ? presetMap[k] : {}),
-    };
+    });
   });
   if (cfg && typeof cfg === "object" && !Array.isArray(cfg)) {
     const matched =
       NAVBAR_LAYOUT_PRESETS.find((p) => p.id === cfg.id && p.variant === cfg.variant) ||
       NAVBAR_LAYOUT_PRESETS[0];
     const mk = presetKey(matched);
-    next[mk] = { ...createInitialVariantConfig(matched), ...cfg };
+    next[mk] = withoutNavbarLogoOverride({
+      ...createInitialVariantConfig(matched),
+      ...cfg,
+    });
   }
   return next;
 }
@@ -220,6 +234,9 @@ export default function ProductCentralNavbarHub() {
   const [variantSaveMessage, setVariantSaveMessage] = useState("");
   const [variantSaving, setVariantSaving] = useState(false);
   const [draggingLinkId, setDraggingLinkId] = useState(null);
+  const [storeLogoPreview, setStoreLogoPreview] = useState("");
+  const [storeLogoAlt, setStoreLogoAlt] = useState("");
+  const [storeLogoLoading, setStoreLogoLoading] = useState(true);
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
   const closeSidebar = () => setIsSidebarOpen(false);
@@ -227,6 +244,27 @@ export default function ProductCentralNavbarHub() {
   useEffect(() => {
     setSelectedTab(normalizeTab(searchParams.get("tab")));
   }, [searchParams]);
+
+  const loadStoreLogo = useCallback(async () => {
+    setStoreLogoLoading(true);
+    try {
+      const data = await getLogo();
+      const resolved = data.logoUrl ? resolveBackendAssetUrl(data.logoUrl) : "";
+      const version =
+        data.faviconVersion ??
+        (data.updatedAt ? new Date(data.updatedAt).getTime() : null);
+      setStoreLogoPreview(
+        resolved && version != null ? withCacheBust(resolved, version) : resolved
+      );
+      setStoreLogoAlt(data.altText?.trim() || "");
+    } finally {
+      setStoreLogoLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadStoreLogo();
+  }, [loadStoreLogo]);
 
   useEffect(() => {
     let cancelled = false;
@@ -268,6 +306,9 @@ export default function ProductCentralNavbarHub() {
   const selectedPresetId = presetKey(selectedPreset);
   const selectedConfig =
     variantConfigs[selectedPresetId] || createInitialVariantConfig(selectedPreset);
+  const previewLogoUrl = storeLogoPreview;
+  const previewLogoText =
+    selectedConfig.logoText?.trim() || storeLogoAlt || "Brand";
 
   const updateSelectedVariantConfig = (patch) => {
     setVariantConfigs((prev) => ({
@@ -366,17 +407,6 @@ export default function ProductCentralNavbarHub() {
     updateSelectedVariantConfig({ links });
   };
 
-  const handleSelectedImagePick = (field, e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      updateSelectedVariantConfig({ [field]: ev.target?.result || "" });
-    };
-    reader.readAsDataURL(file);
-    e.target.value = "";
-  };
-
   const saveVariantForStorefrontTest = () => {
     const base = (auth.ip || "").endsWith("/") ? auth.ip : `${auth.ip || ""}/`;
     if (!auth.ip) {
@@ -387,7 +417,7 @@ export default function ProductCentralNavbarHub() {
     axios
       .put(
         `${base}navbar-variant-test`,
-        { config: selectedConfig },
+        { config: withoutNavbarLogoOverride(selectedConfig) },
         { headers: { "x-user-role": "admin", "Content-Type": "application/json" } }
       )
       .then((res) => {
@@ -644,8 +674,11 @@ export default function ProductCentralNavbarHub() {
                                 updateSelectedVariantConfig({ logoText: e.target.value })
                               }
                               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                              placeholder="Brand"
+                              placeholder={storeLogoAlt || "Brand"}
                             />
+                            <p className="mt-1 text-[11px] text-gray-500">
+                              Fallback label when no logo image is set in Logo Management.
+                            </p>
                           </div>
                           {selectedConfig.id !== "classic" ? (
                             <div>
@@ -725,23 +758,48 @@ export default function ProductCentralNavbarHub() {
                           ) : null}
                         </div>
 
-                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                          <div className="rounded-md border border-gray-200 bg-gray-50 p-3">
-                            <p className="mb-2 text-xs font-medium text-gray-600">Logo image</p>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              onChange={(e) => handleSelectedImagePick("logoUrl", e)}
-                              className="w-full text-xs"
-                            />
-                            {selectedConfig.logoUrl ? (
-                              <img
-                                src={selectedConfig.logoUrl}
-                                alt="logo preview"
-                                className="mt-2 h-16 w-auto rounded border object-contain"
-                              />
-                            ) : null}
+                        <div className="rounded-md border border-blue-100 bg-blue-50 p-3">
+                          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-xs font-medium text-blue-900">Store logo</p>
+                            <Link
+                              to="/admin/logo"
+                              className="text-xs font-medium text-primary hover:underline"
+                            >
+                              Manage in Logo Management →
+                            </Link>
                           </div>
+                          <p className="mb-3 text-[11px] leading-relaxed text-blue-800">
+                            The navbar uses the logo uploaded in Logo Management (recommended
+                            160×70 px or 320×140 px PNG/SVG). Update it once and it applies to
+                            the homepage navbar and site header.
+                          </p>
+                          {storeLogoLoading ? (
+                            <div className="flex h-16 items-center justify-center rounded border border-blue-200 bg-white text-xs text-gray-500">
+                              Loading logo…
+                            </div>
+                          ) : previewLogoUrl ? (
+                            <div className="flex items-center justify-center rounded border border-blue-200 bg-white p-3">
+                              <img
+                                src={previewLogoUrl}
+                                alt={storeLogoAlt || "Store logo preview"}
+                                className="max-h-16 max-w-[220px] object-contain"
+                              />
+                            </div>
+                          ) : (
+                            <div className="rounded border border-dashed border-blue-200 bg-white px-3 py-4 text-center text-xs text-gray-600">
+                              No logo uploaded yet.{" "}
+                              <Link to="/admin/logo" className="font-medium text-primary hover:underline">
+                                Upload in Logo Management
+                              </Link>
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => void loadStoreLogo()}
+                            className="mt-2 text-[11px] text-gray-600 hover:text-gray-900"
+                          >
+                            Refresh preview
+                          </button>
                         </div>
 
                         <div className="rounded-md border border-gray-200 p-3">
@@ -1348,11 +1406,11 @@ export default function ProductCentralNavbarHub() {
                                     }
                                   >
                                     <div className="flex items-center gap-2">
-                                      {selectedConfig.logoUrl ? (
-                                        <img src={selectedConfig.logoUrl} alt="logo" className="h-10 w-auto rounded-md object-contain" />
+                                      {previewLogoUrl ? (
+                                        <img src={previewLogoUrl} alt="logo" className="h-10 w-auto rounded-md object-contain" />
                                       ) : (
                                         <span className="text-sm font-semibold text-gray-900">
-                                          {selectedConfig.logoText || "Brand"}
+                                          {previewLogoText}
                                         </span>
                                       )}
                                     </div>
@@ -1441,15 +1499,15 @@ export default function ProductCentralNavbarHub() {
                                   }}
                                 />
                                 <div className="flex shrink-0 items-center bg-white px-4">
-                                  {selectedConfig.logoUrl ? (
+                                  {previewLogoUrl ? (
                                     <img
-                                      src={selectedConfig.logoUrl}
+                                      src={previewLogoUrl}
                                       alt="logo"
                                       className="h-9 w-auto max-w-[140px] rounded-md object-contain"
                                     />
                                   ) : (
                                     <span className="text-sm font-semibold text-gray-900">
-                                      {selectedConfig.logoText || "Brand"}
+                                      {previewLogoText}
                                     </span>
                                   )}
                                 </div>
@@ -1522,9 +1580,9 @@ export default function ProductCentralNavbarHub() {
                                 }}
                               >
                                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-md ring-1 ring-black/10">
-                                  {selectedConfig.logoUrl ? (
+                                  {previewLogoUrl ? (
                                     <img
-                                      src={selectedConfig.logoUrl}
+                                      src={previewLogoUrl}
                                       alt=""
                                       className="h-[70%] w-[70%] object-contain"
                                     />
@@ -1555,15 +1613,15 @@ export default function ProductCentralNavbarHub() {
                             >
                               <div className="flex items-center justify-between gap-4">
                                 <div className="flex items-center gap-3">
-                                  {selectedConfig.logoUrl ? (
-                                    <img src={selectedConfig.logoUrl} alt="logo" className="h-9 w-9 rounded-md object-cover" />
+                                  {previewLogoUrl ? (
+                                    <img src={previewLogoUrl} alt="logo" className="h-9 w-9 rounded-md object-contain" />
                                   ) : (
                                     <span className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-gradient-to-br from-emerald-600 to-emerald-800 text-xs font-bold text-white">
-                                      {(selectedConfig.logoText || "NB").slice(0, 2).toUpperCase()}
+                                      {(previewLogoText || "NB").slice(0, 2).toUpperCase()}
                                     </span>
                                   )}
                                   <span className="text-sm font-semibold text-gray-900">
-                                    {selectedConfig.logoText || "Brand"}
+                                    {previewLogoText}
                                   </span>
                                 </div>
                                 <div className="flex items-center gap-6 text-sm">

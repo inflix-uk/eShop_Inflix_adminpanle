@@ -141,6 +141,22 @@ export default function ProductVariant({ variants, setVariants, saveData }) {
     }));
   };
 
+  const isColorAttribute = (variant) => {
+    const slug = String(variant.selectedAttributeSlug || variant.name || "")
+      .toLowerCase()
+      .replace(/^variant\s+/, "")
+      .trim();
+    const name = String(variant.selectedAttributeName || "").toLowerCase();
+    return (
+      slug === "color" ||
+      slug === "colour" ||
+      slug.includes("colour") ||
+      slug.includes("color") ||
+      name.includes("colour") ||
+      name.includes("color")
+    );
+  };
+
   // Render color label with swatch
   const renderColorLabel = (name, colorCode) => (
     <div className="flex items-center gap-2">
@@ -378,6 +394,8 @@ export default function ProductVariant({ variants, setVariants, saveData }) {
                   ) : (
                     <Select
                       isMulti
+                      isSearchable={isColorAttribute(variant)}
+                      closeMenuOnSelect={!isColorAttribute(variant)}
                       className="aa"
                       styles={customStyles}
                       value={variant.options.map((opt) => ({
@@ -388,18 +406,25 @@ export default function ProductVariant({ variants, setVariants, saveData }) {
                           models: opt.models || []
                         }),
                         label:
-                          variant.selectedAttributeSlug === "color" && opt.colorCode
+                          isColorAttribute(variant) && opt.colorCode
                             ? renderColorLabel(opt.name, opt.colorCode)
                             : opt.name
                       }))}
                       options={getOptionsForAttribute(variant.selectedAttributeId, variant.selectedAttributeSlug)}
                       onChange={(selectedOptions) =>
-                        handleOptionChange(variant.id, selectedOptions)
+                        handleOptionChange(variant.id, selectedOptions || [])
                       }
-                      placeholder={`Select ${variant.selectedAttributeName} options...`}
+                      placeholder={
+                        isColorAttribute(variant)
+                          ? "Search colours..."
+                          : `Select ${variant.selectedAttributeName} options...`
+                      }
+                      noOptionsMessage={() =>
+                        isColorAttribute(variant) ? "No colours found" : "No options"
+                      }
                       formatOptionLabel={(option) => {
                         // For color options, render with swatch
-                        if (variant.selectedAttributeSlug === "color") {
+                        if (isColorAttribute(variant)) {
                           try {
                             const parsed = JSON.parse(option.value);
                             if (parsed.colorCode) {

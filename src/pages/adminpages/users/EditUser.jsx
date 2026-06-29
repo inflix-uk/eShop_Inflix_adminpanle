@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { toast } from 'react-toastify';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
@@ -444,6 +444,14 @@ const EditUser = () => {
                             <p className="text-sm text-gray-600">
                                 Update user information and permissions
                             </p>
+                            {userData?.role !== 'admin' && (
+                                <Link
+                                    to={`/admin/crm/customers/${userId}`}
+                                    className="mt-3 inline-flex items-center text-sm font-semibold text-primary hover:underline"
+                                >
+                                    Open CRM profile
+                                </Link>
+                            )}
                         </div>
 
                         <div className="mb-4 flex items-center gap-2 border-b border-gray-200">

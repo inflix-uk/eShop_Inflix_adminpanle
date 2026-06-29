@@ -1,4 +1,5 @@
 import PropTypes from "prop-types";
+import { Link } from "react-router-dom";
 
 const CustomerDetails = ({
   orderDetail,
@@ -32,6 +33,14 @@ const CustomerDetails = ({
           <p className="text-gray-900 font-medium break-all">
             {`${orderDetail.contactDetails.email || ""}`}
           </p>
+          {orderDetail.contactDetails?.userId && (
+            <Link
+              to={`/admin/crm/customers/${orderDetail.contactDetails.userId}`}
+              className="mt-2 inline-block text-sm font-semibold text-primary hover:underline"
+            >
+              Open Customer 360
+            </Link>
+          )}
         </div>
 
         <div className="flex flex-col">
@@ -163,6 +172,7 @@ CustomerDetails.propTypes = {
     contactDetails: PropTypes.shape({
       email: PropTypes.string,
       secondaryEmail: PropTypes.string,
+      userId: PropTypes.string,
     }).isRequired,
     shippingDetails: PropTypes.shape({
       firstName: PropTypes.string,

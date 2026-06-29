@@ -381,6 +381,82 @@ export default function ProductVariants({
     return variant.options?.some(opt => normalizeSlug(opt.slug) === normalizedOptionSlug);
   };
 
+  const isColorAttribute = (variant, attrSlug) => {
+    const slug = String(attrSlug || variant.selectedAttributeSlug || variant.name || "")
+      .toLowerCase()
+      .replace(/^variant\s+/, "")
+      .trim();
+    const name = String(variant.selectedAttributeName || "").toLowerCase();
+    return (
+      slug === "color" ||
+      slug === "colour" ||
+      slug.includes("colour") ||
+      slug.includes("color") ||
+      name.includes("colour") ||
+      name.includes("color")
+    );
+  };
+
+  const compactMultiSelectStyles = {
+    control: (provided, state) => ({
+      ...provided,
+      minHeight: "32px",
+      fontSize: "11px",
+      borderColor: state.isFocused ? "#2563EB" : "#d1d5db",
+      boxShadow: state.isFocused ? "0 0 0 1px #2563EB" : "none",
+      cursor: "pointer",
+    }),
+    valueContainer: (provided) => ({
+      ...provided,
+      padding: "0 6px",
+      maxHeight: "120px",
+      overflowY: "auto",
+    }),
+    multiValue: (provided) => ({
+      ...provided,
+      backgroundColor: "#dbeafe",
+      fontSize: "10px",
+    }),
+    multiValueLabel: (provided) => ({
+      ...provided,
+      fontSize: "10px",
+      padding: "1px 4px",
+    }),
+    input: (provided) => ({
+      ...provided,
+      margin: "0",
+      padding: "0",
+      fontSize: "11px",
+    }),
+    placeholder: (provided) => ({
+      ...provided,
+      fontSize: "10px",
+      color: "#9ca3af",
+    }),
+    dropdownIndicator: (provided) => ({
+      ...provided,
+      padding: "2px",
+    }),
+    indicatorSeparator: () => ({ display: "none" }),
+    menu: (provided) => ({
+      ...provided,
+      zIndex: 9999,
+      fontSize: "11px",
+    }),
+    menuPortal: (provided) => ({
+      ...provided,
+      zIndex: 9999,
+    }),
+    option: (provided, state) => ({
+      ...provided,
+      fontSize: "11px",
+      padding: "6px 10px",
+      backgroundColor: state.isSelected ? "#2563EB" : state.isFocused ? "#f0fdf4" : "white",
+      color: state.isSelected ? "white" : "#374151",
+      cursor: "pointer",
+    }),
+  };
+
   if (loading) {
     return (
       <div className="ring-1 ring-gray-200 rounded-lg bg-white">
@@ -433,6 +509,10 @@ export default function ProductVariants({
             const attrId = variant.selectedAttributeId ||
               variantAttributes.find(a => a.slug === attrSlug)?._id;
             const availableOptions = attrId ? (attributeValuesCache[attrId] || []) : [];
+            const useColorDropdown = isColorAttribute(variant, attrSlug);
+            const colorSelectOptions = useColorDropdown
+              ? getOptionsForAttribute(attrId, attrSlug)
+              : [];
 
             return (
               <div key={variantId} className="bg-gray-50 rounded-lg p-2">
@@ -520,6 +600,33 @@ export default function ProductVariants({
                       </div>
                     ) : availableOptions.length === 0 ? (
                       <p className="text-[10px] text-amber-600 py-1">No options available</p>
+                    ) : useColorDropdown ? (
+                      <Select
+                        isMulti
+                        isSearchable
+                        closeMenuOnSelect={false}
+                        menuPortalTarget={document.body}
+                        menuPosition="fixed"
+                        styles={compactMultiSelectStyles}
+                        placeholder="Search colours..."
+                        options={colorSelectOptions}
+                        value={getSelectedOptionsValue(variant)}
+                        onChange={(selected) =>
+                          handleOptionChange(variantId, selected || [])
+                        }
+                        formatOptionLabel={(option) => {
+                          try {
+                            const parsed = JSON.parse(option.value);
+                            if (parsed.colorCode) {
+                              return renderColorLabel(parsed.name, parsed.colorCode);
+                            }
+                            return parsed.name || option.label;
+                          } catch {
+                            return option.label;
+                          }
+                        }}
+                        noOptionsMessage={() => "No colours found"}
+                      />
                     ) : (
                       <div className="flex flex-wrap gap-1">
                         {availableOptions.map((opt) => {
@@ -531,8 +638,8 @@ export default function ProductVariants({
                               onClick={() => toggleOption(variantId, opt, selected)}
                               className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] border transition-all ${
                                 selected
-                                  ? 'bg-blue-100 border-blue-400 text-blue-800 font-medium'
-                                  : 'bg-white border-gray-200 text-gray-600 hover:border-blue-300 hover:bg-blue-50'
+                                  ? "bg-blue-100 border-blue-400 text-blue-800 font-medium"
+                                  : "bg-white border-gray-200 text-gray-600 hover:border-blue-300 hover:bg-blue-50"
                               }`}
                             >
                               {opt.colorCode && (
