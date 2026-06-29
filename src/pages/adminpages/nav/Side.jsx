@@ -1803,6 +1803,30 @@ export default function Side({
                   isActive={selectedPage === "profile"}
                 />
               </li>
+              {/* Logs - standalone link */}
+              <li>
+                <SidebarLink
+                  to="/admin/logs"
+                  icon={
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth="1.5"
+                      stroke="currentColor"
+                      className="h-5 w-5"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2Z"
+                      />
+                    </svg>
+                  }
+                  label="Logs"
+                  isActive={selectedPage === "logs"}
+                />
+              </li>
             </ul>
           </nav>
         </div>
@@ -1921,6 +1945,30 @@ export default function Side({
                 }
                 label="Profile"
                 isActive={selectedPage === "profile"}
+              />
+            </li>
+            {/* Logs - standalone link */}
+            <li>
+              <SidebarLink
+                to="/admin/logs"
+                icon={
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth="1.5"
+                    stroke="currentColor"
+                    className="h-5 w-5"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2Z"
+                    />
+                  </svg>
+                }
+                label="Logs"
+                isActive={selectedPage === "logs"}
               />
             </li>
           </ul>
