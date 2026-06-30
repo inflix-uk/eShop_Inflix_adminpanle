@@ -31,6 +31,9 @@ const CustomersList = lazy(() =>
   import("./pages/adminpages/crm/CustomersList")
 );
 const Customer360 = lazy(() => import("./pages/adminpages/crm/Customer360"));
+const AnalyticsOverview = lazy(() =>
+  import("./pages/adminpages/analytics-dashboard/Overview")
+);
 const ProductCentral = lazy(() =>
   import("./pages/adminpages/ProductCentral/ProductCentral")
 );
@@ -592,6 +595,20 @@ function App() {
                     <Suspense fallback={<div>Loading...</div>}>
                       <PermissionRoute permission="zextons.view_users">
                         <Customer360 />
+                      </PermissionRoute>
+                    </Suspense>
+                  </ErrorBoundary>
+                </>
+              }
+            />
+            <Route
+              path="/admin/analytics/overview"
+              element={
+                <>
+                  <ErrorBoundary fallback={<div>Error</div>}>
+                    <Suspense fallback={<div>Loading...</div>}>
+                      <PermissionRoute permission="store.view_dashboard">
+                        <AnalyticsOverview />
                       </PermissionRoute>
                     </Suspense>
                   </ErrorBoundary>

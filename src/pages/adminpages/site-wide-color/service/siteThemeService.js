@@ -22,6 +22,7 @@ export const getSiteTheme = async () => {
       return {
         primaryColor: pick(response.data.data?.primaryColor),
         secondaryColor: pick(response.data.data?.secondaryColor),
+        bodyBgColor: response.data.data?.bodyBgColor ?? "",
         typography: response.data.data?.typography || null,
         updatedAt: response.data.data?.updatedAt || null,
       };
@@ -50,6 +51,29 @@ export const saveSiteTheme = async (primaryColor, secondaryColor) => {
     console.error("Error saving site theme:", error);
     toast.error(
       error.response?.data?.message || "Failed to save site colors"
+    );
+    return false;
+  }
+};
+
+/** CMS body background — `PUT /api/theme/body-background` (admin). */
+export const saveBodyBackgroundTheme = async (bodyBgColor) => {
+  try {
+    const response = await axios.put(
+      `${API_BASE_URL}api/theme/body-background`,
+      { bodyBgColor },
+      { headers: getHeaders() }
+    );
+    if (response.data.success) {
+      toast.success("Body background saved");
+      return true;
+    }
+    toast.error(response.data.message || "Failed to save body background");
+    return false;
+  } catch (error) {
+    console.error("Error saving body background:", error);
+    toast.error(
+      error.response?.data?.message || "Failed to save body background"
     );
     return false;
   }
