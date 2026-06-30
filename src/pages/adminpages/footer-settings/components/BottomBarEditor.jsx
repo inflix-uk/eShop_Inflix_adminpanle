@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 
 const defaultForm = {
-  textBeforeCredit:
-    "ZEXTONS TECH STORE © {{year}} All Rights Reserved. Company Number: 10256988. Designed and Developed by ",
-  creditLabel: "Inflix",
-  creditUrl: "https://inflix.co.uk",
+  textBeforeCredit: "© {{year}} All Rights Reserved.",
+  creditLabel: "",
+  creditUrl: "",
 };
 
 const BottomBarEditor = ({ data, onSave, isSaving }) => {

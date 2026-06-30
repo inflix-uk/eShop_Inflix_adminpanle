@@ -8,7 +8,7 @@ import { useAuth } from "./Auth";
  * Protects routes based on user authentication AND permissions
  *
  * @param {node} children - Child components to render if authorized
- * @param {string} permission - Required permission in format "section.permission" (e.g., "zextons.view_orders")
+ * @param {string} permission - Required permission in format "section.permission" (e.g., "store.view_orders")
  */
 export default function PermissionRoute({ children, permission }) {
   const auth = useAuth();
@@ -52,11 +52,13 @@ function checkPermission(permissions, permission) {
   if (!permissions || !permission) return false;
 
   // Split permission into section and permission name
-  // e.g., "zextons.view_orders" -> ["zextons", "view_orders"]
+  // e.g., "store.view_orders" -> ["store", "view_orders"]
   const [section, permissionName] = permission.split('.');
 
-  // Check if permission exists and is true
-  return permissions?.[section]?.[permissionName] === true;
+  if (permissions?.[section]?.[permissionName] === true) return true;
+  // Legacy DB rows may still use the old `store` permission namespace.
+  if (section === 'store' && permissions?.store?.[permissionName] === true) return true;
+  return false;
 }
 
 PermissionRoute.propTypes = {

@@ -747,7 +747,7 @@ export default function AllProducts() {
                                   <td className="whitespace-nowrap text-wrap px-6 py-3 max-w-80 text-sm w-ful">
                                     <div className="flex items-center gap-2.5">
                                       <div className="h-11 w-11 flex-shrink-0 flex justify-center">
-                                        <Link to={`https://zextons.co.uk/products/${productNameSlug}`}>
+                                        <Link to={getStorefrontProductUrl(productNameSlug)}>
                                           <img
                                             className="h-11 w-11 object-cover rounded-lg"
                                             src={getThumbUrl(product.thumbnail_image, auth.ip)}

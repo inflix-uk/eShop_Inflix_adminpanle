@@ -165,7 +165,7 @@ export default function BlogPreviewPage() {
   const canonicalUrl = blog?.slug
     ? isLocalhost
       ? window.location.href
-      : `https://zextons.co.uk/blog/${blog.slug}`
+      : `https:///blog/${blog.slug}`
     : "";
 
   return (

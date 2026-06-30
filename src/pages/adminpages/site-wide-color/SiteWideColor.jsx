@@ -3,9 +3,10 @@ import { Helmet } from "react-helmet-async";
 import LoadingBar from "react-top-loading-bar";
 import Side from "../nav/Side";
 import Top from "../nav/Top";
+import BodyBackgroundColorForm, { adminDisplayBodyBg } from "./components/BodyBackgroundColorForm";
 import TypographySettingsForm from "./components/TypographySettingsForm";
 import { DEFAULT_TYPOGRAPHY, ALLOWED_FONTS, ALLOWED_WEIGHTS } from "./typographyDefaults";
-import { getSiteTheme, saveSiteTheme, saveTypographyTheme } from "./service/siteThemeService";
+import { getSiteTheme, saveSiteTheme, saveTypographyTheme, saveBodyBackgroundTheme } from "./service/siteThemeService";
 
 /** Matches storefront / API when no CMS hex is set — no green fallbacks. */
 const DEFAULT_PRIMARY = "transparent";
@@ -68,6 +69,8 @@ export default function SiteWideColor() {
   const [previewMainHover, setPreviewMainHover] = useState(false);
   const [typography, setTypography] = useState(() => normalizeTypography(null));
   const [typographySaving, setTypographySaving] = useState(false);
+  const [bodyBgColor, setBodyBgColor] = useState(() => adminDisplayBodyBg(""));
+  const [bodyBgSaving, setBodyBgSaving] = useState(false);
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
   const closeSidebar = () => setIsSidebarOpen(false);
@@ -88,6 +91,7 @@ export default function SiteWideColor() {
           !s || s.toLowerCase() === "transparent" ? DEFAULT_SECONDARY : s
         );
         setTypography(normalizeTypography(data.typography));
+        setBodyBgColor(adminDisplayBodyBg(data.bodyBgColor));
       }
       if (!cancelled) {
         setLoading(false);
@@ -143,6 +147,15 @@ export default function SiteWideColor() {
     if (fresh?.typography) setTypography(normalizeTypography(fresh.typography));
   };
 
+  const handleSaveBodyBackground = async () => {
+    setBodyBgSaving(true);
+    const ok = await saveBodyBackgroundTheme(bodyBgColor);
+    setBodyBgSaving(false);
+    if (!ok) return;
+    const fresh = await getSiteTheme();
+    if (fresh) setBodyBgColor(adminDisplayBodyBg(fresh.bodyBgColor));
+  };
+
   return (
     <>
       <Helmet>
@@ -176,6 +189,30 @@ export default function SiteWideColor() {
               <p className="mt-2 text-gray-600">
                 Sets the main and accent colors on the public website.
               </p>
+            </div>
+
+            <div className="mb-10 bg-white shadow rounded-lg overflow-hidden">
+              <div className="px-6 py-5 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-gray-900">Body background</h2>
+                <p className="mt-1 text-sm text-gray-600">
+                  Choose a custom background color for the overall website body.
+                </p>
+              </div>
+              <div className="px-6 py-6">
+                {loading ? (
+                  <div className="py-12 text-center">
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    <p className="mt-4 text-gray-600">Loading…</p>
+                  </div>
+                ) : (
+                  <BodyBackgroundColorForm
+                    bodyBgColor={bodyBgColor}
+                    onChange={setBodyBgColor}
+                    onSave={handleSaveBodyBackground}
+                    saving={bodyBgSaving}
+                  />
+                )}
+              </div>
             </div>
 
             <div className="bg-white shadow rounded-lg overflow-hidden">

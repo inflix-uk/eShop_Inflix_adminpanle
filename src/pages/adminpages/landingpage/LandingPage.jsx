@@ -115,13 +115,13 @@ const LandingPage = () => {
                                         Your Permissions
                                     </h3>
                                     <div className="space-y-3">
-                                        {auth.user?.permissions?.zextons && (
+                                        {auth.user?.permissions?.store && (
                                             <div>
                                                 <p className="text-sm font-medium text-gray-700 mb-2">
                                                     🛒 Access:
                                                 </p>
                                                 <div className="flex flex-wrap gap-2">
-                                                    {Object.entries(auth.user.permissions.zextons)
+                                                    {Object.entries(auth.user.permissions.store)
                                                         .filter(([_, value]) => value === true)
                                                         .map(([key]) => (
                                                             <span
@@ -160,7 +160,7 @@ const LandingPage = () => {
                                 >
                                     View Profile
                                 </button>
-                                {auth.user?.permissions?.zextons?.view_dashboard && (
+                                {auth.user?.permissions?.store?.view_dashboard && (
                                     <button
                                         onClick={() => window.location.href = '/admin/dashboard'}
                                         className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
