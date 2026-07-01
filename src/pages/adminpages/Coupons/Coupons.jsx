@@ -7,6 +7,7 @@ import { useAuth } from "../../../context/Auth";
 import { toast } from "react-toastify";
 import { Helmet } from "react-helmet-async";
 import { CouponTable, CouponModal, SearchBar, Pagination, CouponDetailsPage } from "./components";
+import { TableSkeleton } from "../shared/Skeletons";
 
 export default function Coupons() {
   const [selectedPage, setSelectedPage] = useState("coupons");
@@ -300,12 +301,16 @@ export default function Coupons() {
                   totalCoupons={filteredCoupons.length}
                 />
 
-                <CouponTable
-                  coupons={paginatedCoupons}
-                  onEdit={handleOpenModal}
-                  onDelete={handleDelete}
-                  onViewDetails={handleOpenDetails} // opens full page
-                />
+                {progress > 0 && progress < 100 ? (
+                  <TableSkeleton rows={8} columns={8} />
+                ) : (
+                  <CouponTable
+                    coupons={paginatedCoupons}
+                    onEdit={handleOpenModal}
+                    onDelete={handleDelete}
+                    onViewDetails={handleOpenDetails} // opens full page
+                  />
+                )}
 
                 <Pagination
                   currentPage={currentPage}

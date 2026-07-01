@@ -18,6 +18,7 @@ import {
   Pagination,
   DeleteConfirmationModal,
 } from "./components";
+import { TableSkeleton } from "../shared/Skeletons";
 
 export default function Deals() {
   const [selectedPage, setSelectedPage] = useState("deals");
@@ -347,6 +348,9 @@ export default function Deals() {
 
             {/* Deals Table */}
             <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+              {loading ? (
+                <TableSkeleton rows={8} columns={7} />
+              ) : (
               <DealsTable
                 deals={currentDeals}
                 loading={loading}
@@ -361,6 +365,7 @@ export default function Deals() {
                   setIsUnexpireModalOpen(true);
                 }}
               />
+              )}
             </div>
 
             {/* Pagination */}

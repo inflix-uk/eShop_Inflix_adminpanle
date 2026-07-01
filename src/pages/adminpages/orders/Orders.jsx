@@ -20,6 +20,7 @@ import OrderModal from "./components/orders/OrderModal";
 import Pagination from "./components/orders/Pagination";
 import ShippingUpdateModal from "./components/orders/ShippingUpdateModal";
 import OrderChatModal from "./components/orders/OrderChatModal";
+import { TableSkeleton } from "../shared/Skeletons";
 
 export default function Orders() {
   const [progress, setProgress] = useState(0);
@@ -705,11 +706,8 @@ export default function Orders() {
 
                   {/* Loading Overlay */}
                   {isLoading && (
-                    <div className="absolute inset-0 bg-white/70 z-10 flex items-center justify-center">
-                      <div className="flex items-center gap-3">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                        <span className="text-gray-600 font-medium">Loading orders...</span>
-                      </div>
+                    <div className="absolute inset-0 bg-white z-10 p-4 overflow-hidden">
+                      <TableSkeleton rows={8} columns={7} />
                     </div>
                   )}
 

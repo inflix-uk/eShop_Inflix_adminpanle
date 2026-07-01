@@ -25,6 +25,7 @@ import {
   isUnassignedBrandKey,
   UNASSIGNED_BRAND_KEY,
 } from "./constants/brandConstants";
+import { TableSkeleton } from "../shared/Skeletons";
 
 export default function NewProducts() {
   const auth = useAuth();
@@ -478,15 +479,21 @@ export default function NewProducts() {
                         totalProducts={filteredProducts.length}
                       />
 
-                      <ProductTable
-                        products={paginatedProducts}
-                        auth={auth}
-                        onFeaturedChange={handleFeaturedChange}
-                        onStatusChange={handleStatusChange}
-                        onDelete={handleDelete}
-                        onDuplicate={handleDuplicate}
-                        onViewVariants={handleOpenModal}
-                      />
+                      {products.length === 0 ? (
+                        <div className="p-4">
+                          <TableSkeleton rows={8} columns={7} />
+                        </div>
+                      ) : (
+                        <ProductTable
+                          products={paginatedProducts}
+                          auth={auth}
+                          onFeaturedChange={handleFeaturedChange}
+                          onStatusChange={handleStatusChange}
+                          onDelete={handleDelete}
+                          onDuplicate={handleDuplicate}
+                          onViewVariants={handleOpenModal}
+                        />
+                      )}
                       <Pagination
                         currentPage={currentPage}
                         totalPages={totalPages}

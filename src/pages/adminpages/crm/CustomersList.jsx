@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import Side from '../nav/Side';
 import Top from '../nav/Top';
+import { TableSkeleton } from '../shared/Skeletons';
 import { listCustomers } from './services/crmService';
 
 const formatMoney = (value) => {
@@ -116,8 +117,8 @@ const CustomersList = () => {
                 <tbody>
                   {isLoading ? (
                     <tr>
-                      <td colSpan={7} className="px-4 py-12 text-center">
-                        <div className="mx-auto h-8 w-8 animate-spin rounded-full border-b-2 border-primary" />
+                      <td colSpan={7} className="p-0">
+                        <TableSkeleton rows={8} columns={7} showHeader={false} />
                       </td>
                     </tr>
                   ) : customers.length === 0 ? (

@@ -1,6 +1,7 @@
 import PropTypes from "prop-types";
 import { Clock, Coffee } from "lucide-react";
 import VisitorItem from "./VisitorItem";
+import ConversationListSkeleton from "./ConversationListSkeleton";
 
 export default function ConversationList({
   visitors,
@@ -82,9 +83,7 @@ export default function ConversationList({
       {/* List */}
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
-          <div className="flex justify-center py-10">
-            <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          </div>
+          <ConversationListSkeleton />
         ) : visitors.length === 0 ? (
           <div className="text-center py-16 px-4">
             <div className="w-16 h-16 mx-auto mb-4 bg-slate-100 rounded-full flex items-center justify-center">

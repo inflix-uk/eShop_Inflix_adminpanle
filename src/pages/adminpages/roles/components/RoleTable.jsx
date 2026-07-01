@@ -6,6 +6,7 @@
 import PropTypes from 'prop-types';
 import { FaEdit, FaTrash, FaUsers } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import { TableSkeleton } from '../../shared/Skeletons';
 
 const RoleTable = ({
     roles,
@@ -16,8 +17,8 @@ const RoleTable = ({
     const navigate = useNavigate();
     if (isLoading) {
         return (
-            <div className="flex justify-center items-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="p-4">
+                <TableSkeleton rows={8} columns={4} />
             </div>
         );
     }

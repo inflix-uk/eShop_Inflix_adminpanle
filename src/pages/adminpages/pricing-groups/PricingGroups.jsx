@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import { useAuth } from "../../../context/Auth";
 import Side from "../nav/Side";
 import Top from "../nav/Top";
+import { TableSkeleton } from "../shared/Skeletons";
 import {
   createPricingGroup,
   deletePricingGroup,
@@ -153,9 +154,9 @@ export default function PricingGroups() {
 
             <div className="mt-6 overflow-hidden rounded-lg border bg-white">
               {loading ? (
-                <p className="p-6 text-center text-sm text-gray-500">
-                  Loading groups...
-                </p>
+                <div className="p-4">
+                  <TableSkeleton rows={8} columns={3} showHeader={false} />
+                </div>
               ) : groups.length === 0 ? (
                 <p className="p-6 text-center text-sm text-gray-500">
                   No groups created yet.

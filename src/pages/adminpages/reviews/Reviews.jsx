@@ -6,6 +6,7 @@ import { toast } from "react-toastify";
 import axios from "axios";
 import { useAuth } from "../../../context/Auth";
 import { Helmet } from "react-helmet-async";
+import { TableSkeleton } from "../shared/Skeletons";
 const calculateReviewStats = (reviews = []) => {
     const safeReviews = Array.isArray(reviews) ? reviews : [];
     const totalReviews = safeReviews.length;
@@ -22,9 +23,11 @@ const Reviews = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [itemsPerPage, setItemsPerPage] = useState(10); // Default to 10 items per page
+    const [loading, setLoading] = useState(true); // Loading state for initial products/reviews fetch
     const auth = useAuth();
     const navigate = useNavigate();
     const getProducts = () => {
+        setLoading(true);
         axios.get(`${auth.ip}all/products/and/reviews/details`)
             .then((response) => {
                 if (response.data.status === 201) {
@@ -37,6 +40,9 @@ const Reviews = () => {
             })
             .catch((error) => {
                 toast.error("An error occurred while fetching products.");
+            })
+            .finally(() => {
+                setLoading(false);
             });
     };
 
@@ -130,7 +136,13 @@ const Reviews = () => {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {paginatedProducts.length > 0 ? (
+                                        {loading ? (
+                                            <tr>
+                                                <td colSpan="6" className="p-0">
+                                                    <TableSkeleton rows={8} columns={5} showHeader={false} />
+                                                </td>
+                                            </tr>
+                                        ) : paginatedProducts.length > 0 ? (
                                             paginatedProducts.map((product) => {
                                                 const { totalReviews, approvedReviews, pendingReviews } = calculateReviewStats(product.reviewDetails);
                                                 const productNameSlug = product.producturl;

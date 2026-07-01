@@ -9,6 +9,7 @@ import { toast } from 'react-toastify';
 import Side from "../nav/Side";
 import Top from "../nav/Top";
 import { RoleSelector, PermissionSection, SaveButton } from './components';
+import { ListSkeleton } from '../shared/Skeletons';
 import { getAllRoles, getRoleById } from './services/rolesService';
 import {
     saveRolePermissions,
@@ -239,6 +240,10 @@ const PermissionsManagement = () => {
                             />
                         </div>
 
+                        {isLoading && roles.length === 0 ? (
+                            <ListSkeleton rows={6} />
+                        ) : (
+                        <>
                         {/* Role Selector */}
                         <RoleSelector
                             roles={roles}
@@ -288,6 +293,8 @@ const PermissionsManagement = () => {
                                 isAdministrator={isAdministrator}
                             />
                         </div>
+                        </>
+                        )}
                     </div>
                 </main>
             </div>

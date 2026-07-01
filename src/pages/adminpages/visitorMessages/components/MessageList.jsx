@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import MessageBubble from "./MessageBubble";
+import MessageListSkeleton from "./MessageListSkeleton";
 
 export default function MessageList({ messages, isLoading, visitorTyping, visitorName }) {
   const messagesEndRef = useRef(null);
@@ -34,9 +35,7 @@ export default function MessageList({ messages, isLoading, visitorTyping, visito
   return (
     <div className="flex-1 overflow-y-auto p-5 bg-slate-50">
       {isLoading ? (
-        <div className="flex justify-center py-10">
-          <div className="w-8 h-8 border-3 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-        </div>
+        <MessageListSkeleton />
       ) : (
         <div className="max-w-2xl mx-auto space-y-3">
           {messages.map((msg, idx) => (
