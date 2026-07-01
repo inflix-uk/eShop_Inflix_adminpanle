@@ -7,6 +7,7 @@ import "react-toastify/dist/ReactToastify.css";
 import PrivateRoute from "./context/PrivateRoute";
 import PermissionRoute from "./context/PermissionRoute";
 import AdminTabFavicon from "./components/AdminTabFavicon.jsx";
+import PageSkeleton, { AuthSkeleton } from "./pages/adminpages/shared/PageSkeleton";
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 const Login = lazy(() => import("./pages/Login"));
 const ForgotPassword = lazy(() =>
@@ -346,7 +347,7 @@ function AdminRouteAccessGuard({ children, routePath }) {
   }, [routePath]);
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return <PageSkeleton />;
   }
 
   if (isBlocked) {
@@ -374,7 +375,7 @@ function App() {
               path="/resetpassword/:token"
               element={
                 <ErrorBoundary fallback={<div>Error</div>}>
-                  <Suspense fallback={<div>Loading...</div>}>
+                  <Suspense fallback={<AuthSkeleton />}>
                     <ResetPass />
                   </Suspense>
                 </ErrorBoundary>
@@ -386,7 +387,7 @@ function App() {
               path="/"
               element={
                 <ErrorBoundary fallback={<div>Error</div>}>
-                  <Suspense fallback={<div>Loading...</div>}>
+                  <Suspense fallback={<AuthSkeleton />}>
                     <Login />
                   </Suspense>
                 </ErrorBoundary>
@@ -396,7 +397,7 @@ function App() {
               path="/admin/superadmin"
               element={
                 <ErrorBoundary fallback={<div>Error</div>}>
-                  <Suspense fallback={<div>Loading...</div>}>
+                  <Suspense fallback={<AuthSkeleton />}>
                     <SuperadminLogin />
                   </Suspense>
                 </ErrorBoundary>
@@ -406,7 +407,7 @@ function App() {
               path="/admin/superadmin/dashboard"
               element={
                 <ErrorBoundary fallback={<div>Error</div>}>
-                  <Suspense fallback={<div>Loading...</div>}>
+                  <Suspense fallback={<PageSkeleton />}>
                     <SuperadminRoute>
                       <SuperadminDashboard />
                     </SuperadminRoute>
@@ -419,7 +420,7 @@ function App() {
               path="/admin/forgot-password"
               element={
                 <ErrorBoundary fallback={<div>Error</div>}>
-                  <Suspense fallback={<div>Loading...</div>}>
+                  <Suspense fallback={<AuthSkeleton />}>
                     <ForgotPassword />
                   </Suspense>
                 </ErrorBoundary>
@@ -429,7 +430,7 @@ function App() {
               path="/admin/landing"
               element={
                 <ErrorBoundary fallback={<div>Error</div>}>
-                  <Suspense fallback={<div>Loading...</div>}>
+                  <Suspense fallback={<PageSkeleton />}>
                     <PrivateRoute>
                       <LandingPage />
                     </PrivateRoute>
@@ -441,7 +442,7 @@ function App() {
               path="/admin/static-meta"
               element={
                 <ErrorBoundary fallback={<div>Error</div>}>
-                  <Suspense fallback={<div>Loading...</div>}>
+                  <Suspense fallback={<PageSkeleton />}>
                     <StaticMetaPages />
                   </Suspense>
                 </ErrorBoundary>
@@ -452,7 +453,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_dashboard">
                         <Dash2 />
                       </PermissionRoute>
@@ -466,7 +467,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PrivateRoute>
                         <Profile />
                       </PrivateRoute>
@@ -480,7 +481,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PrivateRoute>
                         <Logs />
                       </PrivateRoute>
@@ -494,7 +495,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_orders">
                         <AdminRouteAccessGuard routePath="/admin/orders">
                           <Orders />
@@ -510,7 +511,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_orders">
                         <DeletedOrders />
                       </PermissionRoute>
@@ -523,7 +524,7 @@ function App() {
               path="/admin/orderdetails/:id"
               element={
                 <ErrorBoundary fallback={<div>Error</div>}>
-                  <Suspense fallback={<div>Loading...</div>}>
+                  <Suspense fallback={<PageSkeleton />}>
                     <PermissionRoute permission="store.view_orders">
                       <OrderDetails />
                     </PermissionRoute>
@@ -536,7 +537,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_media">
                         <Media />
                       </PermissionRoute>
@@ -550,7 +551,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_users">
                         <Users />
                       </PermissionRoute>
@@ -564,7 +565,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_users">
                         <EditUser />
                       </PermissionRoute>
@@ -578,7 +579,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="zextons.view_users">
                         <CustomersList />
                       </PermissionRoute>
@@ -592,7 +593,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="zextons.view_users">
                         <Customer360 />
                       </PermissionRoute>
@@ -606,7 +607,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_dashboard">
                         <AnalyticsOverview />
                       </PermissionRoute>
@@ -620,7 +621,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_users">
                         <PricingGroups />
                       </PermissionRoute>
@@ -634,7 +635,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_users">
                         <PricingGroupProducts />
                       </PermissionRoute>
@@ -648,7 +649,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_users">
                         <PricingGroupCustomers />
                       </PermissionRoute>
@@ -662,7 +663,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_subscribers">
                         <Subscribers />
                       </PermissionRoute>
@@ -676,7 +677,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_reviews">
                         <Reviews />
                       </PermissionRoute>
@@ -690,7 +691,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_reviews">
                         <ReviewDetail />
                       </PermissionRoute>
@@ -704,7 +705,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_blogs">
                         <AllBlogs />
                       </PermissionRoute>
@@ -718,7 +719,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_blogs">
                         <NewBlog />
                       </PermissionRoute>
@@ -732,7 +733,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_blogs">
                         <DraftsBlogs />
                       </PermissionRoute>
@@ -746,7 +747,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_blogs">
                         <EditBlog />
                       </PermissionRoute>
@@ -760,7 +761,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_blogs">
                         <BlogCategories />
                       </PermissionRoute>
@@ -773,7 +774,7 @@ function App() {
               path="/admin/blog/preview/:slug"
               element={
                 <ErrorBoundary fallback={<div>Error previewing blog</div>}>
-                  <Suspense fallback={<div>Loading preview...</div>}>
+                  <Suspense fallback={<PageSkeleton />}>
                     <PermissionRoute permission="store.view_blogs">
                       <BlogPreview />
                     </PermissionRoute>
@@ -786,7 +787,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error loading editor</div>}>
-                    <Suspense fallback={<div>Loading editor...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_blogs">
                         <EditBlogNew />
                       </PermissionRoute>
@@ -800,7 +801,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_blogs">
                         <FooterPages />
                       </PermissionRoute>
@@ -814,7 +815,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_blogs">
                         <CreateFooterPage />
                       </PermissionRoute>
@@ -828,7 +829,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error loading editor</div>}>
-                    <Suspense fallback={<div>Loading editor...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_blogs">
                         <EditFooterPage />
                       </PermissionRoute>
@@ -842,7 +843,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error previewing page</div>}>
-                    <Suspense fallback={<div>Loading preview...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_blogs">
                         <FooterPagePreview />
                       </PermissionRoute>
@@ -856,7 +857,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_blogs">
                         <PagesCategories />
                       </PermissionRoute>
@@ -870,7 +871,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_blogs">
                         <FooterSettings />
                       </PermissionRoute>
@@ -884,7 +885,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_blogs">
                         <Author />
                       </PermissionRoute>
@@ -899,7 +900,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_products">
                         <AdminRouteAccessGuard routePath="/admin/all-products">
                           <AllProducts />
@@ -915,7 +916,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_products">
                         <AdminRouteAccessGuard routePath="/admin/new-products">
                           <NewProducts />
@@ -931,7 +932,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_products">
                         <AdminRouteAccessGuard routePath="/admin/deleted-products">
                           <DeletedProducts />
@@ -948,7 +949,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_products">
                         <AdminRouteAccessGuard routePath="/admin/edit-product/:id">
                           <EditProduct />
@@ -964,7 +965,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_products">
                         <AdminRouteAccessGuard routePath="/admin/preview-product/:slug">
                           <ProductPreview />
@@ -981,7 +982,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_products">
                         <AdminRouteAccessGuard routePath="/admin/new-product">
                           <NewProduct />
@@ -997,7 +998,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_products">
                         <AdminRouteAccessGuard routePath="/admin/draft-products">
                           <DraftProducts />
@@ -1013,7 +1014,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central">
                           <ProductCentral />
@@ -1029,7 +1030,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central/categories">
                           <ProductCentralCategories />
@@ -1045,7 +1046,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central/navbar">
                           <ProductCentralNavbarHub />
@@ -1061,7 +1062,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_product_central">
                         <ProductCentralGoogleCategories />
                       </PermissionRoute>
@@ -1093,7 +1094,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central/subcategories">
                           <ProductCentralSubcategories />
@@ -1109,7 +1110,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central/edit-subcategory/:categoryId/:subIndex">
                           <ProductCentralEditSubcategory />
@@ -1125,7 +1126,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central/tags">
                           <ProductCentralTags />
@@ -1141,7 +1142,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central/brands">
                           <ProductCentralBrands />
@@ -1157,7 +1158,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central/condition">
                           <ProductCentralCondition />
@@ -1173,7 +1174,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central/variant-condition">
                           <ProductCentralVariantCondition />
@@ -1189,7 +1190,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central/variant-storage">
                           <ProductCentralVariantStorage />
@@ -1205,7 +1206,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central/variant-color">
                           <ProductCentralVariantColor />
@@ -1221,7 +1222,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central/card-design">
                           <ProductCentralCardDesign />
@@ -1237,7 +1238,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central/add-new-category">
                           <AddCategory />
@@ -1253,7 +1254,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central/edit-category/:id">
                           <EditCategory />
@@ -1269,7 +1270,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central/category-display-products/:categoryId">
                           <CategoryDisplayProducts />
@@ -1285,7 +1286,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-variants">
                           <ProductVariants />
@@ -1301,7 +1302,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-variants/:id">
                           <ProductVariants />
@@ -1317,7 +1318,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/variant-attributes">
                           <ProductCentralVariantAttributes />
@@ -1333,7 +1334,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-options">
                           <ProductCentralProductOptions />
@@ -1349,7 +1350,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_coupons">
                         <AdminRouteAccessGuard routePath="/admin/coupons">
                           <Coupons />
@@ -1365,7 +1366,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_deals">
                         <AdminRouteAccessGuard routePath="/admin/deals">
                           <Deals />
@@ -1381,7 +1382,7 @@ function App() {
                 element={
                   <>
                     <ErrorBoundary fallback={<div>Error</div>}>
-                      <Suspense fallback={<div>Loading...</div>}>
+                      <Suspense fallback={<PageSkeleton />}>
                         <PermissionRoute permission="store.view_blogs">
                           <Banners />
                         </PermissionRoute>
@@ -1395,7 +1396,7 @@ function App() {
                 element={
                   <>
                     <ErrorBoundary fallback={<div>Error</div>}>
-                      <Suspense fallback={<div>Loading...</div>}>
+                      <Suspense fallback={<PageSkeleton />}>
                         <PermissionRoute permission="store.view_blogs">
                           <BannerEditorPage />
                         </PermissionRoute>
@@ -1409,7 +1410,7 @@ function App() {
                 element={
                   <>
                     <ErrorBoundary fallback={<div>Error</div>}>
-                      <Suspense fallback={<div>Loading...</div>}>
+                      <Suspense fallback={<PageSkeleton />}>
                         <PermissionRoute permission="store.view_blogs">
                           <BannerEditorPage />
                         </PermissionRoute>
@@ -1423,7 +1424,7 @@ function App() {
                 element={
                   <>
                     <ErrorBoundary fallback={<div>Error</div>}>
-                      <Suspense fallback={<div>Loading...</div>}>
+                      <Suspense fallback={<PageSkeleton />}>
                         <PermissionRoute>
                           <GoogleSearchConsole />
                         </PermissionRoute>
@@ -1437,7 +1438,7 @@ function App() {
                 element={
                   <>
                     <ErrorBoundary fallback={<div>Error</div>}>
-                      <Suspense fallback={<div>Loading...</div>}>
+                      <Suspense fallback={<PageSkeleton />}>
                         <PermissionRoute>
                           <Logo />
                         </PermissionRoute>
@@ -1451,7 +1452,7 @@ function App() {
                 element={
                   <>
                     <ErrorBoundary fallback={<div>Error</div>}>
-                      <Suspense fallback={<div>Loading...</div>}>
+                      <Suspense fallback={<PageSkeleton />}>
                         <PermissionRoute>
                           <SiteWideColor />
                         </PermissionRoute>
@@ -1465,7 +1466,7 @@ function App() {
                 element={
                   <>
                     <ErrorBoundary fallback={<div>Error</div>}>
-                      <Suspense fallback={<div>Loading...</div>}>
+                      <Suspense fallback={<PageSkeleton />}>
                         <PermissionRoute>
                           <HomepageFeatures />
                         </PermissionRoute>
@@ -1479,7 +1480,7 @@ function App() {
                 element={
                   <>
                     <ErrorBoundary fallback={<div>Error</div>}>
-                      <Suspense fallback={<div>Loading...</div>}>
+                      <Suspense fallback={<PageSkeleton />}>
                         <PermissionRoute>
                           <HomepageWidgets />
                         </PermissionRoute>
@@ -1493,7 +1494,7 @@ function App() {
                 element={
                   <>
                     <ErrorBoundary fallback={<div>Error</div>}>
-                      <Suspense fallback={<div>Loading...</div>}>
+                      <Suspense fallback={<PageSkeleton />}>
                         <PermissionRoute>
                           <DealsModalSettings />
                         </PermissionRoute>
@@ -1507,7 +1508,7 @@ function App() {
                 element={
                   <>
                     <ErrorBoundary fallback={<div>Error</div>}>
-                      <Suspense fallback={<div>Loading...</div>}>
+                      <Suspense fallback={<PageSkeleton />}>
                         <PermissionRoute>
                           <AnnouncementBannerSettings />
                         </PermissionRoute>
@@ -1521,7 +1522,7 @@ function App() {
                 element={
                   <>
                     <ErrorBoundary fallback={<div>Error</div>}>
-                      <Suspense fallback={<div>Loading...</div>}>
+                      <Suspense fallback={<PageSkeleton />}>
                         <PermissionRoute>
                           <CategoryCards />
                         </PermissionRoute>
@@ -1535,7 +1536,7 @@ function App() {
                 element={
                   <>
                     <ErrorBoundary fallback={<div>Error</div>}>
-                      <Suspense fallback={<div>Loading...</div>}>
+                      <Suspense fallback={<PageSkeleton />}>
                         <PermissionRoute>
                           <PromotionalSections />
                         </PermissionRoute>
@@ -1550,7 +1551,7 @@ function App() {
                 element={
                   <>
                     <ErrorBoundary fallback={<div>Error</div>}>
-                      <Suspense fallback={<div>Loading...</div>}>
+                      <Suspense fallback={<PageSkeleton />}>
                         <PermissionRoute>
                           <AdminRouteAccessGuard routePath="/admin/settings/stripe">
                             <StripeSettings />
@@ -1566,7 +1567,7 @@ function App() {
                 element={
                   <>
                     <ErrorBoundary fallback={<div>Error</div>}>
-                      <Suspense fallback={<div>Loading...</div>}>
+                      <Suspense fallback={<PageSkeleton />}>
                         <PermissionRoute>
                           <AdminRouteAccessGuard routePath="/admin/settings/booking">
                             <BookingManagement />
@@ -1582,7 +1583,7 @@ function App() {
                 element={
                   <>
                     <ErrorBoundary fallback={<div>Error</div>}>
-                      <Suspense fallback={<div>Loading...</div>}>
+                      <Suspense fallback={<PageSkeleton />}>
                         <PermissionRoute>
                           <AdminRouteAccessGuard routePath="/admin/settings/shipping">
                             <ShippingSettings />
@@ -1598,7 +1599,7 @@ function App() {
                 element={
                   <>
                     <ErrorBoundary fallback={<div>Error</div>}>
-                      <Suspense fallback={<div>Loading...</div>}>
+                      <Suspense fallback={<PageSkeleton />}>
                         <PermissionRoute>
                           <HomepageDataSettings />
                         </PermissionRoute>
@@ -1625,7 +1626,7 @@ function App() {
                 element={
                   <>
                     <ErrorBoundary fallback={<div>Error</div>}>
-                      <Suspense fallback={<div>Loading...</div>}>
+                      <Suspense fallback={<PageSkeleton />}>
                         <PermissionRoute>
                           <TrustpilotSettings />
                         </PermissionRoute>
@@ -1639,7 +1640,7 @@ function App() {
                 element={
                   <>
                     <ErrorBoundary fallback={<div>Error</div>}>
-                      <Suspense fallback={<div>Loading...</div>}>
+                      <Suspense fallback={<PageSkeleton />}>
                         <PermissionRoute>
                           <ScriptsSettings />
                         </PermissionRoute>
@@ -1653,7 +1654,7 @@ function App() {
                 element={
                   <>
                     <ErrorBoundary fallback={<div>Error</div>}>
-                      <Suspense fallback={<div>Loading...</div>}>
+                      <Suspense fallback={<PageSkeleton />}>
                         <PermissionRoute>
                           <EmailTemplatesSettings />
                         </PermissionRoute>
@@ -1667,7 +1668,7 @@ function App() {
                 element={
                   <>
                     <ErrorBoundary fallback={<div>Error</div>}>
-                      <Suspense fallback={<div>Loading...</div>}>
+                      <Suspense fallback={<PageSkeleton />}>
                         <PermissionRoute>
                           <SmtpSettings />
                         </PermissionRoute>
@@ -1685,7 +1686,7 @@ function App() {
                 element={
                   <>
                     <ErrorBoundary fallback={<div>Error</div>}>
-                      <Suspense fallback={<div>Loading...</div>}>
+                      <Suspense fallback={<PageSkeleton />}>
                         <PermissionRoute>
                           <SiteWideSchemaSettings />
                         </PermissionRoute>
@@ -1699,7 +1700,7 @@ function App() {
                 element={
                   <>
                     <ErrorBoundary fallback={<div>Error</div>}>
-                      <Suspense fallback={<div>Loading...</div>}>
+                      <Suspense fallback={<PageSkeleton />}>
                         <PermissionRoute>
                           <RobotsSettings />
                         </PermissionRoute>
@@ -1713,7 +1714,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_returns">
                         <AdminRouteAccessGuard routePath="/admin/return-orders">
                           <ReturnOrders />
@@ -1729,7 +1730,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_returns">
                         <AddReturnOrders />
                       </PermissionRoute>
@@ -1743,7 +1744,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_returns">
                         <EditReturnOrders />
                       </PermissionRoute>
@@ -1757,7 +1758,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_returns">
                         <ReturnOrderDetail />
                       </PermissionRoute>
@@ -1771,7 +1772,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_messages">
                         <OrderMessages />
                       </PermissionRoute>
@@ -1785,7 +1786,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PrivateRoute>
                         <VisitorMessages />
                       </PrivateRoute>
@@ -1799,7 +1800,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_return_requests">
                         <ReturnRequest />
                       </PermissionRoute>
@@ -1813,7 +1814,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PrivateRoute>
                         <PDFLabelsPage />
                       </PrivateRoute>
@@ -1827,7 +1828,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_return_requests">
                         <EditReturnRequests />
                       </PermissionRoute>
@@ -1842,7 +1843,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PrivateRoute>
                         <ManageRoles />
                       </PrivateRoute>
@@ -1856,7 +1857,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PrivateRoute>
                         <RoleUsers />
                       </PrivateRoute>
@@ -1870,7 +1871,7 @@ function App() {
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
-                    <Suspense fallback={<div>Loading...</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
                       <PrivateRoute>
                         <PermissionsExample />
                       </PrivateRoute>
