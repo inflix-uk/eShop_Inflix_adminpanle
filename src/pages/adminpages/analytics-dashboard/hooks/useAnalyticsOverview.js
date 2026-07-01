@@ -4,7 +4,7 @@ import { fetchAnalyticsOverview } from '../service/analyticsOverviewService';
 /**
  * Loads marketing analytics overview for the selected UK calendar date range.
  */
-export function useAnalyticsOverview({ startDate, endDate, rangePreset }) {
+export function useAnalyticsOverview({ startDate, endDate, rangePreset, channel }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -16,7 +16,12 @@ export function useAnalyticsOverview({ startDate, endDate, rangePreset }) {
     setError(null);
 
     try {
-      const response = await fetchAnalyticsOverview({ startDate, endDate, rangePreset });
+      const response = await fetchAnalyticsOverview({
+        startDate,
+        endDate,
+        rangePreset,
+        channel,
+      });
       if (response?.success) {
         setData(response);
       } else {
@@ -33,7 +38,7 @@ export function useAnalyticsOverview({ startDate, endDate, rangePreset }) {
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate, rangePreset]);
+  }, [startDate, endDate, rangePreset, channel]);
 
   useEffect(() => {
     load();

@@ -1,5 +1,5 @@
 import PropTypes from "prop-types";
-import { DATE_RANGE_PRESETS } from "../constants/analyticsConstants";
+import { DATE_RANGE_PRESETS, CHANNEL_FILTER_OPTIONS } from "../constants/analyticsConstants";
 
 export default function AnalyticsToolbar({
   activePreset,
@@ -7,6 +7,8 @@ export default function AnalyticsToolbar({
   startDate,
   endDate,
   onDateRangeChange,
+  activeChannel,
+  onChannelChange,
   trackingStartedAt,
   loading,
 }) {
@@ -28,9 +30,10 @@ export default function AnalyticsToolbar({
     <div className="space-y-4">
       <div>
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Marketing Analytics</h1>
-        {loading ? (
-          <p className="mt-1 text-sm text-gray-500">Updating…</p>
-        ) : null}
+        <p className="mt-1 text-sm text-gray-500">
+          Visitor analytics, attribution, and conversion performance
+        </p>
+        {loading ? <p className="mt-0.5 text-xs text-gray-400">Updating…</p> : null}
       </div>
 
       <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm space-y-4">
@@ -63,34 +66,55 @@ export default function AnalyticsToolbar({
           })}
         </div>
 
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-          <div className="flex flex-col gap-1">
-            <label htmlFor="analytics-from-date" className="text-sm font-medium text-gray-700">
-              From
-            </label>
-            <input
-              id="analytics-from-date"
-              type="date"
-              disabled={loading}
-              value={startDate}
-              max={endDate}
-              onChange={handleFromChange}
-              className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm disabled:opacity-60 min-w-[10.5rem]"
-            />
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
+            <div className="flex flex-col gap-1">
+              <label htmlFor="analytics-from-date" className="text-sm font-medium text-gray-700">
+                From
+              </label>
+              <input
+                id="analytics-from-date"
+                type="date"
+                disabled={loading}
+                value={startDate}
+                max={endDate}
+                onChange={handleFromChange}
+                className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm disabled:opacity-60 min-w-[10.5rem]"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label htmlFor="analytics-to-date" className="text-sm font-medium text-gray-700">
+                To
+              </label>
+              <input
+                id="analytics-to-date"
+                type="date"
+                disabled={loading}
+                value={endDate}
+                min={startDate}
+                onChange={handleToChange}
+                className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm disabled:opacity-60 min-w-[10.5rem]"
+              />
+            </div>
           </div>
-          <div className="flex flex-col gap-1">
-            <label htmlFor="analytics-to-date" className="text-sm font-medium text-gray-700">
-              To
+
+          <div className="flex flex-col gap-1 sm:min-w-[12rem]">
+            <label htmlFor="analytics-channel-filter" className="text-sm font-medium text-gray-700">
+              Channel
             </label>
-            <input
-              id="analytics-to-date"
-              type="date"
+            <select
+              id="analytics-channel-filter"
               disabled={loading}
-              value={endDate}
-              min={startDate}
-              onChange={handleToChange}
-              className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm disabled:opacity-60 min-w-[10.5rem]"
-            />
+              value={activeChannel || "all"}
+              onChange={(e) => onChannelChange(e.target.value)}
+              className="rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm disabled:opacity-60"
+            >
+              {CHANNEL_FILTER_OPTIONS.map((option) => (
+                <option key={option.id} value={option.id}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
       </div>
@@ -104,6 +128,8 @@ AnalyticsToolbar.propTypes = {
   startDate: PropTypes.string.isRequired,
   endDate: PropTypes.string.isRequired,
   onDateRangeChange: PropTypes.func.isRequired,
+  activeChannel: PropTypes.string,
+  onChannelChange: PropTypes.func.isRequired,
   trackingStartedAt: PropTypes.string,
   loading: PropTypes.bool,
 };

@@ -5,89 +5,72 @@ import Top from "../nav/Top";
 import AnalyticsToolbar from "./components/AnalyticsToolbar";
 import DataQualitySection from "./components/DataQualitySection";
 import KpiCard from "./components/KpiCard";
+import OrdersProductsSoldModal from "./components/OrdersProductsSoldModal";
+import ProfitDataQualitySection from "./components/ProfitDataQualitySection";
+import ProfitabilityPoasSection from "./components/ProfitabilityPoasSection";
 import SectionCard from "./components/SectionCard";
 import PerformanceTable from "./components/PerformanceTable";
-import DonutChart from "./components/DonutChart";
-import BarChart from "./components/BarChart";
+import VisitorAnalyticsSection from "./components/VisitorAnalyticsSection";
+import TrackingStartedBanner from "./components/TrackingStartedBanner";
 import UnavailableNotice from "./components/UnavailableNotice";
+import ZextonsAdvertisingSection from "./components/ZextonsAdvertisingSection";
 import { useAnalyticsOverview } from "./hooks/useAnalyticsOverview";
+import {
+  ZEXTONS_CAMPAIGN_COLUMNS,
+  ZEXTONS_CAMPAIGN_ROAS_COLUMNS,
+  ZEXTONS_MEDIUM_COLUMNS,
+  ZEXTONS_REVENUE_COLUMNS,
+  TOP_CAMPAIGN_COLUMNS,
+  TOP_LANDING_COLUMNS,
+  TOP_TRAFFIC_COLUMNS,
+  PROFIT_BY_SOURCE_COLUMNS,
+  PROFIT_BY_CAMPAIGN_COLUMNS,
+  FRAUD_SOURCE_COLUMNS,
+  FRAUD_CAMPAIGN_COLUMNS,
+  ROAS_POAS_COLUMNS,
+} from "./constants/analyticsConstants";
 import {
   getUkTodayYmd,
   isValidYmd,
   resolvePresetDateRange,
 } from "./utils/analyticsDatePresets";
 import {
-  mapCampaignPerformance,
+  mapAdvertisingPerformanceZextons,
+  mapCampaignRoasCpa,
   mapDailyOrdersRevenue,
   mapDataQuality,
-  mapDonutSegments,
-  mapKpiMetrics,
-  mapProductPerformance,
-  mapRevenueByCampaign,
-  mapRevenueByChannel,
-  mapRevenueByMedium,
-  mapRevenueBySource,
-  mapTopRevenueProducts,
-  mapTopSellingProducts,
+  mapProfitDataQuality,
+  mapProfitability,
+  mapTopCampaignsSummary,
+  mapTopLandingPages,
+  mapTopTrafficSources,
+  mapOrdersProductsSoldModal,
+  mapVisitorsByDevice,
+  mapProfitBySource,
+  mapProfitByCampaign,
+  mapFraudInsights,
+  mapFraudAdjustedAdvertising,
+  mapRoasVsPoas,
+  mapZextonsKpiMetrics,
+  mapZextonsRevenueByCampaign,
+  mapZextonsRevenueByMedium,
+  mapZextonsRevenueBySource,
 } from "./utils/analyticsOverviewMappers";
-
-const REVENUE_COLUMNS = [
-  { key: "name", label: "Name" },
-  { key: "orders", label: "Orders", align: "right" },
-  { key: "revenue", label: "Revenue", align: "right" },
-  { key: "aov", label: "AOV", align: "right" },
-];
-
-const CHANNEL_COLUMNS = [
-  { key: "name", label: "Channel" },
-  { key: "orders", label: "Orders", align: "right" },
-  { key: "revenue", label: "Revenue", align: "right" },
-  { key: "aov", label: "AOV", align: "right" },
-];
-
-const MEDIUM_COLUMNS = [
-  { key: "name", label: "Medium" },
-  { key: "orders", label: "Orders", align: "right" },
-  { key: "revenue", label: "Revenue", align: "right" },
-  { key: "aov", label: "AOV", align: "right" },
-];
-
-const CAMPAIGN_COLUMNS = [
-  { key: "name", label: "Campaign" },
-  { key: "orders", label: "Orders", align: "right" },
-  { key: "revenue", label: "Revenue", align: "right" },
-  { key: "aov", label: "AOV", align: "right" },
-];
-
-const PRODUCT_PERFORMANCE_COLUMNS = [
-  { key: "name", label: "Product" },
-  { key: "orders", label: "Orders", align: "right" },
-  { key: "unitsSold", label: "Units sold", align: "right" },
-  { key: "revenue", label: "Revenue", align: "right" },
-];
-
-const PRODUCT_COLUMNS = [
-  { key: "name", label: "Product" },
-  { key: "sales", label: "Units sold", align: "right" },
-  { key: "revenue", label: "Revenue", align: "right" },
-];
-
-const TOP_REVENUE_COLUMNS = [
-  { key: "name", label: "Product" },
-  { key: "revenue", label: "Revenue", align: "right" },
-];
 
 export default function AnalyticsOverview() {
   const [selectedPage] = useState("analytics-overview");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activePreset, setActivePreset] = useState("last30");
+  const [activeChannel, setActiveChannel] = useState("all");
   const [dateRange, setDateRange] = useState(() => resolvePresetDateRange("last30"));
+  const [ordersModalOpen, setOrdersModalOpen] = useState(false);
 
   const { startDate, endDate } = dateRange;
   const { data, loading, error, retry } = useAnalyticsOverview({
     startDate,
     endDate,
     rangePreset: activePreset,
+    channel: activeChannel,
   });
 
   const toggleSidebar = () => setIsSidebarOpen((open) => !open);
@@ -136,18 +119,35 @@ export default function AnalyticsOverview() {
 
     return {
       dataQuality: mapDataQuality(data.meta, data.dataQuality),
-      kpiMetrics: mapKpiMetrics(data.kpis, data.meta),
-      revenueBySource: mapRevenueBySource(data.revenueBySource, currency),
-      revenueByCampaign: mapRevenueByCampaign(data.revenueByCampaign, currency),
-      revenueByMedium: mapRevenueByMedium(data.revenueByMedium, currency),
-      revenueByChannel: mapRevenueByChannel(data.revenueByChannel, currency),
-      campaignPerformance: mapCampaignPerformance(data.campaignPerformance, currency),
-      productPerformance: mapProductPerformance(data.productPerformance, currency),
-      topSellingProducts: mapTopSellingProducts(data.topSellingProducts, currency),
-      topRevenueProducts: mapTopRevenueProducts(data.topRevenueProducts, currency),
-      productRevenueSegments: mapDonutSegments(data.productRevenueSegments),
-      ordersBySource: mapDonutSegments(data.ordersBySource),
+      profitDataQuality: mapProfitDataQuality(data.dataQuality),
+      kpiMetrics: mapZextonsKpiMetrics(data.kpis, data.meta),
+      revenueBySource: mapZextonsRevenueBySource(
+        data.revenueBySource,
+        data.revenueByChannel,
+        currency
+      ),
+      revenueByCampaign: mapZextonsRevenueByCampaign(data.revenueByCampaign, currency),
+      revenueByMedium: mapZextonsRevenueByMedium(data.revenueByMedium, currency),
+      topTrafficSources: mapTopTrafficSources(
+        data.revenueBySource,
+        data.revenueByChannel,
+        currency
+      ),
+      topCampaigns: mapTopCampaignsSummary(data.revenueByCampaign, currency),
+      topLandingPages: mapTopLandingPages(data.topLandingPages),
+      visitorsByDevice: mapVisitorsByDevice(data.visitorsByDevice),
+      profitBySource: mapProfitBySource(data.profitBySource, currency),
+      profitByCampaign: mapProfitByCampaign(data.profitByCampaign, currency),
+      fraudInsights: mapFraudInsights(data.fraudInsights, currency),
+      fraudAdjusted: mapFraudAdjustedAdvertising(data.advertisingPerformance, data.meta),
+      roasVsPoas: mapRoasVsPoas(data.roasVsPoas),
+      advertisingPerformance: mapAdvertisingPerformanceZextons(data.advertisingPerformance, data.meta),
+      campaignRoasCpa: mapCampaignRoasCpa(data.campaignRoasRoi, currency),
+      profitability: mapProfitability(data.profitability, data.meta),
       dailyOrdersRevenue: mapDailyOrdersRevenue(data.dailyOrdersRevenue),
+      ordersProductsSold: mapOrdersProductsSoldModal(data.kpis, data.productsSold, data.meta),
+      trackingStarted: viewModelTrackingLabel(data.meta?.trackingStartedAt),
+      preTrackingNote: data.meta?.preTrackingNote,
     };
   }, [data, currency]);
 
@@ -179,6 +179,8 @@ export default function AnalyticsOverview() {
               startDate={startDate}
               endDate={endDate}
               onDateRangeChange={handleDateRangeChange}
+              activeChannel={activeChannel}
+              onChannelChange={setActiveChannel}
               trackingStartedAt={trackingStartedAt}
               loading={loading}
             />
@@ -204,144 +206,197 @@ export default function AnalyticsOverview() {
 
             {viewModel && (
               <>
+                <TrackingStartedBanner
+                  trackingStarted={viewModel.trackingStarted}
+                  preTrackingNote={viewModel.preTrackingNote}
+                />
+
                 <DataQualitySection data={viewModel.dataQuality} />
 
-                <div className="grid gap-3 grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
+                <ProfitDataQualitySection data={viewModel.profitDataQuality} />
+
+                <div className="grid gap-3 grid-cols-2 md:grid-cols-3 xl:grid-cols-5">
                   {viewModel.kpiMetrics.map((metric) => (
-                    <KpiCard key={metric.label} {...metric} />
+                    <KpiCard
+                      key={metric.label}
+                      label={metric.label}
+                      value={metric.value}
+                      tone={metric.tone}
+                      small={metric.small}
+                      title={metric.title}
+                      actionHint={metric.actionHint}
+                      onClick={
+                        metric.opensOrdersModal
+                          ? () => setOrdersModalOpen(true)
+                          : undefined
+                      }
+                    />
                   ))}
                 </div>
 
-                <SectionCard
-                  title="Revenue performance"
-                  subtitle="Summary by acquisition channel and campaign"
-                >
-                  <div className="grid gap-6 xl:grid-cols-2">
-                    <PerformanceTable
-                      title="Summary by source"
-                      columns={REVENUE_COLUMNS}
-                      rows={viewModel.revenueBySource}
-                    />
-                    <PerformanceTable
-                      title="Summary by campaign"
-                      columns={REVENUE_COLUMNS}
-                      rows={viewModel.revenueByCampaign}
-                    />
-                  </div>
-                </SectionCard>
+                <OrdersProductsSoldModal
+                  isOpen={ordersModalOpen}
+                  onClose={() => setOrdersModalOpen(false)}
+                  data={viewModel.ordersProductsSold}
+                />
 
-                <SectionCard title="Revenue by medium" subtitle="Performance grouped by traffic medium">
-                  <PerformanceTable columns={MEDIUM_COLUMNS} rows={viewModel.revenueByMedium} />
-                </SectionCard>
-
-                <SectionCard
-                  title="Revenue by channel"
-                  subtitle="Performance grouped by normalized attribution channel"
-                >
-                  <PerformanceTable columns={CHANNEL_COLUMNS} rows={viewModel.revenueByChannel} />
-                </SectionCard>
-
-                <SectionCard
-                  title="Campaign performance"
-                  subtitle="Orders and revenue by campaign (attributed orders only)"
-                >
-                  <PerformanceTable
-                    columns={CAMPAIGN_COLUMNS}
-                    rows={viewModel.campaignPerformance}
-                  />
-                </SectionCard>
-
-                <SectionCard
-                  title="Advertising performance"
-                  subtitle="Ad spend and platform metrics"
-                >
-                  <UnavailableNotice message="Ad spend and platform metrics are not connected yet. No data source available." />
-                </SectionCard>
-
-                <SectionCard title="Campaign ROAS & ROI" subtitle="Return on ad spend by campaign">
-                  <UnavailableNotice message="ROAS and ROI require ad spend data, which is not available yet." />
-                </SectionCard>
-
-                <SectionCard title="Profitability & ROAS" subtitle="Margin and return on ad spend">
-                  <UnavailableNotice message="Profit and margin require product cost data, which is not available yet." />
-                </SectionCard>
-
-                <SectionCard
-                  title="Product performance (Top products)"
-                  subtitle="Orders, units sold, and revenue by product"
-                >
-                  <PerformanceTable
-                    columns={PRODUCT_PERFORMANCE_COLUMNS}
-                    rows={viewModel.productPerformance}
-                  />
-                </SectionCard>
-
-                <SectionCard
-                  title="Customer profile (Last 6 months)"
-                  subtitle="New vs returning customer trends"
-                >
-                  <UnavailableNotice message="Customer profile aggregation is not available from order data yet." />
-                </SectionCard>
-
-                <SectionCard title="Order analytics" subtitle="Orders mix and daily performance">
-                  <div className="grid gap-8 lg:grid-cols-2">
-                    <div>
-                      <h3 className="text-sm font-semibold text-gray-900 mb-4">Product by revenue</h3>
-                      <DonutChart
-                        segments={viewModel.productRevenueSegments}
-                        centerLabel="Revenue"
+                <section className="space-y-4">
+                  <h2 className="text-base font-semibold text-gray-900">Revenue performance</h2>
+                  <div className="grid gap-6 lg:grid-cols-2 items-stretch">
+                    <SectionCard title="Revenue by source" className="h-full">
+                      <PerformanceTable
+                        columns={ZEXTONS_REVENUE_COLUMNS}
+                        rows={viewModel.revenueBySource}
                       />
-                    </div>
-                    <div>
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="text-sm font-semibold text-gray-900">Daily orders & revenue</h3>
-                        <div className="flex gap-3 text-xs text-gray-500">
-                          <span className="flex items-center gap-1">
-                            <span className="h-2 w-2 rounded-sm bg-blue-500" /> Orders
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <span className="h-2 w-2 rounded-sm bg-teal-400" /> Revenue (£)
-                          </span>
+                    </SectionCard>
+                    <SectionCard title="Revenue by campaign" className="h-full">
+                      <PerformanceTable
+                        columns={ZEXTONS_CAMPAIGN_COLUMNS}
+                        rows={viewModel.revenueByCampaign}
+                      />
+                    </SectionCard>
+                  </div>
+                </section>
+
+                <SectionCard title="Revenue by medium">
+                  <PerformanceTable columns={ZEXTONS_MEDIUM_COLUMNS} rows={viewModel.revenueByMedium} />
+                </SectionCard>
+
+                <SectionCard>
+                  <ZextonsAdvertisingSection
+                    data={viewModel.advertisingPerformance}
+                    onSpendSaved={retry}
+                  />
+                </SectionCard>
+
+                <SectionCard title="Campaign ROAS & CPA">
+                  {viewModel.campaignRoasCpa.length > 0 ? (
+                    <PerformanceTable
+                      columns={ZEXTONS_CAMPAIGN_ROAS_COLUMNS}
+                      rows={viewModel.campaignRoasCpa}
+                    />
+                  ) : (
+                    <UnavailableNotice message="No Google Ads spend matched campaigns in this range. Import spend with campaign names matching order UTM campaigns." />
+                  )}
+                </SectionCard>
+
+                <ProfitabilityPoasSection
+                  profitability={viewModel.profitability}
+                  fraudAdjusted={viewModel.fraudAdjusted}
+                />
+
+                <div className="grid gap-6 lg:grid-cols-2 items-stretch">
+                  <SectionCard title="Profit by source" className="h-full">
+                    {viewModel.profitBySource.unavailable ? (
+                      <UnavailableNotice message={viewModel.profitBySource.emptyMessage} />
+                    ) : (
+                      <PerformanceTable
+                        columns={PROFIT_BY_SOURCE_COLUMNS}
+                        rows={viewModel.profitBySource.rows}
+                      />
+                    )}
+                  </SectionCard>
+
+                  <SectionCard title="Profit by campaign" className="h-full">
+                    {viewModel.profitByCampaign.unavailable ? (
+                      <UnavailableNotice message={viewModel.profitByCampaign.emptyMessage} />
+                    ) : (
+                      <PerformanceTable
+                        columns={PROFIT_BY_CAMPAIGN_COLUMNS}
+                        rows={viewModel.profitByCampaign.rows}
+                      />
+                    )}
+                  </SectionCard>
+                </div>
+
+                <SectionCard
+                  title="ROAS vs POAS"
+                  subtitle={viewModel.roasVsPoas.subtitle}
+                >
+                  {viewModel.roasVsPoas.unavailable ? (
+                    <UnavailableNotice message={viewModel.roasVsPoas.emptyMessage} />
+                  ) : (
+                    <PerformanceTable
+                      columns={ROAS_POAS_COLUMNS}
+                      rows={viewModel.roasVsPoas.rows}
+                    />
+                  )}
+                </SectionCard>
+
+                <VisitorAnalyticsSection
+                  visitorsByDevice={viewModel.visitorsByDevice}
+                  dailyOrdersRevenue={viewModel.dailyOrdersRevenue}
+                />
+
+                <div className="grid gap-6 xl:grid-cols-2">
+                  <SectionCard title="Top traffic sources">
+                    <PerformanceTable columns={TOP_TRAFFIC_COLUMNS} rows={viewModel.topTrafficSources} />
+                  </SectionCard>
+                  <SectionCard title="Top campaigns">
+                    <PerformanceTable columns={TOP_CAMPAIGN_COLUMNS} rows={viewModel.topCampaigns} />
+                  </SectionCard>
+                </div>
+
+                <SectionCard title="Top landing pages">
+                  {viewModel.topLandingPages.unavailable ? (
+                    <UnavailableNotice message={viewModel.topLandingPages.emptyMessage} />
+                  ) : (
+                    <PerformanceTable
+                      columns={TOP_LANDING_COLUMNS}
+                      rows={viewModel.topLandingPages.rows}
+                    />
+                  )}
+                </SectionCard>
+
+                <SectionCard title="Fraud insights">
+                  {viewModel.fraudInsights.unavailable ? (
+                    <UnavailableNotice message={viewModel.fraudInsights.emptyMessage} />
+                  ) : (
+                    <div className="space-y-6">
+                      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+                        <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-center">
+                          <p className="text-[11px] uppercase text-gray-500">Flagged orders</p>
+                          <p className="mt-1 text-sm font-semibold text-gray-900">
+                            {viewModel.fraudInsights.totals.fraudOrders}
+                          </p>
+                        </div>
+                        <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-center">
+                          <p className="text-[11px] uppercase text-gray-500">Fraud rate</p>
+                          <p className="mt-1 text-sm font-semibold text-gray-900">
+                            {viewModel.fraudInsights.totals.fraudRate}
+                          </p>
+                        </div>
+                        <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-center">
+                          <p className="text-[11px] uppercase text-gray-500">Excluded revenue</p>
+                          <p className="mt-1 text-sm font-semibold text-gray-900">
+                            {viewModel.fraudInsights.totals.excludedRevenue}
+                          </p>
+                        </div>
+                        <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-center">
+                          <p className="text-[11px] uppercase text-gray-500">Excluded profit</p>
+                          <p className="mt-1 text-sm font-semibold text-gray-900">
+                            {viewModel.fraudInsights.totals.excludedProfit}
+                          </p>
                         </div>
                       </div>
-                      <BarChart
-                        data={viewModel.dailyOrdersRevenue}
-                        valueKey="orders"
-                        secondaryKey="revenue"
-                        labelKey="day"
-                      />
+                      <div className="grid gap-8 lg:grid-cols-2">
+                        <div>
+                          <h3 className="text-sm font-semibold text-gray-900 mb-3">Fraud rate by source</h3>
+                          <PerformanceTable
+                            columns={FRAUD_SOURCE_COLUMNS}
+                            rows={viewModel.fraudInsights.bySource}
+                          />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-semibold text-gray-900 mb-3">Fraud rate by campaign</h3>
+                          <PerformanceTable
+                            columns={FRAUD_CAMPAIGN_COLUMNS}
+                            rows={viewModel.fraudInsights.byCampaign}
+                          />
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                  <div className="mt-8 pt-8 border-t border-gray-100">
-                    <h3 className="text-sm font-semibold text-gray-900 mb-4">Orders by source</h3>
-                    <DonutChart segments={viewModel.ordersBySource} centerLabel="Orders" />
-                  </div>
-                </SectionCard>
-
-                <SectionCard
-                  title="Influencers & campaigns"
-                  subtitle="Top performers from influencer marketing"
-                >
-                  <UnavailableNotice message="Influencer analytics are not connected yet." />
-                </SectionCard>
-
-                <SectionCard title="Top selling products" subtitle="Best performers in selected period">
-                  <PerformanceTable columns={PRODUCT_COLUMNS} rows={viewModel.topSellingProducts} />
-                </SectionCard>
-
-                <SectionCard title="Top revenue" subtitle="Products ranked by revenue generated">
-                  <PerformanceTable
-                    columns={TOP_REVENUE_COLUMNS}
-                    rows={viewModel.topRevenueProducts}
-                  />
-                </SectionCard>
-
-                <SectionCard title="Track offline orders" subtitle="Orders placed outside online checkout">
-                  <UnavailableNotice message="Offline order tracking is not available yet." />
-                </SectionCard>
-
-                <SectionCard title="Email analytics" subtitle="Campaign and source performance">
-                  <UnavailableNotice message="Email analytics are not connected yet." />
+                  )}
                 </SectionCard>
               </>
             )}
@@ -350,4 +405,14 @@ export default function AnalyticsOverview() {
       </div>
     </>
   );
+}
+
+function viewModelTrackingLabel(iso) {
+  if (!iso) return null;
+  return new Date(iso).toLocaleDateString("en-GB", {
+    timeZone: "Europe/London",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 }

@@ -2,14 +2,14 @@ import PropTypes from "prop-types";
 
 export default function SectionCard({ title, subtitle, children, className = "" }) {
   return (
-    <section className={`bg-white rounded-lg border border-gray-200 shadow-sm ${className}`}>
+    <section className={`bg-white rounded-lg border border-gray-200 shadow-sm flex flex-col ${className}`}>
       {(title || subtitle) && (
-        <div className="px-5 py-4 border-b border-gray-100">
+        <div className="px-5 py-4 border-b border-gray-100 shrink-0">
           {title && <h2 className="text-base font-semibold text-gray-900">{title}</h2>}
           {subtitle && <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>}
         </div>
       )}
-      <div className="p-5">{children}</div>
+      <div className="p-5 flex-1 min-w-0">{children}</div>
     </section>
   );
 }

@@ -10,7 +10,7 @@ export default function PerformanceTable({
   return (
     <div className="min-w-0">
       {title && (
-        <h3 className="text-sm font-semibold text-gray-900 mb-3">{title}</h3>
+        <h3 className="text-sm font-semibold text-gray-900 mb-4">{title}</h3>
       )}
       {rows.length === 0 ? (
         <div className="rounded-lg border border-gray-200 bg-gray-50 px-4 py-8 text-center text-sm text-gray-500">
@@ -41,7 +41,9 @@ export default function PerformanceTable({
                       key={col.key}
                       className={`px-3 py-2.5 whitespace-nowrap ${
                         col.align === "right" ? "text-right tabular-nums" : "text-left"
-                      } ${col.key === rowKey ? "font-medium text-gray-900" : ""}`}
+                      } ${col.key === rowKey ? "font-medium text-gray-900" : ""} ${
+                        col.key === "orders" ? "font-medium text-emerald-600" : ""
+                      }`}
                     >
                       {row[col.key]}
                     </td>

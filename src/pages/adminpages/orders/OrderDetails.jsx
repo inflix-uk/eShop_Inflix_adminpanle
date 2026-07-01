@@ -18,6 +18,7 @@ import {
   OrderItemsCard,
   OrderLabelModal,
 } from "./components/orderDetails";
+import MarketingFraudCard from "./components/orderDetails/MarketingFraudCard";
 import ShippingUpdateModal from "./components/orders/ShippingUpdateModal";
 import ReturnItemModal from "./components/orders/ReturnItemModal";
 import OrderChatModal from "./components/orders/OrderChatModal";
@@ -1172,6 +1173,15 @@ const OrderDetails = () => {
                     checkoutLabel={orderLabel}
                     onLabelClick={handleLabelClick}
                     onShippingUpdateClick={handleShippingUpdateClick}
+                  />
+
+                  <MarketingFraudCard
+                    orderId={id}
+                    order={orderDetail}
+                    onUpdated={(nextOrder) => {
+                      setOrderDetail(nextOrder);
+                      setUpdatedOrderDetails((prev) => ({ ...prev, ...nextOrder }));
+                    }}
                   />
 
                   <div className="space-y-2 border border-gray-200 rounded-xl ">

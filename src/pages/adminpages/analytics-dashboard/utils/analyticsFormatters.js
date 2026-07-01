@@ -1,23 +1,27 @@
-import { UNAVAILABLE_LABEL } from '../constants/analyticsConstants';
+function toNumber(value, fallback = 0) {
+  if (value == null || Number.isNaN(Number(value))) return fallback;
+  return Number(value);
+}
 
 export function formatCurrency(value, currency = 'GBP') {
-  if (value == null || Number.isNaN(Number(value))) return UNAVAILABLE_LABEL;
   return new Intl.NumberFormat('en-GB', {
     style: 'currency',
     currency,
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
-  }).format(Number(value));
+  }).format(toNumber(value));
 }
 
 export function formatNumber(value) {
-  if (value == null || Number.isNaN(Number(value))) return UNAVAILABLE_LABEL;
-  return new Intl.NumberFormat('en-GB').format(Number(value));
+  return new Intl.NumberFormat('en-GB').format(toNumber(value));
 }
 
 export function formatPercent(value, fractionDigits = 2) {
-  if (value == null || Number.isNaN(Number(value))) return UNAVAILABLE_LABEL;
-  return `${Number(value).toFixed(fractionDigits)}%`;
+  return `${toNumber(value).toFixed(fractionDigits)}%`;
+}
+
+export function formatMultiplier(value) {
+  return `${formatNumber(toNumber(value))}x`;
 }
 
 export function formatUkDate(isoString) {
