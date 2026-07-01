@@ -12,7 +12,7 @@ const Login = lazy(() => import("./pages/Login"));
 const ForgotPassword = lazy(() =>
   import("./pages/adminpages/profile/ForgotPassword")
 );
-// admin components
+// admin components   
 const Profile = lazy(() => import("./pages/adminpages/profile/Profile"));
 const Logs = lazy(() => import("./pages/adminpages/logs/Logs"));
 const Orders = lazy(() => import("./pages/adminpages/orders/Orders"));

@@ -129,7 +129,15 @@ export default function VisitorMessages() {
         if (data.success) {
           setMessages(data.messages || []);
           await markAsRead(visitorId);
-          fetchVisitors();
+          // Locally clear the unread badge instead of refetching the whole
+          // visitor list — the server state is already updated by markAsRead.
+          setVisitors((prev) =>
+            prev.map((v) =>
+              v._id === visitorId
+                ? { ...v, isRead: true, unreadCount: 0 }
+                : v
+            )
+          );
         }
       } catch (error) {
         console.error("Error fetching messages:", error);
@@ -137,7 +145,7 @@ export default function VisitorMessages() {
         setIsLoadingMessages(false);
       }
     },
-    [fetchVisitors]
+    []
   );
 
   /**

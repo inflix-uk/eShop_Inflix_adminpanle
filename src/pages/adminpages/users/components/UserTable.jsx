@@ -5,6 +5,7 @@
 
 import PropTypes from 'prop-types';
 import { useNavigate } from 'react-router-dom';
+import { TableSkeleton } from '../../shared/Skeletons';
 
 const UserTable = ({ users, isLoading = false }) => {
     const navigate = useNavigate();
@@ -19,11 +20,8 @@ const UserTable = ({ users, isLoading = false }) => {
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center py-12">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-                    <p className="mt-4 text-gray-600">Loading users...</p>
-                </div>
+            <div className="p-4">
+                <TableSkeleton rows={8} columns={7} />
             </div>
         );
     }

@@ -6,9 +6,11 @@ import { useAuth } from "../../../context/Auth";
 import { toast } from "react-toastify";
 import { CSVLink } from "react-csv";
 import { Helmet } from "react-helmet-async";
+import { TableSkeleton } from "../shared/Skeletons";
 const Subscribers = () => {
   const [selectedPage, setSelectedPage] = useState("subscribers");
   const [allSubscribers, setAllSubscribers] = useState([]); // Initialize as an empty array
+  const [loading, setLoading] = useState(true); // Initial load flag for skeleton
   const [searchQuery, setSearchQuery] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -32,6 +34,9 @@ const Subscribers = () => {
       })
       .catch((error) => {
         toast.error("Failed to fetch subscribers: " + error.message);
+      })
+      .finally(() => {
+        setLoading(false);
       });
   };
 
@@ -144,7 +149,13 @@ const Subscribers = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {paginatedSubscribers.length > 0 ? (
+                    {loading ? (
+                      <tr>
+                        <td colSpan="4" className="p-0">
+                          <TableSkeleton rows={8} columns={4} showHeader={false} />
+                        </td>
+                      </tr>
+                    ) : paginatedSubscribers.length > 0 ? (
                       paginatedSubscribers.map((subscriber) => (
                         <tr className="bg-white border-b hover:bg-gray-300 cursor-pointer hover:text-gray-700" key={subscriber._id}>
                           <td className="px-6 py-4 max-w-60 flex gap-1">

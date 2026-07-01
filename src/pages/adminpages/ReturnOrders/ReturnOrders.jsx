@@ -13,6 +13,7 @@ import returnOrdersService from './service/returnOrdersService';
 import { getStatusKeyByLabel } from './components/shared/StatusConfig';
 import { StatsCard, SearchBar, ProductModal, OrdersTable, Pagination, ReturnOrderMessageModal, ReturnOrderLabelModal } from './components/returnOrders';
 import { ReturnRequestsSection } from './components/returnRequests';
+import { TableSkeleton } from "../shared/Skeletons";
 export default function ReturnOrders() {
     const [progress, setProgress] = useState(0);
     const [errState, setErrState] = useState(false);
@@ -529,6 +530,9 @@ export default function ReturnOrders() {
                                             filteredCount={filteredReturnOrders.length}
                                         />
                                         <div className="overflow-x-auto scrollbar-thin scrollbar-webkit">
+                                            {!dataFetched ? (
+                                                <TableSkeleton rows={8} columns={10} />
+                                            ) : (
                                             <OrdersTable
                                                 orders={paginatedReturnOrders}
                                                 editingStatus={editingStatus}
@@ -551,6 +555,7 @@ export default function ReturnOrders() {
                                                 onOpenLabelModal={handleOpenLabelModal}
                                                 formatDate={formatDate}
                                             />
+                                            )}
                                             {errState && <p className="text-red-500 mt-4">Failed to load orders. Please try again.</p>}
                                         </div>
 

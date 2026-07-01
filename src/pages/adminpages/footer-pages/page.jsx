@@ -10,6 +10,7 @@ import {
   buildFooterPagePublicPath,
   resolveParentPageSlug,
 } from './utils/footerPagePublicPath';
+import { TableSkeleton } from '../shared/Skeletons';
 
 const PAGE_SIZE = 10;
 
@@ -192,9 +193,7 @@ export default function FooterPagesManagement() {
 
             {/* Pages Table */}
             {isLoading ? (
-              <div className="flex justify-center items-center h-64">
-                <div className="h-12 w-12 animate-spin rounded-full border-2 border-gray-200 border-t-primary" />
-              </div>
+              <TableSkeleton rows={8} columns={5} />
             ) : filteredPages.length === 0 ? (
               <div className="text-center py-12 bg-gray-50 rounded-lg">
                 <p className="text-gray-500 text-lg">No pages found</p>

@@ -16,6 +16,7 @@ import {
   resolveGoogleProductCategoryForExport,
 } from "../productsNew/Components/allProducts/utils";
 import { isProductMissingBrand } from "../productsNew/constants/brandConstants";
+import { TableSkeleton } from "../shared/Skeletons";
 
 const PLACEHOLDER_IMAGE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='44' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='18' height='18' rx='2' ry='2'%3E%3C/rect%3E%3Ccircle cx='8.5' cy='8.5' r='1.5'%3E%3C/circle%3E%3Cpolyline points='21 15 16 10 5 21'%3E%3C/polyline%3E%3C/svg%3E";
 
@@ -702,6 +703,11 @@ export default function AllProducts() {
                           <p className="text-base font-bold whitespace-nowrap">Total Products: {filteredProducts.length}</p>
                         </div>
                       </div>
+                      {products.length === 0 ? (
+                        <div className="p-4">
+                          <TableSkeleton rows={8} columns={5} />
+                        </div>
+                      ) : (
                       <div className="overflow-x-auto scrollbar-thin scrollbar-webkit">
                         <table className="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
                           <thead className="text-xs text-black uppercase border-b border-gray-200">
@@ -899,6 +905,7 @@ export default function AllProducts() {
                           </tbody>
                         </table>
                       </div>
+                      )}
                       <div className="px-4 py-2 border border-t-0 border-gray-200">
                         <div className="flex flex-row justify-between w-full">
                           <button

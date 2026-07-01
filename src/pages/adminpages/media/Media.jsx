@@ -26,6 +26,7 @@ import {
   UploadImageModal,
   ConfirmTitleUpdateModal,
 } from "./components/media";
+import { CardGridSkeleton } from "../shared/Skeletons";
 
 export default function Media() {
   const [selectedPage, setSelectedPage] = useState("media");
@@ -557,7 +558,7 @@ export default function Media() {
           <div className="px-4 sm:px-6 lg:px-8">
             {/* Display loading state */}
             {loading ? (
-              <div>Loading media...</div>
+              <CardGridSkeleton count={12} />
             ) : (
               <div className="space-y-10">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-b border-gray-200 pb-4">

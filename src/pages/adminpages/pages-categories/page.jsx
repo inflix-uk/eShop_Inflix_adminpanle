@@ -11,6 +11,7 @@ import {
   deletePageCategory,
   generateSlugFromTitle,
 } from "./service/pageCategoriesService";
+import { TableSkeleton } from "../shared/Skeletons";
 
 export default function PagesCategories() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -215,10 +216,8 @@ export default function PagesCategories() {
                 <tbody className="divide-y divide-gray-100">
                   {isLoading ? (
                     <tr>
-                      <td colSpan={4} className="px-4 py-16 text-center">
-                        <div className="flex justify-center">
-                          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-purple-500" />
-                        </div>
+                      <td colSpan={4} className="p-0">
+                        <TableSkeleton rows={8} columns={4} showHeader={false} />
                       </td>
                     </tr>
                   ) : filtered.length === 0 ? (
