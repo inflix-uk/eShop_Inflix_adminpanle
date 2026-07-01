@@ -18,6 +18,11 @@ import BannerImage from "../../blog-new/components/createblog/BannerImage";
 import Notification from "../../blog-new/components/createblog/Notification";
 import Side from "../../nav/Side";
 import Top from "../../nav/Top";
+import {
+  buildFooterPagePublicPath,
+  resolveParentPageId,
+  resolveParentPageSlug,
+} from "../utils/footerPagePublicPath";
 
 export default function CreateFooterPage() {
   const params = useParams();
@@ -127,11 +132,7 @@ export default function CreateFooterPage() {
           setMetaDescription(pageData.metaDescription || "");
           setMetaSchema(pageData.metaSchema || []);
           setMetaTags(pageData.metaTags || []);
-          setParentPageId(
-            pageData.parentPageId != null && pageData.parentPageId !== ""
-              ? String(pageData.parentPageId)
-              : ""
-          );
+          setParentPageId(resolveParentPageId(pageData.parentPageId));
         } catch (error) {
           console.error("Error loading page:", error);
           setNotification({
@@ -381,11 +382,23 @@ export default function CreateFooterPage() {
   }
 
   const selectedParentSlug = (() => {
+    if (!parentPageId) return "";
     const selectedParent = allPages.find(
       (p) => String(p._id || p.id) === String(parentPageId)
     );
-    return selectedParent?.slug ? String(selectedParent.slug).trim() : "";
+    return selectedParent?.slug
+      ? String(selectedParent.slug).trim()
+      : resolveParentPageSlug(parentPageId, allPages);
   })();
+
+  const livePublicPath = buildFooterPagePublicPath(
+    slug.trim() || "{slug}",
+    selectedParentSlug || null
+  );
+  const slugInputPrefix =
+    selectedParentSlug && livePublicPath.includes("/")
+      ? `${livePublicPath.slice(0, livePublicPath.lastIndexOf("/") + 1)}`
+      : "/";
 
   return (
     <>
@@ -415,8 +428,8 @@ export default function CreateFooterPage() {
                   : "Create a new page (Terms & Conditions, Privacy Policy, etc.)"}
               </p>
               <p className="text-sm text-gray-500 mt-2">
-                Optional parent page uses a path like /parent-slug/page-slug; leave
-                empty to keep this as a root URL /page-slug.
+                Each page has one public URL: /page-slug without a parent, or
+                /parent-slug/page-slug when a parent is selected.
               </p>
             </div>
 
@@ -471,7 +484,7 @@ export default function CreateFooterPage() {
                           onChange={(e) => setParentPageId(e.target.value)}
                           className="w-full rounded-md border border-gray-300 bg-white px-4 py-2 shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30"
                         >
-                          <option value="">None — URL is only /your-slug</option>
+                          <option value="">None — no parent (/your-slug)</option>
                           {allPages
                             .filter((p) => String(p._id || p.id) !== String(id || ""))
                             .filter((p) => !p.parentPageId)
@@ -486,7 +499,7 @@ export default function CreateFooterPage() {
                       <div>
                         {parentPageId && (
                           <p className="mt-1 text-xs text-gray-500">
-                            Child page URL will use selected parent slug.
+                            Public URL uses the selected parent path shown below.
                           </p>
                         )}
                       </div>
@@ -502,16 +515,15 @@ export default function CreateFooterPage() {
                           Live URL:{" "}
                           <span className="font-mono text-gray-700">
                             {(import.meta.env.VITE_WEBSITE_URL || "http://localhost:3000").replace(/\/$/, "")}
-                            {selectedParentSlug ? `/${selectedParentSlug}/` : "/"}
-                            {slug.trim() || "{slug}"}
+                            {livePublicPath}
                           </span>
                         </p>
                         <div className="flex">
                           <span
                             className="inline-flex items-center px-2 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-xs sm:text-sm whitespace-nowrap max-w-[min(100%,12rem)] truncate"
-                            title={selectedParentSlug ? `/${selectedParentSlug}/` : "/"}
+                            title={livePublicPath}
                           >
-                            {selectedParentSlug ? `/${selectedParentSlug}/` : "/"}
+                            {slugInputPrefix}
                           </span>
                           <input
                             type="text"

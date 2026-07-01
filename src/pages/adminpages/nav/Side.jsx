@@ -118,6 +118,7 @@ export default function Side({
   const [isOpenHomePage, setIsOpenHomePage] = useState(false);
   const [isOpenSettings, setIsOpenSettings] = useState(false);
   const [isOpenCrm, setIsOpenCrm] = useState(false);
+  const [isOpenAnalytics, setIsOpenAnalytics] = useState(false);
 
   const toggleSection = useCallback((setter, isCurrentlyOpen) => {
     setIsOpenOrders(false);
@@ -127,6 +128,7 @@ export default function Side({
     setIsOpenHomePage(false);
     setIsOpenSettings(false);
     setIsOpenCrm(false);
+    setIsOpenAnalytics(false);
     if (!isCurrentlyOpen) setter(true);
   }, []);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
@@ -138,7 +140,7 @@ export default function Side({
   /**
    * Helper function to check if a permission is satisfied.
    * Each sidebar item can define a function like:
-   *    permissionCheck: (p) => p.zextons?.view_dashboard
+   *    permissionCheck: (p) => p.store?.view_dashboard
    */
   const hasPermission = useCallback(
     (permissionCheck) => {
@@ -301,6 +303,7 @@ export default function Side({
 
     // Close all sections first
     const crmPages = ["crm-customers"];
+    const analyticsPages = ["analytics-overview"];
 
     const closeAll = () => {
       setIsOpenOrders(false);
@@ -310,6 +313,7 @@ export default function Side({
       setIsOpenHomePage(false);
       setIsOpenSettings(false);
       setIsOpenCrm(false);
+      setIsOpenAnalytics(false);
     };
 
     closeAll();
@@ -318,6 +322,8 @@ export default function Side({
       setIsOpenOrders(true);
     } else if (crmPages.includes(selectedPage)) {
       setIsOpenCrm(true);
+    } else if (analyticsPages.includes(selectedPage)) {
+      setIsOpenAnalytics(true);
     } else if (productsPages.includes(selectedPage)) {
       setIsOpenProducts(true);
     } else if (contentPages.includes(selectedPage)) {
@@ -360,7 +366,7 @@ export default function Side({
           label: "Orders",
           to: "/admin/orders",
           selectedKey: "orders",
-          permissionCheck: (p) => p?.zextons?.view_orders,
+          permissionCheck: (p) => p?.store?.view_orders,
           icon: (
             <svg
               className={`h-5 w-5 shrink-0 ${
@@ -384,7 +390,7 @@ export default function Side({
           label: "Returns",
           to: "/admin/return-orders",
           selectedKey: "return-orders",
-          permissionCheck: (p) => p?.zextons?.view_returns,
+          permissionCheck: (p) => p?.store?.view_returns,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -410,7 +416,7 @@ export default function Side({
           label: "Coupons",
           to: "/admin/coupons",
           selectedKey: "coupons",
-          permissionCheck: (p) => p?.zextons?.view_coupons,
+          permissionCheck: (p) => p?.store?.view_coupons,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -436,7 +442,7 @@ export default function Side({
           label: "Deals & Discounts",
           to: "/admin/deals",
           selectedKey: "deals",
-          permissionCheck: (p) => p?.zextons?.view_deals,
+          permissionCheck: (p) => p?.store?.view_deals,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -514,6 +520,55 @@ export default function Side({
         },
       ],
     },
+    {
+      sectionTitle: "Analytics Dashboard",
+      state: isOpenAnalytics,
+      toggle: () => toggleSection(setIsOpenAnalytics, isOpenAnalytics),
+      icon: (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          fill="none"
+          viewBox="0 0 24 24"
+          strokeWidth={1.5}
+          stroke="currentColor"
+          className="h-5 w-5 shrink-0 text-gray-400 group-hover:text-primary my-auto"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z"
+          />
+        </svg>
+      ),
+      links: [
+        {
+          label: "Overview",
+          to: "/admin/analytics/overview",
+          selectedKey: "analytics-overview",
+          permissionCheck: (p) => p?.store?.view_dashboard,
+          icon: (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className={`h-5 w-5 shrink-0 ${
+                selectedPage === "analytics-overview"
+                  ? "text-primary"
+                  : "text-gray-400 group-hover:text-primary"
+              } my-auto`}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"
+              />
+            </svg>
+          ),
+        },
+      ],
+    },
     // Products Section
     {
       sectionTitle: "Products",
@@ -540,7 +595,7 @@ export default function Side({
           label: "All Products",
           to: "/admin/new-products",
           selectedKey: "new-products",
-          permissionCheck: (p) => p?.zextons?.view_products,
+          permissionCheck: (p) => p?.store?.view_products,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -566,7 +621,7 @@ export default function Side({
           label: "Product Central",
           to: "/admin/product-central",
           selectedKey: "product-central-main",
-          permissionCheck: (p) => p?.zextons?.view_product_central,
+          permissionCheck: (p) => p?.store?.view_product_central,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -592,7 +647,7 @@ export default function Side({
           label: "Export Products",
           to: "/admin/all-products",
           selectedKey: "products",
-          permissionCheck: (p) => p?.zextons?.view_products,
+          permissionCheck: (p) => p?.store?.view_products,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -642,7 +697,7 @@ export default function Side({
           label: "Blogs",
           to: "/admin/all-blogs",
           selectedKey: "blogs",
-          permissionCheck: (p) => p?.zextons?.view_blogs,
+          permissionCheck: (p) => p?.store?.view_blogs,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -668,7 +723,7 @@ export default function Side({
           label: "Media Library",
           to: "/admin/media",
           selectedKey: "media",
-          permissionCheck: (p) => p?.zextons?.view_media,
+          permissionCheck: (p) => p?.store?.view_media,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -694,7 +749,7 @@ export default function Side({
           label: "Reviews",
           to: "/admin/reviews",
           selectedKey: "reviews",
-          permissionCheck: (p) => p?.zextons?.view_reviews,
+          permissionCheck: (p) => p?.store?.view_reviews,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -720,7 +775,7 @@ export default function Side({
           label: "Author",
           to: "/admin/author",
           selectedKey: "author",
-          permissionCheck: (p) => p?.zextons?.view_blogs,
+          permissionCheck: (p) => p?.store?.view_blogs,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -798,7 +853,7 @@ export default function Side({
           label: "Navbar",
           to: "/admin/product-central/navbar",
           selectedKey: "storefront-navbar",
-          permissionCheck: (p) => p?.zextons?.view_product_central,
+          permissionCheck: (p) => p?.store?.view_product_central,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -859,7 +914,7 @@ export default function Side({
           selectedKey: "manage-roles",
           permissionCheck: (p) => p?.rolesandPermissions?.view_roles,
           // No specific permission check in your sample for roles,
-          // but you can add: permissionCheck: (p) => p?.zextons?.manage_roles
+          // but you can add: permissionCheck: (p) => p?.store?.manage_roles
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -911,7 +966,7 @@ export default function Side({
           label: "Users ",
           to: "/admin/users",
           selectedKey: "users",
-          permissionCheck: (p) => p?.zextons?.view_users,
+          permissionCheck: (p) => p?.store?.view_users,
           icon: (
             <svg
               className={`h-5 w-5 shrink-0 ${
@@ -940,7 +995,7 @@ export default function Side({
           label: "Subscribers",
           to: "/admin/subscribers",
           selectedKey: "subscribers",
-          permissionCheck: (p) => p?.zextons?.view_subscribers,
+          permissionCheck: (p) => p?.store?.view_subscribers,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -966,7 +1021,7 @@ export default function Side({
           label: "Pricing Groups",
           to: "/admin/pricing-groups",
           selectedKey: "pricing-groups",
-          permissionCheck: (p) => p?.zextons?.view_users,
+          permissionCheck: (p) => p?.store?.view_users,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -1019,7 +1074,7 @@ export default function Side({
           label: "Banners",
           to: "/admin/banners",
           selectedKey: "banners",
-          permissionCheck: (p) => p?.zextons?.view_banners || true,
+          permissionCheck: (p) => p?.store?.view_banners || true,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -1045,7 +1100,7 @@ export default function Side({
           label: "Homepage Features",
           to: "/admin/homepage-features",
           selectedKey: "homepage-features",
-          permissionCheck: (p) => p?.zextons?.view_blogs || true,
+          permissionCheck: (p) => p?.store?.view_blogs || true,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -1072,7 +1127,7 @@ export default function Side({
           label: "Category Cards",
           to: "/admin/category-cards",
           selectedKey: "category-cards",
-          permissionCheck: (p) => p?.zextons?.view_blogs || true,
+          permissionCheck: (p) => p?.store?.view_blogs || true,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -1099,7 +1154,7 @@ export default function Side({
           label: "Homepage",
           to: "/admin/settings/homepage-data",
           selectedKey: "homepage-data-settings",
-          permissionCheck: (p) => p?.zextons?.view_blogs || true,
+          permissionCheck: (p) => p?.store?.view_blogs || true,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -1126,7 +1181,7 @@ export default function Side({
           label: "Promotional Sections",
           to: "/admin/promotional-sections",
           selectedKey: "promotional-sections",
-          permissionCheck: (p) => p?.zextons?.view_blogs || true,
+          permissionCheck: (p) => p?.store?.view_blogs || true,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -1185,7 +1240,7 @@ export default function Side({
           label: "Stripe",
           to: "/admin/settings/stripe",
           selectedKey: "stripe-settings",
-          permissionCheck: (p) => p?.zextons?.view_blogs || true, // Using generic admin permission
+          permissionCheck: (p) => p?.store?.view_blogs || true, // Using generic admin permission
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -1211,7 +1266,7 @@ export default function Side({
           label: "Booking",
           to: "/admin/settings/booking",
           selectedKey: "booking-management",
-          permissionCheck: (p) => p?.zextons?.view_blogs || true,
+          permissionCheck: (p) => p?.store?.view_blogs || true,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -1237,7 +1292,7 @@ export default function Side({
           label: "Shipping",
           to: "/admin/settings/shipping",
           selectedKey: "shipping-settings",
-          permissionCheck: (p) => p?.zextons?.view_blogs || true, // Using generic admin permission
+          permissionCheck: (p) => p?.store?.view_blogs || true, // Using generic admin permission
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -1263,7 +1318,7 @@ export default function Side({
           label: "Trustpilot",
           to: "/admin/settings/trustpilot",
           selectedKey: "trustpilot-settings",
-          permissionCheck: (p) => p?.zextons?.view_blogs || true,
+          permissionCheck: (p) => p?.store?.view_blogs || true,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -1289,7 +1344,7 @@ export default function Side({
           label: "Scripts",
           to: "/admin/settings/scripts",
           selectedKey: "scripts-settings",
-          permissionCheck: (p) => p?.zextons?.view_blogs || true,
+          permissionCheck: (p) => p?.store?.view_blogs || true,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -1315,7 +1370,7 @@ export default function Side({
           label: "Site-wide Schema",
           to: "/admin/settings/site-wide-schema",
           selectedKey: "site-wide-schema-settings",
-          permissionCheck: (p) => p?.zextons?.view_blogs || true,
+          permissionCheck: (p) => p?.store?.view_blogs || true,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -1346,7 +1401,7 @@ export default function Side({
           label: "Robots.txt",
           to: "/admin/settings/robots",
           selectedKey: "robots-settings",
-          permissionCheck: (p) => p?.zextons?.view_blogs || true,
+          permissionCheck: (p) => p?.store?.view_blogs || true,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -1372,7 +1427,7 @@ export default function Side({
           label: "Widgets",
           to: "/admin/settings/widgets",
           selectedKey: "widgets-settings",
-          permissionCheck: (p) => p?.zextons?.view_blogs || true,
+          permissionCheck: (p) => p?.store?.view_blogs || true,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -1398,7 +1453,7 @@ export default function Side({
           label: "Announcement Banner",
           to: "/admin/settings/announcement-banner",
           selectedKey: "announcement-banner-settings",
-          permissionCheck: (p) => p?.zextons?.view_blogs || true,
+          permissionCheck: (p) => p?.store?.view_blogs || true,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -1424,7 +1479,7 @@ export default function Side({
           label: "Deals Modal",
           to: "/admin/settings/deals-modal",
           selectedKey: "deals-modal-settings",
-          permissionCheck: (p) => p?.zextons?.view_blogs || true,
+          permissionCheck: (p) => p?.store?.view_blogs || true,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -1455,7 +1510,7 @@ export default function Side({
           label: "Email templates",
           to: "/admin/settings/email-templates",
           selectedKey: "email-template-settings",
-          permissionCheck: (p) => p?.zextons?.view_blogs || true,
+          permissionCheck: (p) => p?.store?.view_blogs || true,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -1481,7 +1536,7 @@ export default function Side({
           label: "SMTP",
           to: "/admin/settings/smtp",
           selectedKey: "smtp-settings",
-          permissionCheck: (p) => p?.zextons?.view_blogs || true,
+          permissionCheck: (p) => p?.store?.view_blogs || true,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -1507,7 +1562,7 @@ export default function Side({
           label: "Footer Settings",
           to: "/admin/footer-settings",
           selectedKey: "footer-settings",
-          permissionCheck: (p) => p?.zextons?.view_blogs || true,
+          permissionCheck: (p) => p?.store?.view_blogs || true,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -1539,7 +1594,7 @@ export default function Side({
           label: "Google Search Console",
           to: "/admin/google-search-console",
           selectedKey: "google-search-console",
-          permissionCheck: (p) => p?.zextons?.view_blogs || true,
+          permissionCheck: (p) => p?.store?.view_blogs || true,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -1566,7 +1621,7 @@ export default function Side({
           label: "Logo",
           to: "/admin/logo",
           selectedKey: "logo",
-          permissionCheck: (p) => p?.zextons?.view_blogs || true,
+          permissionCheck: (p) => p?.store?.view_blogs || true,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -1592,7 +1647,7 @@ export default function Side({
           label: "Site-wide color",
           to: "/admin/site-wide-color",
           selectedKey: "site-wide-color",
-          permissionCheck: (p) => p?.zextons?.view_blogs || true,
+          permissionCheck: (p) => p?.store?.view_blogs || true,
           icon: (
             <svg
               xmlns="http://www.w3.org/2000/svg"

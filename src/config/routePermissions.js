@@ -6,6 +6,7 @@
 export const ROUTE_PERMISSIONS = {
     // Dashboard - accessible to all authenticated users
     '/admin/dashboard': [],
+    '/admin/analytics/overview': ['view_dashboard'],
 
     // Profile - accessible to all authenticated users
     '/admin/profile': [],

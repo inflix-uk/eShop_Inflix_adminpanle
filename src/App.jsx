@@ -31,6 +31,9 @@ const CustomersList = lazy(() =>
   import("./pages/adminpages/crm/CustomersList")
 );
 const Customer360 = lazy(() => import("./pages/adminpages/crm/Customer360"));
+const AnalyticsOverview = lazy(() =>
+  import("./pages/adminpages/analytics-dashboard/Overview")
+);
 const ProductCentral = lazy(() =>
   import("./pages/adminpages/ProductCentral/ProductCentral")
 );
@@ -269,9 +272,9 @@ function PermissionLogger() {
 
       if (auth.user.permissions) {
         // Log permissions
-        if (auth.user.permissions.zextons) {
+        if (auth.user.permissions.store) {
           console.log("\n🛒 Permissions:");
-          Object.entries(auth.user.permissions.zextons).forEach(([key, value]) => {
+          Object.entries(auth.user.permissions.store).forEach(([key, value]) => {
             const icon = value ? "✅" : "❌";
             console.log(`  ${icon} ${key}: ${value}`);
           });
@@ -450,7 +453,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_dashboard">
+                      <PermissionRoute permission="store.view_dashboard">
                         <Dash2 />
                       </PermissionRoute>
                     </Suspense>
@@ -492,7 +495,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_orders">
+                      <PermissionRoute permission="store.view_orders">
                         <AdminRouteAccessGuard routePath="/admin/orders">
                           <Orders />
                         </AdminRouteAccessGuard>
@@ -508,7 +511,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_orders">
+                      <PermissionRoute permission="store.view_orders">
                         <DeletedOrders />
                       </PermissionRoute>
                     </Suspense>
@@ -521,7 +524,7 @@ function App() {
               element={
                 <ErrorBoundary fallback={<div>Error</div>}>
                   <Suspense fallback={<div>Loading...</div>}>
-                    <PermissionRoute permission="zextons.view_orders">
+                    <PermissionRoute permission="store.view_orders">
                       <OrderDetails />
                     </PermissionRoute>
                   </Suspense>
@@ -534,7 +537,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_media">
+                      <PermissionRoute permission="store.view_media">
                         <Media />
                       </PermissionRoute>
                     </Suspense>
@@ -548,7 +551,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_users">
+                      <PermissionRoute permission="store.view_users">
                         <Users />
                       </PermissionRoute>
                     </Suspense>
@@ -562,7 +565,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_users">
+                      <PermissionRoute permission="store.view_users">
                         <EditUser />
                       </PermissionRoute>
                     </Suspense>
@@ -599,12 +602,26 @@ function App() {
               }
             />
             <Route
+              path="/admin/analytics/overview"
+              element={
+                <>
+                  <ErrorBoundary fallback={<div>Error</div>}>
+                    <Suspense fallback={<div>Loading...</div>}>
+                      <PermissionRoute permission="store.view_dashboard">
+                        <AnalyticsOverview />
+                      </PermissionRoute>
+                    </Suspense>
+                  </ErrorBoundary>
+                </>
+              }
+            />
+            <Route
               path="/admin/pricing-groups"
               element={
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_users">
+                      <PermissionRoute permission="store.view_users">
                         <PricingGroups />
                       </PermissionRoute>
                     </Suspense>
@@ -618,7 +635,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_users">
+                      <PermissionRoute permission="store.view_users">
                         <PricingGroupProducts />
                       </PermissionRoute>
                     </Suspense>
@@ -632,7 +649,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_users">
+                      <PermissionRoute permission="store.view_users">
                         <PricingGroupCustomers />
                       </PermissionRoute>
                     </Suspense>
@@ -646,7 +663,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_subscribers">
+                      <PermissionRoute permission="store.view_subscribers">
                         <Subscribers />
                       </PermissionRoute>
                     </Suspense>
@@ -660,7 +677,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_reviews">
+                      <PermissionRoute permission="store.view_reviews">
                         <Reviews />
                       </PermissionRoute>
                     </Suspense>
@@ -674,7 +691,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_reviews">
+                      <PermissionRoute permission="store.view_reviews">
                         <ReviewDetail />
                       </PermissionRoute>
                     </Suspense>
@@ -688,7 +705,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_blogs">
+                      <PermissionRoute permission="store.view_blogs">
                         <AllBlogs />
                       </PermissionRoute>
                     </Suspense>
@@ -702,7 +719,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_blogs">
+                      <PermissionRoute permission="store.view_blogs">
                         <NewBlog />
                       </PermissionRoute>
                     </Suspense>
@@ -716,7 +733,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_blogs">
+                      <PermissionRoute permission="store.view_blogs">
                         <DraftsBlogs />
                       </PermissionRoute>
                     </Suspense>
@@ -730,7 +747,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_blogs">
+                      <PermissionRoute permission="store.view_blogs">
                         <EditBlog />
                       </PermissionRoute>
                     </Suspense>
@@ -744,7 +761,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_blogs">
+                      <PermissionRoute permission="store.view_blogs">
                         <BlogCategories />
                       </PermissionRoute>
                     </Suspense>
@@ -757,7 +774,7 @@ function App() {
               element={
                 <ErrorBoundary fallback={<div>Error previewing blog</div>}>
                   <Suspense fallback={<div>Loading preview...</div>}>
-                    <PermissionRoute permission="zextons.view_blogs">
+                    <PermissionRoute permission="store.view_blogs">
                       <BlogPreview />
                     </PermissionRoute>
                   </Suspense>
@@ -770,7 +787,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error loading editor</div>}>
                     <Suspense fallback={<div>Loading editor...</div>}>
-                      <PermissionRoute permission="zextons.view_blogs">
+                      <PermissionRoute permission="store.view_blogs">
                         <EditBlogNew />
                       </PermissionRoute>
                     </Suspense>
@@ -784,7 +801,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_blogs">
+                      <PermissionRoute permission="store.view_blogs">
                         <FooterPages />
                       </PermissionRoute>
                     </Suspense>
@@ -798,7 +815,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_blogs">
+                      <PermissionRoute permission="store.view_blogs">
                         <CreateFooterPage />
                       </PermissionRoute>
                     </Suspense>
@@ -812,7 +829,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error loading editor</div>}>
                     <Suspense fallback={<div>Loading editor...</div>}>
-                      <PermissionRoute permission="zextons.view_blogs">
+                      <PermissionRoute permission="store.view_blogs">
                         <EditFooterPage />
                       </PermissionRoute>
                     </Suspense>
@@ -826,7 +843,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error previewing page</div>}>
                     <Suspense fallback={<div>Loading preview...</div>}>
-                      <PermissionRoute permission="zextons.view_blogs">
+                      <PermissionRoute permission="store.view_blogs">
                         <FooterPagePreview />
                       </PermissionRoute>
                     </Suspense>
@@ -840,7 +857,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_blogs">
+                      <PermissionRoute permission="store.view_blogs">
                         <PagesCategories />
                       </PermissionRoute>
                     </Suspense>
@@ -854,7 +871,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_blogs">
+                      <PermissionRoute permission="store.view_blogs">
                         <FooterSettings />
                       </PermissionRoute>
                     </Suspense>
@@ -868,7 +885,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_blogs">
+                      <PermissionRoute permission="store.view_blogs">
                         <Author />
                       </PermissionRoute>
                     </Suspense>
@@ -883,7 +900,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_products">
+                      <PermissionRoute permission="store.view_products">
                         <AdminRouteAccessGuard routePath="/admin/all-products">
                           <AllProducts />
                         </AdminRouteAccessGuard>
@@ -899,7 +916,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_products">
+                      <PermissionRoute permission="store.view_products">
                         <AdminRouteAccessGuard routePath="/admin/new-products">
                           <NewProducts />
                         </AdminRouteAccessGuard>
@@ -915,7 +932,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_products">
+                      <PermissionRoute permission="store.view_products">
                         <AdminRouteAccessGuard routePath="/admin/deleted-products">
                           <DeletedProducts />
                         </AdminRouteAccessGuard>
@@ -932,7 +949,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_products">
+                      <PermissionRoute permission="store.view_products">
                         <AdminRouteAccessGuard routePath="/admin/edit-product/:id">
                           <EditProduct />
                         </AdminRouteAccessGuard>
@@ -948,7 +965,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_products">
+                      <PermissionRoute permission="store.view_products">
                         <AdminRouteAccessGuard routePath="/admin/preview-product/:slug">
                           <ProductPreview />
                         </AdminRouteAccessGuard>
@@ -965,7 +982,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_products">
+                      <PermissionRoute permission="store.view_products">
                         <AdminRouteAccessGuard routePath="/admin/new-product">
                           <NewProduct />
                         </AdminRouteAccessGuard>
@@ -981,7 +998,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_products">
+                      <PermissionRoute permission="store.view_products">
                         <AdminRouteAccessGuard routePath="/admin/draft-products">
                           <DraftProducts />
                         </AdminRouteAccessGuard>
@@ -997,7 +1014,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_product_central">
+                      <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central">
                           <ProductCentral />
                         </AdminRouteAccessGuard>
@@ -1013,7 +1030,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_product_central">
+                      <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central/categories">
                           <ProductCentralCategories />
                         </AdminRouteAccessGuard>
@@ -1029,7 +1046,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_product_central">
+                      <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central/navbar">
                           <ProductCentralNavbarHub />
                         </AdminRouteAccessGuard>
@@ -1045,7 +1062,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_product_central">
+                      <PermissionRoute permission="store.view_product_central">
                         <ProductCentralGoogleCategories />
                       </PermissionRoute>
                     </Suspense>
@@ -1077,7 +1094,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_product_central">
+                      <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central/subcategories">
                           <ProductCentralSubcategories />
                         </AdminRouteAccessGuard>
@@ -1093,7 +1110,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_product_central">
+                      <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central/edit-subcategory/:categoryId/:subIndex">
                           <ProductCentralEditSubcategory />
                         </AdminRouteAccessGuard>
@@ -1109,7 +1126,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_product_central">
+                      <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central/tags">
                           <ProductCentralTags />
                         </AdminRouteAccessGuard>
@@ -1125,7 +1142,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_product_central">
+                      <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central/brands">
                           <ProductCentralBrands />
                         </AdminRouteAccessGuard>
@@ -1141,7 +1158,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_product_central">
+                      <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central/condition">
                           <ProductCentralCondition />
                         </AdminRouteAccessGuard>
@@ -1157,7 +1174,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_product_central">
+                      <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central/variant-condition">
                           <ProductCentralVariantCondition />
                         </AdminRouteAccessGuard>
@@ -1173,7 +1190,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_product_central">
+                      <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central/variant-storage">
                           <ProductCentralVariantStorage />
                         </AdminRouteAccessGuard>
@@ -1189,7 +1206,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_product_central">
+                      <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central/variant-color">
                           <ProductCentralVariantColor />
                         </AdminRouteAccessGuard>
@@ -1205,7 +1222,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_product_central">
+                      <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central/card-design">
                           <ProductCentralCardDesign />
                         </AdminRouteAccessGuard>
@@ -1221,7 +1238,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_product_central">
+                      <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central/add-new-category">
                           <AddCategory />
                         </AdminRouteAccessGuard>
@@ -1237,7 +1254,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_product_central">
+                      <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central/edit-category/:id">
                           <EditCategory />
                         </AdminRouteAccessGuard>
@@ -1253,7 +1270,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_product_central">
+                      <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-central/category-display-products/:categoryId">
                           <CategoryDisplayProducts />
                         </AdminRouteAccessGuard>
@@ -1269,7 +1286,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_product_central">
+                      <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-variants">
                           <ProductVariants />
                         </AdminRouteAccessGuard>
@@ -1285,7 +1302,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_product_central">
+                      <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-variants/:id">
                           <ProductVariants />
                         </AdminRouteAccessGuard>
@@ -1301,7 +1318,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_product_central">
+                      <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/variant-attributes">
                           <ProductCentralVariantAttributes />
                         </AdminRouteAccessGuard>
@@ -1317,7 +1334,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_product_central">
+                      <PermissionRoute permission="store.view_product_central">
                         <AdminRouteAccessGuard routePath="/admin/product-options">
                           <ProductCentralProductOptions />
                         </AdminRouteAccessGuard>
@@ -1333,7 +1350,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_coupons">
+                      <PermissionRoute permission="store.view_coupons">
                         <AdminRouteAccessGuard routePath="/admin/coupons">
                           <Coupons />
                         </AdminRouteAccessGuard>
@@ -1349,7 +1366,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_deals">
+                      <PermissionRoute permission="store.view_deals">
                         <AdminRouteAccessGuard routePath="/admin/deals">
                           <Deals />
                         </AdminRouteAccessGuard>
@@ -1365,7 +1382,7 @@ function App() {
                   <>
                     <ErrorBoundary fallback={<div>Error</div>}>
                       <Suspense fallback={<div>Loading...</div>}>
-                        <PermissionRoute permission="zextons.view_blogs">
+                        <PermissionRoute permission="store.view_blogs">
                           <Banners />
                         </PermissionRoute>
                       </Suspense>
@@ -1379,7 +1396,7 @@ function App() {
                   <>
                     <ErrorBoundary fallback={<div>Error</div>}>
                       <Suspense fallback={<div>Loading...</div>}>
-                        <PermissionRoute permission="zextons.view_blogs">
+                        <PermissionRoute permission="store.view_blogs">
                           <BannerEditorPage />
                         </PermissionRoute>
                       </Suspense>
@@ -1393,7 +1410,7 @@ function App() {
                   <>
                     <ErrorBoundary fallback={<div>Error</div>}>
                       <Suspense fallback={<div>Loading...</div>}>
-                        <PermissionRoute permission="zextons.view_blogs">
+                        <PermissionRoute permission="store.view_blogs">
                           <BannerEditorPage />
                         </PermissionRoute>
                       </Suspense>
@@ -1697,7 +1714,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_returns">
+                      <PermissionRoute permission="store.view_returns">
                         <AdminRouteAccessGuard routePath="/admin/return-orders">
                           <ReturnOrders />
                         </AdminRouteAccessGuard>
@@ -1713,7 +1730,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_returns">
+                      <PermissionRoute permission="store.view_returns">
                         <AddReturnOrders />
                       </PermissionRoute>
                     </Suspense>
@@ -1727,7 +1744,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_returns">
+                      <PermissionRoute permission="store.view_returns">
                         <EditReturnOrders />
                       </PermissionRoute>
                     </Suspense>
@@ -1741,7 +1758,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_returns">
+                      <PermissionRoute permission="store.view_returns">
                         <ReturnOrderDetail />
                       </PermissionRoute>
                     </Suspense>
@@ -1755,7 +1772,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_messages">
+                      <PermissionRoute permission="store.view_messages">
                         <OrderMessages />
                       </PermissionRoute>
                     </Suspense>
@@ -1783,7 +1800,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_return_requests">
+                      <PermissionRoute permission="store.view_return_requests">
                         <ReturnRequest />
                       </PermissionRoute>
                     </Suspense>
@@ -1811,7 +1828,7 @@ function App() {
                 <>
                   <ErrorBoundary fallback={<div>Error</div>}>
                     <Suspense fallback={<div>Loading...</div>}>
-                      <PermissionRoute permission="zextons.view_return_requests">
+                      <PermissionRoute permission="store.view_return_requests">
                         <EditReturnRequests />
                       </PermissionRoute>
                     </Suspense>

@@ -40,28 +40,26 @@ export const saveRolePermissions = async (payload) => {
  * @returns {Object} Formatted payload for API
  */
 export const buildPermissionsPayload = (roleId, roleName, rolePermissions, permissionGroups) => {
-    const zextonsPermissions = {};
+    const storePermissions = {};
     const rolesandPermissions = {};
     const staticMetaPermissions = {};
 
-    // Organize permissions
-    permissionGroups.zextons.forEach(group => {
+    const storeGroups = permissionGroups.store || permissionGroups.store || [];
+
+    storeGroups.forEach(group => {
         group.permissions.forEach(permission => {
             if (rolePermissions[permission.id]) {
-                zextonsPermissions[permission.id] = true;
+                storePermissions[permission.id] = true;
             }
         });
     });
 
-    // Organize Roles and Permissions
     permissionGroups.rolesandpermissions.forEach(group => {
         group.permissions.forEach(permission => {
-            // For Administrator, always set to true; for others, always set to false
             rolesandPermissions[permission.id] = roleName.toLowerCase() === 'administrator';
         });
     });
 
-    // Organize Static Meta permissions
     if (permissionGroups.staticMeta) {
         permissionGroups.staticMeta.forEach(group => {
             group.permissions.forEach(permission => {
@@ -76,7 +74,7 @@ export const buildPermissionsPayload = (roleId, roleName, rolePermissions, permi
         roleId,
         roleName,
         permissions: {
-            zextons: zextonsPermissions,
+            store: storePermissions,
             rolesandPermissions: rolesandPermissions,
             staticMeta: staticMetaPermissions
         }
@@ -92,23 +90,20 @@ export const buildPermissionsPayload = (roleId, roleName, rolePermissions, permi
  */
 export const initializePermissions = (roleData, permissionGroups, roleName) => {
     const initialPermissions = {};
+    const storeGroups = permissionGroups.store || permissionGroups.store || [];
 
-    // Set all permissions to false initially
-    permissionGroups.zextons.forEach(group => {
+    storeGroups.forEach(group => {
         group.permissions.forEach(permission => {
             initialPermissions[permission.id] = false;
         });
     });
 
-    // Set rolesandpermissions based on role
     permissionGroups.rolesandpermissions.forEach(group => {
         group.permissions.forEach(permission => {
-            // For Administrator, set to true; for others, set to false
             initialPermissions[permission.id] = roleName.toLowerCase() === 'administrator';
         });
     });
 
-    // Set all Static Meta permissions to false initially
     if (permissionGroups.staticMeta) {
         permissionGroups.staticMeta.forEach(group => {
             group.permissions.forEach(permission => {
@@ -117,15 +112,15 @@ export const initializePermissions = (roleData, permissionGroups, roleName) => {
         });
     }
 
-    // Update with the actual permissions from the role
+    const legacyStore = roleData.permissions?.store || roleData.permissions?.store || {};
+
     const rolePermissionsData = {
         ...initialPermissions,
-        ...(roleData.permissions?.zextons || {}),
+        ...legacyStore,
         ...(roleData.permissions?.rolesandPermissions || {}),
         ...(roleData.permissions?.staticMeta || {})
     };
 
-    // For Administrator, ensure rolesandpermissions are all true
     if (roleName.toLowerCase() === 'administrator') {
         permissionGroups.rolesandpermissions.forEach(group => {
             group.permissions.forEach(permission => {

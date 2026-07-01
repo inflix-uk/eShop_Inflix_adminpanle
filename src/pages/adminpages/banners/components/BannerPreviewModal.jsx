@@ -261,7 +261,7 @@ const BannerPreviewModal = ({ isOpen, onClose, banners }) => {
                   </div>
                   <div className="flex gap-1 sm:gap-2">
                     <a
-                      href="https://www.facebook.com/zextonstechstore"
+                      href="#"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="bg-white rounded-full p-1"
@@ -283,7 +283,7 @@ const BannerPreviewModal = ({ isOpen, onClose, banners }) => {
                       </svg>
                     </a>
                     <a
-                      href="https://twitter.com/zextons_uk"
+                      href="#"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="bg-white rounded-full p-1"
@@ -328,7 +328,7 @@ const BannerPreviewModal = ({ isOpen, onClose, banners }) => {
                       </svg>
                     </a>
                     <a
-                      href="https://www.instagram.com/zextons.co.uk/"
+                      href="#"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="bg-white rounded-full p-1"

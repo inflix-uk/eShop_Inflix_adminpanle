@@ -51,7 +51,7 @@ const AddBlogSection = ({
             />
           </div>
           <span className="text-primary font-medium ">
-            https://zextons.co.uk/blog/
+            https:///blog/
             {blogName
               .trim()
               .toLowerCase()

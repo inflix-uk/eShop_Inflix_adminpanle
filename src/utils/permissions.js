@@ -20,10 +20,11 @@ export const hasPermission = (user, permissionId) => {
     }
 
     // Check in all permission categories
-    const { zextons, rolesandPermissions, staticMeta } = user.permissions;
+    const { store, store, rolesandPermissions, staticMeta } = user.permissions;
+    const storePerms = store || store;
 
     return (
-        zextons?.[permissionId] === true ||
+        storePerms?.[permissionId] === true ||
         rolesandPermissions?.[permissionId] === true ||
         staticMeta?.[permissionId] === true
     );
@@ -68,10 +69,11 @@ export const getUserPermissions = (user) => {
     }
 
     const permissions = [];
-    const { zextons, rolesandPermissions, staticMeta } = user.permissions;
+    const { store, store, rolesandPermissions, staticMeta } = user.permissions;
+    const storePerms = store || store;
 
     // Collect all true permissions
-    [zextons, rolesandPermissions, staticMeta].forEach(category => {
+    [storePerms, rolesandPermissions, staticMeta].forEach(category => {
         if (category) {
             Object.entries(category).forEach(([key, value]) => {
                 if (value === true) {

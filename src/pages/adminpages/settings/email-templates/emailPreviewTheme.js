@@ -226,7 +226,7 @@ export function previewBrandingFromApi(api) {
     (typeof import.meta !== "undefined" &&
       import.meta.env &&
       String(import.meta.env.VITE_FRONTEND_URL || "").replace(/\/+$/, "")) ||
-    "https://www.zextons.co.uk";
+    "https://www.";
 
   return {
     primaryHex,
@@ -270,6 +270,6 @@ export function buildPreviewBranding(payload) {
     (typeof import.meta !== "undefined" &&
       import.meta.env &&
       String(import.meta.env.VITE_FRONTEND_URL || "").replace(/\/+$/, "")) ||
-    "https://www.zextons.co.uk";
+    "https://www.";
   return { ...local, storeUrl };
 }

@@ -29,7 +29,7 @@ export function resolveBackendAssetUrl(imagePath) {
   return `${baseUrl}${path}`;
 }
 
-/** Bust browser cache when the file path is stable but contents change (e.g. zextons-favicon.png). */
+/** Bust browser cache when the file path is stable but contents change (e.g. store-favicon.png). */
 export function withCacheBust(url, version) {
   if (!url || version == null || version === "") return url || "";
   const sep = url.includes("?") ? "&" : "?";

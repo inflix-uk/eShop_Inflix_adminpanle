@@ -6,6 +6,10 @@ import { FaPlus, FaEdit, FaEye, FaTrash } from 'react-icons/fa';
 import { getAllFooterPages, deleteFooterPage } from './service/pageService';
 import Side from '../nav/Side';
 import Top from '../nav/Top';
+import {
+  buildFooterPagePublicPath,
+  resolveParentPageSlug,
+} from './utils/footerPagePublicPath';
 
 const PAGE_SIZE = 10;
 
@@ -38,9 +42,10 @@ export default function FooterPagesManagement() {
           list.map((p) => ({
             title: p?.title ?? "",
             slug: p?.slug ?? "",
-            path: p?.parentPageId?.slug
-              ? `/${p.parentPageId.slug}/${p?.slug ?? ""}`
-              : `/${p?.slug ?? ""}`,
+            path: buildFooterPagePublicPath(
+              p?.slug ?? "",
+              resolveParentPageSlug(p?.parentPageId, list)
+            ),
             publishStatus: p?.publishStatus ?? "",
             id: String(p?._id ?? p?.id ?? ""),
           }))
@@ -129,12 +134,14 @@ export default function FooterPagesManagement() {
     }
   }, [isLoading, pages.length, filteredPages.length, searchTerm]);
 
-  const getParentSlug = (page) => {
-    const parent = page?.parentPageId;
-    if (!parent) return "";
-    if (typeof parent === "string") return "";
-    return String(parent?.slug || "").trim();
-  };
+  const getPublicPath = (page, allPagesList = pages) =>
+    buildFooterPagePublicPath(
+      page?.slug ?? "",
+      resolveParentPageSlug(page?.parentPageId, allPagesList)
+    );
+
+  const getParentSlug = (page) =>
+    resolveParentPageSlug(page?.parentPageId, pages);
 
   return (
     <>
@@ -225,9 +232,7 @@ export default function FooterPagesManagement() {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="text-sm text-gray-500">
-                            {getParentSlug(row)
-                              ? `/${getParentSlug(row)}/${row.slug}`
-                              : `/${row.slug}`}
+                            {getPublicPath(row)}
                           </div>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">

@@ -252,12 +252,12 @@ const PermissionsManagement = () => {
                             {/* Permissions Section */}
                             <PermissionSection
                                 title="Permissions"
-                                permissionGroups={PERMISSION_GROUPS.zextons}
+                                permissionGroups={PERMISSION_GROUPS.store}
                                 rolePermissions={currentRolePermissions}
                                 selectedRole={selectedRole}
                                 onToggle={handlePermissionToggle}
                                 onGroupToggle={handleGroupToggle}
-                                onSectionToggle={(value) => handleSectionToggle('zextons', value)}
+                                onSectionToggle={(value) => handleSectionToggle('store', value)}
                                 isRolesSection={false}
                                 isAdministrator={isAdministrator}
                             />
