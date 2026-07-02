@@ -1,6 +1,39 @@
 import { useState } from 'react';
 import { updateBookingStatus, cancelBooking, rescheduleBooking } from '../service/bookingService';
 
+const API_BASE_URL = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
+
+function resolveImageUrl(path) {
+  if (!path) return '';
+  const url = String(path).trim();
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  if (url.startsWith('/uploads/')) return `${API_BASE_URL}${url}`;
+  if (url.startsWith('/')) return `${API_BASE_URL}/uploads${url}`;
+  return `${API_BASE_URL}/uploads/${url}`;
+}
+
+function getBookingExtras(booking) {
+  return Array.isArray(booking?.extras) ? booking.extras.filter((e) => e?.title) : [];
+}
+
+function getBookingPricing(booking) {
+  const extras = getBookingExtras(booking);
+  const extrasSubtotal =
+    booking?.extrasSubtotal ??
+    extras.reduce((sum, extra) => sum + (Number(extra.price) || 0), 0);
+  const slotPrice = booking?.packageId?.price || 0;
+  const slotsSubtotal = booking?.slotsSubtotal || slotPrice;
+  const totalAmount =
+    booking?.totalAmount ||
+    slotsSubtotal + extrasSubtotal;
+  const displaySlotsSubtotal =
+    booking?.totalAmount != null
+      ? Math.max(0, totalAmount - extrasSubtotal)
+      : slotsSubtotal;
+
+  return { extras, extrasSubtotal, slotsSubtotal: displaySlotsSubtotal, totalAmount, slotPrice };
+}
+
 const STATUS_COLORS = {
   pending: 'bg-yellow-100 text-yellow-800',
   confirmed: 'bg-green-100 text-green-800',
@@ -51,6 +84,8 @@ export default function BookingDetailsModal({ booking, onClose, onRefresh }) {
     onRefresh();
     onClose();
   };
+
+  const { extras, extrasSubtotal, slotsSubtotal, totalAmount } = getBookingPricing(booking);
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
@@ -108,6 +143,61 @@ export default function BookingDetailsModal({ booking, onClose, onRefresh }) {
                 {booking.customer?.phone && (
                   <div className="text-sm text-gray-500">{booking.customer?.phone}</div>
                 )}
+              </div>
+            </div>
+
+            {/* Extras */}
+            {extras.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-500 mb-2">Extras</h3>
+                <div className="space-y-3">
+                  {extras.map((extra, index) => {
+                    const imageUrl = resolveImageUrl(extra.image);
+                    return (
+                      <div key={`${extra.title}-${index}`} className="flex gap-3 bg-gray-50 rounded-lg p-3">
+                        <div className="w-16 h-16 rounded-md bg-gray-200 overflow-hidden flex-shrink-0">
+                          {imageUrl ? (
+                            <img src={imageUrl} alt={extra.title} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">
+                              No image
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="font-medium text-gray-900">{extra.title}</p>
+                            <p className="text-sm font-semibold text-gray-900 whitespace-nowrap">
+                              £{(Number(extra.price) || 0).toFixed(2)}
+                            </p>
+                          </div>
+                          {extra.description && (
+                            <p className="text-sm text-gray-600 mt-1">{extra.description}</p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Pricing */}
+            <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+              <h3 className="text-sm font-medium text-gray-500 mb-2">Pricing</h3>
+              <div className="flex justify-between text-sm text-gray-700">
+                <span>Slot(s)</span>
+                <span>£{slotsSubtotal.toFixed(2)}</span>
+              </div>
+              {extrasSubtotal > 0 && (
+                <div className="flex justify-between text-sm text-gray-700">
+                  <span>Extras ({extras.length})</span>
+                  <span>£{extrasSubtotal.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-base font-semibold text-gray-900 pt-2 border-t border-gray-200">
+                <span>Total</span>
+                <span>£{totalAmount.toFixed(2)}</span>
               </div>
             </div>
 

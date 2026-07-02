@@ -1,23 +1,11 @@
-import { useCallback, useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { Tab } from "@headlessui/react";
+﻿import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import axios from "axios";
 import { toast } from "react-toastify";
 import Side from "../nav/Side";
 import Top from "../nav/Top";
 import { Helmet } from "react-helmet-async";
-import {
-  FiDownload,
-  FiGrid,
-  FiHome,
-  FiPhone,
-  FiSearch,
-  FiShoppingCart,
-  FiStar,
-  FiTag,
-  FiUser,
-} from "react-icons/fi";
-import { GiFlame } from "react-icons/gi";
+import { useFlaticonStylesheets } from "../../../utils/navbarFlaticonIcon";
 // import NavbarOrderEditor from "../../../components/ProductCentralComponents/NavbarOrderEditor";
 // import HomepageNavLinksEditor from "../../../components/ProductCentralComponents/HomepageNavLinksEditor";
 import { useAuth } from "../../../context/Auth";
@@ -27,9 +15,7 @@ import {
   withCacheBust,
 } from "../../../utils/backendAssetUrl";
 
-const TAB_ORDER = "order";
-const TAB_LINKS = "links";
-const TAB_VARIANTS = "variants";
+
 const NAVBAR_LAYOUT_PRESETS = [
   {
     id: "classic",
@@ -166,8 +152,8 @@ function createInitialVariantConfig(preset) {
     showButtons: true,
     showPrimaryButton: true,
     showSecondaryButton: true,
-    actionIcon1: "FiShoppingCart",
-    actionIcon2: "FiUser",
+    actionIcon1: "fi-rr-shopping-cart",
+    actionIcon2: "fi-rr-user",
     actionIcon1Url: "/cart",
     actionIcon2Url: "/account",
     actionIcon1OpenCart: false,
@@ -178,12 +164,12 @@ function createInitialVariantConfig(preset) {
     actionIcon2Color: "#ffffff",
     primaryButtonLabel: "Sign in",
     primaryButtonUrl: "/login",
-    primaryButtonIcon: "FiDownload",
+    primaryButtonIcon: "fi-rr-download",
     primaryButtonColor: "#0e9f6e",
     primaryButtonTextColor: "#ffffff",
     secondaryButtonLabel: "Get started",
     secondaryButtonUrl: "/register",
-    secondaryButtonIcon: "FiPhone",
+    secondaryButtonIcon: "fi-rr-phone-call",
     secondaryButtonColor: "#f97316",
     secondaryButtonTextColor: "#ffffff",
     menuLinkTextColor: "#334155",
@@ -192,38 +178,52 @@ function createInitialVariantConfig(preset) {
   };
 }
 
-function resolveNavbarIcon(code) {
-  const iconMap = {
-    FiHome,
-    FiGrid,
-    FiStar,
-    FiTag,
-    FiShoppingCart,
-    FiUser,
-    FiDownload,
-    FiPhone,
-    FiSearch,
-  };
-  return iconMap[String(code || "").trim()] || FiGrid;
+function getPublicStoreBaseUrl() {
+  const fromEnv =
+    import.meta.env.VITE_FRONTEND_URL ||
+    import.meta.env.VITE_PUBLIC_SITE_URL ||
+    import.meta.env.VITE_STOREFRONT_URL ||
+    "";
+  const fallback = import.meta.env.DEV ? "http://localhost:3000" : "https://www.aromadesire.com";
+  return String(fromEnv || fallback).replace(/\/$/, "");
 }
 
-function normalizeTab(raw) {
-  const t = String(raw || "").toLowerCase().trim();
-  if (t === TAB_VARIANTS) return TAB_VARIANTS;
-  /* Navbar order + Storefront nav links tabs temporarily hidden — default here. */
-  // if (t === TAB_LINKS) return TAB_LINKS;
-  // return TAB_ORDER;
-  return TAB_VARIANTS;
+/** When admin runs on localhost, preview the local Next storefront — not VITE_PUBLIC_SITE_URL prod URL. */
+function getNavbarPreviewStoreUrl() {
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host === "localhost" || host === "127.0.0.1") {
+      const local =
+        import.meta.env.VITE_LOCAL_STOREFRONT_URL ||
+        import.meta.env.VITE_DEV_STOREFRONT_URL ||
+        "http://localhost:3000";
+      return String(local).replace(/\/$/, "");
+    }
+  }
+  return getPublicStoreBaseUrl();
+}
+
+function SectionTitle({ step, title, description }) {
+  return (
+    <div className="border-b border-gray-100 pb-3 mb-4">
+      <div className="flex items-center gap-2">
+        {step ? (
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-white">
+            {step}
+          </span>
+        ) : null}
+        <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+      </div>
+      {description ? <p className="mt-1 text-sm text-gray-500">{description}</p> : null}
+    </div>
+  );
 }
 
 export default function ProductCentralNavbarHub() {
+  useFlaticonStylesheets();
   const auth = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedPage, setSelectedPage] = useState("storefront-navbar");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [selectedTab, setSelectedTab] = useState(() =>
-    normalizeTab(searchParams.get("tab"))
-  );
   const [selectedPreset, setSelectedPreset] = useState(() => NAVBAR_LAYOUT_PRESETS[0]);
   const [variantConfigs, setVariantConfigs] = useState(() =>
     NAVBAR_LAYOUT_PRESETS.reduce((acc, preset) => {
@@ -233,6 +233,7 @@ export default function ProductCentralNavbarHub() {
   );
   const [variantSaveMessage, setVariantSaveMessage] = useState("");
   const [variantSaving, setVariantSaving] = useState(false);
+  const [previewOpening, setPreviewOpening] = useState(false);
   const [draggingLinkId, setDraggingLinkId] = useState(null);
   const [storeLogoPreview, setStoreLogoPreview] = useState("");
   const [storeLogoAlt, setStoreLogoAlt] = useState("");
@@ -240,10 +241,6 @@ export default function ProductCentralNavbarHub() {
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
   const closeSidebar = () => setIsSidebarOpen(false);
-
-  useEffect(() => {
-    setSelectedTab(normalizeTab(searchParams.get("tab")));
-  }, [searchParams]);
 
   const loadStoreLogo = useCallback(async () => {
     setStoreLogoLoading(true);
@@ -294,21 +291,77 @@ export default function ProductCentralNavbarHub() {
     };
   }, [auth.ip]);
 
-  const syncTabToUrl = useCallback(
-    (tab) => {
-      const next = normalizeTab(tab);
-      setSearchParams(next === TAB_ORDER ? {} : { tab: next }, { replace: true });
-    },
-    [setSearchParams]
-  );
 
-  const tabIndex = 0;
   const selectedPresetId = presetKey(selectedPreset);
   const selectedConfig =
     variantConfigs[selectedPresetId] || createInitialVariantConfig(selectedPreset);
   const previewLogoUrl = storeLogoPreview;
-  const previewLogoText =
-    selectedConfig.logoText?.trim() || storeLogoAlt || "Brand";
+
+  const openStorefrontPreview = async () => {
+    const base = (auth.ip || "").endsWith("/") ? auth.ip : `${auth.ip || ""}/`;
+    if (!auth.ip) {
+      toast.error("API base URL is missing");
+      return;
+    }
+
+    // Open tab synchronously on click — async window.open() is blocked by most browsers.
+    const previewWindow = window.open("about:blank", "_blank");
+    if (previewWindow) {
+      try {
+        previewWindow.document.title = "Navbar preview";
+        previewWindow.document.body.innerHTML =
+          '<div style="font-family:system-ui,sans-serif;padding:2rem;text-align:center;color:#555">Loading navbar preview…</div>';
+      } catch {
+        // ignore if document is not writable
+      }
+    }
+
+    setPreviewOpening(true);
+    try {
+      const draftConfig = {
+        ...selectedConfig,
+        logoUrl: previewLogoUrl || selectedConfig.logoUrl || "",
+        logoText: selectedConfig.logoText?.trim() || storeLogoAlt || selectedConfig.logoText || "",
+      };
+      const res = await axios.put(
+        `${base}navbar-variant-test/preview-draft`,
+        { config: draftConfig },
+        { headers: { "x-user-role": "admin", "Content-Type": "application/json" } }
+      );
+      const token = res.data?.data?.previewToken;
+      if (!res.data?.success || !token) {
+        previewWindow?.close();
+        toast.error(res.data?.message || "Could not create preview");
+        return;
+      }
+      const url = `${getNavbarPreviewStoreUrl()}/navbar-preview/?token=${encodeURIComponent(token)}`;
+      if (previewWindow) {
+        previewWindow.location.href = url;
+        previewWindow.opener = null;
+        return;
+      }
+
+      toast.error(
+        "Popup blocked. Allow popups for this admin site, then try Preview again."
+      );
+      try {
+        await navigator.clipboard.writeText(url);
+        toast.info("Preview link copied — paste it in a new tab.", { autoClose: 8000 });
+      } catch {
+        toast.info(`Open manually: ${url}`, { autoClose: 12000 });
+      }
+    } catch (err) {
+      previewWindow?.close();
+      toast.error(err.response?.data?.message || "Could not open preview");
+    } finally {
+      setPreviewOpening(false);
+    }
+  };
+
+  const previewStoreUrl = getNavbarPreviewStoreUrl();
+  const isLocalPreview =
+    typeof window !== "undefined" &&
+    (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1");
 
   const updateSelectedVariantConfig = (patch) => {
     setVariantConfigs((prev) => ({
@@ -438,11 +491,6 @@ export default function ProductCentralNavbarHub() {
       })
       .finally(() => setVariantSaving(false));
   };
-  const PreviewPrimaryIcon = resolveNavbarIcon(selectedConfig.primaryButtonIcon);
-  const PreviewSecondaryIcon = resolveNavbarIcon(selectedConfig.secondaryButtonIcon);
-  const PreviewActionIcon1 = resolveNavbarIcon(selectedConfig.actionIcon1);
-  const PreviewActionIcon2 = resolveNavbarIcon(selectedConfig.actionIcon2);
-  const previewLinks = selectedConfig.links.slice(0, 5);
 
   return (
     <>
@@ -485,115 +533,57 @@ export default function ProductCentralNavbarHub() {
               </ol>
             </nav>
 
-            <div className="mb-6 flex items-center gap-3">
-              <div className="p-3 rounded-xl bg-purple-100 text-purple-600">
-                <svg
-                  className="w-6 h-6"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
+            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-xl bg-purple-100 text-purple-600">
+                  <svg
+                    className="w-6 h-6"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25A2.25 2.25 0 0 1 13.5 8.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h1 className="text-2xl font-semibold text-gray-900">Storefront Navbar</h1>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Pick a layout, edit menu links, then save — changes appear on your live site header.
+                  </p>
+                </div>
+              </div>
+              <a
+                href="https://www.flaticon.com/uicons/interface-icons"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex shrink-0 items-center justify-center gap-2 self-start rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-blue-700"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth="2"
-                    d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25A2.25 2.25 0 0 1 13.5 8.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z"
+                    d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
                   />
                 </svg>
-              </div>
-              <div>
-                <h1 className="text-2xl font-semibold text-gray-900">Navbar</h1>
-                <p className="mt-1 text-sm text-gray-500">
-                  Order storefront categories and manage quick nav links for the public site.
-                </p>
-              </div>
+                Flaticon icon library
+              </a>
             </div>
 
-            <Tab.Group
-              selectedIndex={tabIndex}
-              onChange={() => {
-                setSelectedTab(TAB_VARIANTS);
-                syncTabToUrl(TAB_VARIANTS);
-              }}
-            >
-              <Tab.List className="mb-6 flex space-x-1 overflow-x-auto rounded-xl bg-gray-100 p-1 max-w-2xl">
-                {/*
-                <Tab
-                  className={({ selected }) =>
-                    `rounded-lg py-2.5 px-4 text-sm font-medium leading-5 whitespace-nowrap w-full
-                    ${
-                      selected
-                        ? "bg-white text-primary shadow-sm"
-                        : "text-gray-700 hover:bg-white hover:text-primary"
-                    }`
-                  }
-                >
-                  Navbar order
-                </Tab>
-                <Tab
-                  className={({ selected }) =>
-                    `rounded-lg py-2.5 px-4 text-sm font-medium leading-5 whitespace-nowrap w-full
-                    ${
-                      selected
-                        ? "bg-white text-primary shadow-sm"
-                        : "text-gray-700 hover:bg-white hover:text-primary"
-                    }`
-                  }
-                >
-                  Storefront nav links
-                </Tab>
-                */}
-                <Tab
-                  className={({ selected }) =>
-                    `rounded-lg py-2.5 px-4 text-sm font-medium leading-5 whitespace-nowrap w-full
-                    ${
-                      selected
-                        ? "bg-white text-primary shadow-sm"
-                        : "text-gray-700 hover:bg-white hover:text-primary"
-                    }`
-                  }
-                >
-                  Navbar variants
-                </Tab>
-              </Tab.List>
-
-              <Tab.Panels>
-                {/*
-                <Tab.Panel>
-                  <div className="mb-4 rounded-xl border border-gray-200 bg-white p-4">
-                    <h2 className="text-lg font-medium text-gray-900 mb-1">
-                      Order navbar categories
-                    </h2>
-                    <p className="text-sm text-gray-500 mb-4">
-                      Choose categories, drag to set order, then save. The storefront navbar uses
-                      this order.
-                    </p>
-                    <NavbarOrderEditor />
-                  </div>
-                </Tab.Panel>
-                <Tab.Panel>
-                  <div className="rounded-xl border border-gray-200 bg-white p-4">
-                    <h2 className="text-lg font-medium text-gray-900 mb-1">Storefront nav links</h2>
-                    <p className="text-sm text-gray-500 mb-4">
-                      Navbar and homepage quick links for the public site.
-                    </p>
-                    <HomepageNavLinksEditor />
-                  </div>
-                </Tab.Panel>
-                */}
-                <Tab.Panel>
-                  <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-6">
-                    <div className="mb-5">
-                      <h2 className="text-lg font-medium text-gray-900 mb-1">Navbar variants</h2>
-                      <p className="text-sm text-gray-500">
-                        Same preset selector style as the navbar widget editor. Pick a preset and
-                        preview it here.
-                      </p>
-                    </div>
-
-                    <div className="rounded-lg border border-cyan-100 bg-cyan-50/40 p-4 space-y-4">
-                      <div className="space-y-2 rounded-md border border-blue-100 bg-blue-50 px-3 py-2">
-                        <label className="flex items-center gap-2 text-xs font-medium text-blue-900">
+            <div className="mx-auto max-w-4xl space-y-5">
+                <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
+                      <SectionTitle
+                        step="1"
+                        title="Layout style"
+                        description="Choose how the navbar looks on your storefront."
+                      />
+                      <div className="mb-4 flex flex-wrap gap-4 text-sm text-gray-700">
+                        <label className="flex items-center gap-2">
                           <input
                             type="checkbox"
                             checked={selectedConfig.showOnStorefront !== false}
@@ -603,9 +593,9 @@ export default function ProductCentralNavbarHub() {
                               })
                             }
                           />
-                          Show overall navbar on storefront
+                          Show on storefront
                         </label>
-                        <label className="flex flex-wrap items-center gap-2 text-xs font-medium text-blue-900">
+                        <label className="flex items-center gap-2">
                           <input
                             type="checkbox"
                             checked={selectedConfig.stickyNavbar === true}
@@ -615,15 +605,12 @@ export default function ProductCentralNavbarHub() {
                               })
                             }
                           />
-                          <span>
-                            Sticky navbar (stay pinned to top while scrolling — applies to this
-                            preset when it is the active storefront variant)
-                          </span>
+                          Stick to top when scrolling
                         </label>
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-2">
-                          Choose navbar preset (preview)
+                        <label className="mb-2 block text-sm font-medium text-gray-700">
+                          Pick a layout
                         </label>
                         <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                           {NAVBAR_LAYOUT_PRESETS.map((preset) => {
@@ -649,24 +636,19 @@ export default function ProductCentralNavbarHub() {
                         </div>
                       </div>
 
-                      <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-4">
-                        <div className="grid grid-cols-1 gap-3">
-                          <div>
-                            <label className="mb-1 block text-xs font-medium text-gray-600">
-                              Variant title
-                            </label>
-                            <input
-                              type="text"
-                              value={selectedConfig.label}
-                              onChange={(e) => updateSelectedVariantConfig({ label: e.target.value })}
-                              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
-                              placeholder="Variant name"
-                            />
-                          </div>
-                          <div>
-                            <label className="mb-1 block text-xs font-medium text-gray-600">
-                              Logo text
-                            </label>
+                </div>
+
+                <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
+                      <SectionTitle
+                        step="2"
+                        title="Logo & branding"
+                        description="Logo image is managed in Logo Management. Set fallback text and colors here."
+                      />
+                      <div className="space-y-4">
+                        <div>
+                          <label className="mb-1 block text-sm font-medium text-gray-700">
+                            Logo text (if no image)
+                          </label>
                             <input
                               type="text"
                               value={selectedConfig.logoText}
@@ -802,19 +784,25 @@ export default function ProductCentralNavbarHub() {
                           </button>
                         </div>
 
-                        <div className="rounded-md border border-gray-200 p-3">
-                          <div className="mb-2 flex items-center justify-between">
-                            <p className="text-xs font-medium text-gray-600">Menu links</p>
+                </div>
+
+                <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
+                      <SectionTitle
+                        step="3"
+                        title="Menu links"
+                        description="Main navigation items. Drag ⋮⋮ to reorder. Each link can have a dropdown submenu."
+                      />
+                          <div className="mb-3 flex justify-end">
                             <button
                               type="button"
                               onClick={addSelectedLink}
-                              className="rounded bg-primary px-4 py-2 text-xs font-medium text-white"
+                              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white"
                             >
-                              Add link
+                              + Add link
                             </button>
                           </div>
-                          <div className="space-y-2">
-                            {selectedConfig.links.map((link) => (
+                          <div className="space-y-3">
+                            {selectedConfig.links.map((link, linkIndex) => (
                               <div
                                 key={link.id}
                                 draggable
@@ -826,15 +814,28 @@ export default function ProductCentralNavbarHub() {
                                   moveSelectedLink(draggingLinkId, link.id);
                                   setDraggingLinkId(null);
                                 }}
-                                className={`grid grid-cols-12 gap-2 rounded-md p-1 ${
-                                  draggingLinkId === link.id ? "bg-gray-100" : ""
+                                className={`rounded-lg border border-gray-200 bg-gray-50/80 p-3 ${
+                                  draggingLinkId === link.id ? "ring-2 ring-primary/30" : ""
                                 }`}
                               >
+                                <div className="mb-2 flex items-center justify-between">
+                                  <span className="text-sm font-medium text-gray-800">
+                                    Link {linkIndex + 1}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeSelectedLink(link.id)}
+                                    className="text-xs text-red-600 hover:underline"
+                                  >
+                                    Remove
+                                  </button>
+                                </div>
+                                <div className="grid grid-cols-12 gap-2">
                                 <div
-                                  className="col-span-1 flex cursor-grab items-center justify-center rounded-md border border-gray-300 bg-gray-50 text-gray-500 active:cursor-grabbing"
+                                  className="col-span-1 flex cursor-grab items-center justify-center rounded-md border border-gray-300 bg-white text-gray-400 active:cursor-grabbing"
                                   title="Drag to reorder"
                                 >
-                                  ::
+                                  ⋮⋮
                                 </div>
                                 <select
                                   value={
@@ -870,7 +871,7 @@ export default function ProductCentralNavbarHub() {
                                         updateSelectedLink(link.id, { icon: e.target.value })
                                       }
                                       className="col-span-2 rounded-md border border-gray-300 px-2 py-1.5 text-xs"
-                                      placeholder="FiHome (react-icons)"
+                                      placeholder='fi-rr-home or <i class="fi fi-rr-home"></i>'
                                     />
                                     <input
                                       type="text"
@@ -897,7 +898,7 @@ export default function ProductCentralNavbarHub() {
                                     className="col-span-3 rounded-md border border-gray-300 px-2 py-1.5 text-xs"
                                     placeholder={
                                       link.linkType === "icon"
-                                        ? "FiHome (react-icons)"
+                                        ? 'fi-rr-home or <i class="fi fi-rr-home"></i>'
                                         : "Label"
                                     }
                                   />
@@ -907,18 +908,10 @@ export default function ProductCentralNavbarHub() {
                                   value={link.url}
                                   onChange={(e) => updateSelectedLink(link.id, { url: e.target.value })}
                                   className={`rounded-md border border-gray-300 px-2 py-1.5 text-xs ${
-                                    link.linkType === "icon_label" ? "col-span-4" : "col-span-5"
+                                    link.linkType === "icon_label" ? "col-span-5" : "col-span-6"
                                   }`}
-                                  placeholder="/path"
+                                  placeholder="URL e.g. /products"
                                 />
-                                <button
-                                  type="button"
-                                  onClick={() => removeSelectedLink(link.id)}
-                                  className="col-span-1 rounded-md border border-red-200 text-xs text-red-600"
-                                  title="Remove link"
-                                >
-                                  x
-                                </button>
                                 <div className="col-span-12 rounded-md border border-dashed border-gray-300 bg-gray-50 p-2">
                                   <div className="mb-2 flex items-center justify-between">
                                     <p className="text-[11px] font-semibold text-gray-700">
@@ -969,6 +962,7 @@ export default function ProductCentralNavbarHub() {
                                     ))}
                                   </div>
                                 </div>
+                                </div>
                               </div>
                             ))}
                           </div>
@@ -1000,11 +994,18 @@ export default function ProductCentralNavbarHub() {
                               />
                             </div>
                           </div>
-                        </div>
 
+                </div>
+
+                <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
+                      <SectionTitle
+                        step="4"
+                        title="Search, icons & buttons"
+                        description="Toggle what appears on the right side of the navbar."
+                      />
                         <div className="rounded-md border border-gray-200 bg-gray-50 p-3">
-                          <p className="mb-2 text-xs font-semibold text-gray-700">
-                            Visibility controls
+                          <p className="mb-2 text-sm font-medium text-gray-700">
+                            What to show
                           </p>
                           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
                             <label className="flex items-center gap-2 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700">
@@ -1064,7 +1065,7 @@ export default function ProductCentralNavbarHub() {
                                 updateSelectedVariantConfig({ actionIcon1: e.target.value })
                               }
                               className="mb-2 w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs"
-                              placeholder="Action icon 1"
+                              placeholder="Action icon 1 (e.g. fi-rr-shopping-cart)"
                             />
                             <input
                               type="text"
@@ -1150,7 +1151,7 @@ export default function ProductCentralNavbarHub() {
                                 updateSelectedVariantConfig({ actionIcon2: e.target.value })
                               }
                               className="mb-2 w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs"
-                              placeholder="Action icon 2"
+                              placeholder="Action icon 2 (e.g. fi-rr-user)"
                             />
                             <input
                               type="text"
@@ -1228,20 +1229,6 @@ export default function ProductCentralNavbarHub() {
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center justify-between rounded-md border border-blue-100 bg-blue-50 px-3 py-2">
-                          <p className="text-xs text-blue-800">
-                            Need icon names? Use the React Icons Feather list (same library used
-                            here).
-                          </p>
-                          <a
-                            href="https://react-icons.github.io/react-icons/icons/fi/"
-                            target="_blank"
-                            rel="noreferrer"
-                            className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700"
-                          >
-                            Open icon library
-                          </a>
-                        </div>
 
                         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                           <div className="rounded-md border border-gray-200 p-3">
@@ -1277,7 +1264,7 @@ export default function ProductCentralNavbarHub() {
                                 })
                               }
                               className="mt-2 w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs"
-                              placeholder="Primary icon code (e.g. FiDownload)"
+                              placeholder="Primary icon (e.g. fi-rr-download)"
                             />
                             <label className="mt-2 block text-xs font-medium text-gray-600">
                               Primary color
@@ -1339,7 +1326,7 @@ export default function ProductCentralNavbarHub() {
                                 })
                               }
                               className="mt-2 w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs"
-                              placeholder="Secondary icon code (e.g. FiPhone)"
+                              placeholder="Secondary icon (e.g. fi-rr-phone-call)"
                             />
                             <label className="mt-2 block text-xs font-medium text-gray-600">
                               Secondary color
@@ -1369,369 +1356,41 @@ export default function ProductCentralNavbarHub() {
                             />
                           </div>
                         </div>
+                </div>
+            </div>
 
-                        <p className="mb-3 text-xs font-medium text-gray-600">
-                          Live preview (matches storefront variant style)
-                          {selectedConfig.variant === "retail-two-row" ? (
-                            <span className="ml-1 block text-[11px] font-normal text-gray-500 sm:inline">
-                              Scroll the preview area to test sticky.
-                            </span>
-                          ) : null}
-                        </p>
-                        <div className="overflow-x-auto">
-                          {selectedConfig.variant === "retail-two-row" ? (
-                            <div
-                              className="min-w-[920px] max-h-[min(70vh,520px)] overflow-y-auto rounded-xl border bg-gray-50 p-3 shadow-inner"
-                              style={{ backgroundColor: selectedConfig.navbarBgColor || "#ffffff" }}
-                            >
-                              <div className="space-y-3 pb-32">
-                                <p className="text-center text-[11px] text-gray-400">
-                                  Page content above the navbar (scroll down)
-                                </p>
-                                <div className="h-16 rounded-lg bg-gradient-to-r from-slate-100 to-slate-200" />
-                                <div
-                                  className="rounded-xl border p-3 shadow-sm"
-                                  style={{ backgroundColor: selectedConfig.navbarBgColor || "#ffffff" }}
-                                >
-                                  <div
-                                    className={`flex items-center justify-between gap-4 ${
-                                      selectedConfig.stickyNavbar === true
-                                        ? "sticky top-0 z-10 rounded-t-lg border-b border-slate-100 pb-3 shadow-sm"
-                                        : "pb-3"
-                                    }`}
-                                    style={
-                                      selectedConfig.stickyNavbar === true
-                                        ? { backgroundColor: selectedConfig.navbarBgColor || "#ffffff" }
-                                        : undefined
-                                    }
-                                  >
-                                    <div className="flex items-center gap-2">
-                                      {previewLogoUrl ? (
-                                        <img src={previewLogoUrl} alt="logo" className="h-10 w-auto rounded-md object-contain" />
-                                      ) : (
-                                        <span className="text-sm font-semibold text-gray-900">
-                                          {previewLogoText}
-                                        </span>
-                                      )}
-                                    </div>
-                                    {selectedConfig.showSearch !== false ? (
-                                      <div className="flex h-10 w-[42%] items-center rounded-md border border-slate-300 bg-white px-3 text-xs text-slate-400">
-                                        Search for products
-                                      </div>
-                                    ) : (
-                                      <div className="min-w-0 flex-1" />
-                                    )}
-                                    <div className="flex shrink-0 items-center gap-2">
-                                      {selectedConfig.showButtons !== false ? (
-                                        <>
-                                          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full"
-                                            style={{
-                                              backgroundColor: selectedConfig.actionIcon1BgColor || "#0e9f6e",
-                                              color: selectedConfig.actionIcon1Color || "#ffffff",
-                                            }}>
-                                            <PreviewActionIcon1 className="h-4 w-4" />
-                                          </span>
-                                          <span className="text-[11px] text-slate-600">Basket £0.00</span>
-                                          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full"
-                                            style={{
-                                              backgroundColor: selectedConfig.actionIcon2BgColor || "#0e9f6e",
-                                              color: selectedConfig.actionIcon2Color || "#ffffff",
-                                            }}>
-                                            <PreviewActionIcon2 className="h-4 w-4" />
-                                          </span>
-                                        </>
-                                      ) : null}
-                                    </div>
-                                  </div>
-                                  <div
-                                    className="rounded-md px-4 py-2"
-                                    style={{
-                                      backgroundColor:
-                                        selectedConfig.classicRightSectionBgColor || "#fdf4df",
-                                    }}
-                                  >
-                                    <div className="flex items-center justify-center gap-8 text-sm">
-                                      {previewLinks.map((link) => {
-                                        const c = selectedConfig.menuLinkTextColor || "#334155";
-                                        if (link.linkType === "icon_label") {
-                                          const Cmp = resolveNavbarIcon(link.icon || "FiGrid");
-                                          return (
-                                            <span key={link.id} className="inline-flex items-center gap-1" style={{ color: c }}>
-                                              <Cmp className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                                              <span>{link.label || "Link"}</span>
-                                            </span>
-                                          );
-                                        }
-                                        return (
-                                          <span key={link.id} style={{ color: c }}>
-                                            {link.linkType === "icon" ? link.icon || "FiGrid" : link.label || "Link"}
-                                          </span>
-                                        );
-                                      })}
-                                    </div>
-                                  </div>
-                                </div>
-                                <p className="text-center text-[11px] text-gray-400">
-                                  More page content below (keeps scroll going)
-                                </p>
-                                <div className="h-40 rounded-lg bg-gradient-to-r from-slate-100 to-slate-200" />
-                                <div className="h-40 rounded-lg bg-gradient-to-r from-slate-200 to-slate-100" />
-                              </div>
-                            </div>
-                          ) : selectedConfig.variant === "wing-split" ? (
-                            <div
-                              className="min-w-[860px] overflow-hidden rounded-xl border shadow-sm"
-                              style={{
-                                backgroundColor:
-                                  selectedConfig.navbarBgColor ||
-                                  selectedConfig.classicRightSectionBgColor ||
-                                  "#f1f5f9",
-                              }}
-                            >
-                              <div className="flex min-h-[52px] w-full items-stretch">
-                                <div
-                                  className="min-w-0 flex-1"
-                                  style={{
-                                    backgroundColor:
-                                      selectedConfig.navbarBgColor ||
-                                      selectedConfig.classicRightSectionBgColor ||
-                                      "#f1f5f9",
-                                  }}
-                                />
-                                <div className="flex shrink-0 items-center bg-white px-4">
-                                  {previewLogoUrl ? (
-                                    <img
-                                      src={previewLogoUrl}
-                                      alt="logo"
-                                      className="h-9 w-auto max-w-[140px] rounded-md object-contain"
-                                    />
-                                  ) : (
-                                    <span className="text-sm font-semibold text-gray-900">
-                                      {previewLogoText}
-                                    </span>
-                                  )}
-                                </div>
-                                <div
-                                  className="flex w-[60%] shrink-0 flex-wrap items-center justify-end gap-3 px-3 py-2"
-                                  style={{
-                                    backgroundColor:
-                                      selectedConfig.navbarBgColor ||
-                                      selectedConfig.classicRightSectionBgColor ||
-                                      "#f1f5f9",
-                                  }}
-                                >
-                                  <div
-                                    className="flex flex-wrap justify-end gap-4 text-sm"
-                                    style={{ color: selectedConfig.menuLinkTextColor || "#334155" }}
-                                  >
-                                    {previewLinks.map((link) => {
-                                      if (link.linkType === "icon_label") {
-                                        const Cmp = resolveNavbarIcon(link.icon || "FiGrid");
-                                        return (
-                                          <span key={link.id} className="inline-flex items-center gap-1">
-                                            <Cmp className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                                            <span>{link.label || "Link"}</span>
-                                          </span>
-                                        );
-                                      }
-                                      return (
-                                        <span key={link.id}>
-                                          {link.linkType === "icon" ? link.icon || "FiGrid" : link.label || "Link"}
-                                        </span>
-                                      );
-                                    })}
-                                  </div>
-                                  {selectedConfig.showSearch !== false ? (
-                                    <span className="rounded-md border border-slate-300/80 bg-white/90 px-2 py-1 text-[11px] text-slate-600">
-                                      Search
-                                    </span>
-                                  ) : null}
-                                  {selectedConfig.showButtons !== false ? (
-                                    <>
-                                      <span
-                                        className="inline-flex h-8 w-8 items-center justify-center rounded-full"
-                                        style={{
-                                          backgroundColor: selectedConfig.actionIcon1BgColor || "#0e9f6e",
-                                          color: selectedConfig.actionIcon1Color || "#ffffff",
-                                        }}
-                                      >
-                                        <PreviewActionIcon1 className="h-4 w-4" />
-                                      </span>
-                                      <span
-                                        className="inline-flex h-8 w-8 items-center justify-center rounded-full"
-                                        style={{
-                                          backgroundColor: selectedConfig.actionIcon2BgColor || "#0e9f6e",
-                                          color: selectedConfig.actionIcon2Color || "#ffffff",
-                                        }}
-                                      >
-                                        <PreviewActionIcon2 className="h-4 w-4" />
-                                      </span>
-                                    </>
-                                  ) : null}
-                                </div>
-                              </div>
-                            </div>
-                          ) : selectedConfig.variant === "pill-black" ? (
-                            <div className="flex min-w-[720px] justify-center bg-neutral-200/90 py-10">
-                              <div
-                                className="flex w-full max-w-3xl items-center justify-between gap-4 rounded-full px-5 py-2.5 shadow-[0_10px_36px_rgba(0,0,0,0.28)]"
-                                style={{
-                                  backgroundColor: selectedConfig.navbarBgColor?.trim() || "#000000",
-                                }}
-                              >
-                                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white shadow-md ring-1 ring-black/10">
-                                  {previewLogoUrl ? (
-                                    <img
-                                      src={previewLogoUrl}
-                                      alt=""
-                                      className="h-[70%] w-[70%] object-contain"
-                                    />
-                                  ) : (
-                                    <GiFlame className="h-6 w-6 text-[#2563eb]" aria-hidden />
-                                  )}
-                                </div>
-                                <div className="flex min-w-0 flex-1 justify-center gap-7 text-[15px] font-medium text-white">
-                                  {previewLinks.map((link) => (
-                                    <span key={link.id} className="shrink-0 whitespace-nowrap">
-                                      {link.linkType === "icon" ? link.icon || "FiGrid" : link.label || "Link"}
-                                    </span>
-                                  ))}
-                                </div>
-                                {selectedConfig.showPrimaryButton !== false ? (
-                                  <span className="max-w-[12rem] truncate rounded-full bg-white px-5 py-2.5 text-sm font-medium text-black shadow-sm ring-1 ring-black/10">
-                                    {selectedConfig.primaryButtonLabel || "fire@email.com"}
-                                  </span>
-                                ) : (
-                                  <span className="w-10 shrink-0" aria-hidden />
-                                )}
-                              </div>
-                            </div>
-                          ) : (
-                            <div
-                              className="min-w-[860px] rounded-xl border p-3 shadow-sm"
-                              style={{ backgroundColor: selectedConfig.navbarBgColor || "#ffffff" }}
-                            >
-                              <div className="flex items-center justify-between gap-4">
-                                <div className="flex items-center gap-3">
-                                  {previewLogoUrl ? (
-                                    <img src={previewLogoUrl} alt="logo" className="h-9 w-9 rounded-md object-contain" />
-                                  ) : (
-                                    <span className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-gradient-to-br from-emerald-600 to-emerald-800 text-xs font-bold text-white">
-                                      {(previewLogoText || "NB").slice(0, 2).toUpperCase()}
-                                    </span>
-                                  )}
-                                  <span className="text-sm font-semibold text-gray-900">
-                                    {previewLogoText}
-                                  </span>
-                                </div>
-                                <div className="flex items-center gap-6 text-sm">
-                                  {previewLinks.map((link) => {
-                                    const c = selectedConfig.menuLinkTextColor || "#334155";
-                                    if (link.linkType === "icon_label") {
-                                      const Cmp = resolveNavbarIcon(link.icon || "FiGrid");
-                                      return (
-                                        <span key={link.id} className="inline-flex items-center gap-1" style={{ color: c }}>
-                                          <Cmp className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                                          <span>{link.label || "Link"}</span>
-                                        </span>
-                                      );
-                                    }
-                                    return (
-                                      <span key={link.id} style={{ color: c }}>
-                                        {link.linkType === "icon" ? link.icon || "FiGrid" : link.label || "Link"}
-                                      </span>
-                                    );
-                                  })}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  {selectedConfig.showSearch !== false ? (
-                                    <span className="rounded-xl bg-gray-100 px-3 py-1.5 text-xs text-gray-500">
-                                      Search
-                                    </span>
-                                  ) : null}
-                                  {selectedConfig.showButtons !== false ? (
-                                    <>
-                                      <span
-                                        className="inline-flex h-8 w-8 items-center justify-center rounded-full"
-                                        style={{
-                                          backgroundColor: selectedConfig.actionIcon1BgColor || "#0e9f6e",
-                                          color: selectedConfig.actionIcon1Color || "#ffffff",
-                                        }}
-                                      >
-                                        <PreviewActionIcon1 className="h-4 w-4" />
-                                      </span>
-                                      <span
-                                        className="inline-flex h-8 w-8 items-center justify-center rounded-full"
-                                        style={{
-                                          backgroundColor: selectedConfig.actionIcon2BgColor || "#0e9f6e",
-                                          color: selectedConfig.actionIcon2Color || "#ffffff",
-                                        }}
-                                      >
-                                        <PreviewActionIcon2 className="h-4 w-4" />
-                                      </span>
-                                    </>
-                                  ) : null}
-                                  {selectedConfig.showPrimaryButton !== false ? (
-                                    <span
-                                      className="rounded-xl px-3 py-1.5 text-xs font-semibold text-white"
-                                      style={{
-                                        backgroundColor:
-                                          selectedConfig.primaryButtonColor || "#0e9f6e",
-                                        color: selectedConfig.primaryButtonTextColor || "#ffffff",
-                                      }}
-                                    >
-                                      <span className="inline-flex items-center gap-1">
-                                        <PreviewPrimaryIcon className="h-3.5 w-3.5" />
-                                        {selectedConfig.primaryButtonLabel || "Primary"}
-                                      </span>
-                                    </span>
-                                  ) : null}
-                                  {selectedConfig.showSecondaryButton !== false ? (
-                                    <span
-                                      className="rounded-xl px-3 py-1.5 text-xs font-semibold text-white"
-                                      style={{
-                                        backgroundColor:
-                                          selectedConfig.secondaryButtonColor || "#f97316",
-                                        color: selectedConfig.secondaryButtonTextColor || "#ffffff",
-                                      }}
-                                    >
-                                      <span className="inline-flex items-center gap-1">
-                                        <PreviewSecondaryIcon className="h-3.5 w-3.5" />
-                                        {selectedConfig.secondaryButtonLabel || "Secondary"}
-                                      </span>
-                                    </span>
-                                  ) : null}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                        <div className="mt-3 rounded-md border border-gray-100 bg-gray-50 px-3 py-2 text-xs text-gray-600">
-                          Selected preset:{" "}
-                          <span className="font-semibold text-gray-800">{selectedConfig.label}</span>{" "}
-                          ({selectedConfig.variant}) - {selectedConfig.layoutLabel}
-                        </div>
-                        <div className="mt-3 flex flex-wrap items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={saveVariantForStorefrontTest}
-                            disabled={variantSaving}
-                            className="rounded-sm bg-blue-600 px-6 py-3 text-sm font-medium text-white"
-                          >
-                            {variantSaving
-                              ? "Saving..."
-                              : "Save"}
-                          </button>
-                          {variantSaveMessage ? (
-                            <span className="text-xs text-green-700">{variantSaveMessage}</span>
-                          ) : null}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </Tab.Panel>
-              </Tab.Panels>
-            </Tab.Group>
+            <div className="mx-auto mt-8 max-w-4xl border-t border-gray-200 pt-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-sm text-gray-500">
+                  <span className="font-medium text-gray-800">Preview draft</span> shows your current
+                  edits in a new tab — no need to save first. Use Save when you want it live.
+                  {isLocalPreview ? (
+                    <span className="mt-1 block text-xs text-gray-400">{previewStoreUrl}/navbar-preview/</span>
+                  ) : null}
+                  {variantSaveMessage ? (
+                    <span className="mt-1 block text-green-700">{variantSaveMessage}</span>
+                  ) : null}
+                </div>
+                <div className="flex flex-row flex-nowrap items-center justify-end gap-3 sm:shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => void openStorefrontPreview()}
+                    disabled={previewOpening}
+                    className="shrink-0 whitespace-nowrap rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-800 hover:bg-gray-50 disabled:opacity-60"
+                  >
+                    {previewOpening ? "Opening preview…" : "Preview draft (new tab)"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={saveVariantForStorefrontTest}
+                    disabled={variantSaving}
+                    className="shrink-0 whitespace-nowrap rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white disabled:opacity-60"
+                  >
+                    {variantSaving ? "Saving…" : "Save to storefront"}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </main>
       </div>

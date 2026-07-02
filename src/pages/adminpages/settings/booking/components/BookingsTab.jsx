@@ -161,6 +161,11 @@ export default function BookingsTab({ setProgress }) {
                       <div className="text-sm text-gray-500 capitalize">
                         {booking.packageId?.name || booking.type}
                       </div>
+                      {Array.isArray(booking.extras) && booking.extras.length > 0 && (
+                        <div className="text-xs text-primary mt-0.5">
+                          +{booking.extras.length} extra{booking.extras.length > 1 ? 's' : ''}
+                        </div>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">{booking.customer?.name}</div>

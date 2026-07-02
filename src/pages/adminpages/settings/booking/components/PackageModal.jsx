@@ -26,6 +26,8 @@ function resolveImagePreview(url) {
   return `${API_BASE_URL}/uploads/${url}`;
 }
 
+const EMPTY_EXTRA = { image: '', title: '', price: 0, description: '' };
+
 export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
   const [formData, setFormData] = useState({
     name: '',
@@ -35,11 +37,14 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
     description: '',
     detailPage: '',
     features: [''],
+    extras: [],
     image: '',
     isActive: true,
   });
   const [imagePreview, setImagePreview] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadingExtraIndex, setUploadingExtraIndex] = useState(null);
+  const [extraImagePreviews, setExtraImagePreviews] = useState({});
   const [saving, setSaving] = useState(false);
   const editorRef = useRef(null);
 
@@ -57,10 +62,23 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
           Array.isArray(editPackage.features) && editPackage.features.length > 0
             ? editPackage.features
             : [''],
+        extras: Array.isArray(editPackage.extras)
+          ? editPackage.extras.map((extra) => ({
+              image: extra.image || '',
+              title: extra.title || '',
+              price: extra.price ?? 0,
+              description: extra.description || '',
+            }))
+          : [],
         image,
         isActive: editPackage.isActive !== false,
       });
       setImagePreview(image ? resolveImagePreview(image) : '');
+      const previews = {};
+      (editPackage.extras || []).forEach((extra, index) => {
+        if (extra?.image) previews[index] = resolveImagePreview(extra.image);
+      });
+      setExtraImagePreviews(previews);
     } else {
       setFormData({
         name: '',
@@ -70,10 +88,12 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
         description: '',
         detailPage: '',
         features: [''],
+        extras: [],
         image: '',
         isActive: true,
       });
       setImagePreview('');
+      setExtraImagePreviews({});
     }
   }, [editPackage, isOpen]);
 
@@ -98,6 +118,71 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
       const features = prev.features.filter((_, i) => i !== index);
       return { ...prev, features: features.length > 0 ? features : [''] };
     });
+  };
+
+  const addExtra = () => {
+    setFormData((prev) => ({ ...prev, extras: [...prev.extras, { ...EMPTY_EXTRA }] }));
+  };
+
+  const removeExtra = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      extras: prev.extras.filter((_, i) => i !== index),
+    }));
+    setExtraImagePreviews((prev) => {
+      const next = { ...prev };
+      delete next[index];
+      const reindexed = {};
+      Object.keys(next).forEach((key) => {
+        const num = Number(key);
+        if (num > index) reindexed[num - 1] = next[key];
+        else reindexed[num] = next[key];
+      });
+      return reindexed;
+    });
+  };
+
+  const handleExtraChange = (index, field, value) => {
+    setFormData((prev) => {
+      const extras = [...prev.extras];
+      extras[index] = { ...extras[index], [field]: value };
+      return { ...prev, extras };
+    });
+  };
+
+  const handleExtraImageChange = async (index, file) => {
+    if (!file) {
+      handleExtraChange(index, 'image', '');
+      setExtraImagePreviews((prev) => {
+        const next = { ...prev };
+        delete next[index];
+        return next;
+      });
+      return;
+    }
+
+    setUploadingExtraIndex(index);
+    const localPreview = URL.createObjectURL(file);
+    setExtraImagePreviews((prev) => ({ ...prev, [index]: localPreview }));
+
+    try {
+      const imageUrl = await uploadPackageImage(file);
+      if (imageUrl) {
+        handleExtraChange(index, 'image', imageUrl);
+        setExtraImagePreviews((prev) => ({ ...prev, [index]: resolveImagePreview(imageUrl) }));
+      } else {
+        setExtraImagePreviews((prev) => {
+          const next = { ...prev };
+          const saved = formData.extras[index]?.image;
+          if (saved) next[index] = resolveImagePreview(saved);
+          else delete next[index];
+          return next;
+        });
+      }
+    } finally {
+      URL.revokeObjectURL(localPreview);
+      setUploadingExtraIndex(null);
+    }
   };
 
   const handleImageChange = async (file) => {
@@ -128,7 +213,7 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
-    if (uploadingImage) return;
+    if (uploadingImage || uploadingExtraIndex !== null) return;
 
     setSaving(true);
     const payload = {
@@ -136,6 +221,14 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
       features: formData.features
         .map((item) => item.trim())
         .filter((item) => item.length > 0),
+      extras: formData.extras
+        .map((extra) => ({
+          image: extra.image || '',
+          title: extra.title.trim(),
+          price: Number(extra.price) || 0,
+          description: extra.description.trim(),
+        }))
+        .filter((extra) => extra.title.length > 0),
     };
     await onSave(payload);
     setSaving(false);
@@ -305,6 +398,106 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
             </div>
 
             <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Extras
+                </label>
+                <button
+                  type="button"
+                  onClick={addExtra}
+                  className="text-sm text-primary hover:text-secondary font-medium"
+                >
+                  + Add extra
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mb-3">
+                Optional add-ons customers can choose with this package.
+              </p>
+
+              {formData.extras.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center text-sm text-gray-500">
+                  No extras yet. Click &quot;Add extra&quot; to create one.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {formData.extras.map((extra, index) => (
+                    <div
+                      key={index}
+                      className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-3"
+                    >
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-semibold text-gray-800">
+                          Extra {index + 1}
+                        </h4>
+                        <button
+                          type="button"
+                          onClick={() => removeExtra(index)}
+                          className="p-1.5 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50"
+                          title="Remove extra"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+
+                      <ImageUploader
+                        label="Extra Image"
+                        helperText="Optional image for this extra (max 5MB)."
+                        value={extraImagePreviews[index] || (extra.image ? resolveImagePreview(extra.image) : '')}
+                        onChange={(file) => handleExtraImageChange(index, file)}
+                        maxSizeMB={5}
+                      />
+                      {uploadingExtraIndex === index && (
+                        <p className="text-sm text-gray-500">Uploading image...</p>
+                      )}
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Title *
+                        </label>
+                        <input
+                          type="text"
+                          value={extra.title}
+                          onChange={(e) => handleExtraChange(index, 'title', e.target.value)}
+                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-primary focus:border-primary"
+                          placeholder="e.g., Extra microphone"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Price (£)
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          value={extra.price}
+                          onChange={(e) => handleExtraChange(index, 'price', Number(e.target.value))}
+                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-primary focus:border-primary"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Description
+                        </label>
+                        <textarea
+                          rows={3}
+                          value={extra.description}
+                          onChange={(e) => handleExtraChange(index, 'description', e.target.value)}
+                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-primary focus:border-primary"
+                          placeholder="Short description of this extra"
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Detail Page
               </label>
@@ -333,7 +526,7 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
               </button>
               <button
                 type="submit"
-                disabled={saving || uploadingImage}
+                disabled={saving || uploadingImage || uploadingExtraIndex !== null}
                 className="px-4 py-2 bg-primary text-white rounded-md hover:bg-secondary disabled:opacity-50"
               >
                 {saving ? 'Saving...' : editPackage ? 'Update' : 'Create'}

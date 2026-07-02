@@ -3,10 +3,13 @@ import PropTypes from "prop-types";
 export default function DataQualitySection({ data }) {
   const fields = [
     { label: "Selected range", value: data.selectedRange },
+    { label: "Channel filter", value: data.channelFilter },
     { label: "Tracking started", value: data.trackingStarted },
     { label: "Visitor sessions in range", value: data.visitorSessions },
     { label: "All orders in range", value: data.allOrdersInRange },
     { label: "Revenue orders in range", value: data.revenueOrdersInRange },
+    { label: "Non-revenue orders", value: data.nonRevenueOrdersInRange, warn: data.nonRevenueWarn },
+    { label: "Failed orders", value: data.failedOrdersInRange, warn: data.failedOrdersWarn },
     { label: "Orders with marketingAttribution", value: data.ordersWithMarketingAttribution },
     { label: "Orders without marketingAttribution", value: data.ordersWithoutMarketingAttribution },
     { label: "Orders with UTM source", value: data.ordersWithUtmSource },
@@ -18,6 +21,10 @@ export default function DataQualitySection({ data }) {
       value: data.rangeIncludesPreTrackingPeriod,
       warn: data.preTrackingWarn,
     },
+    { label: "Funnel: page views", value: data.funnelPageViews },
+    { label: "Funnel: add to cart", value: data.funnelAddToCart },
+    { label: "Funnel: begin checkout", value: data.funnelBeginCheckout },
+    { label: "Funnel: purchase events", value: data.funnelPurchase },
   ];
 
   return (
@@ -54,10 +61,19 @@ export default function DataQualitySection({ data }) {
 DataQualitySection.propTypes = {
   data: PropTypes.shape({
     selectedRange: PropTypes.string.isRequired,
+    channelFilter: PropTypes.string.isRequired,
     trackingStarted: PropTypes.string.isRequired,
     visitorSessions: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
     allOrdersInRange: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
     revenueOrdersInRange: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    nonRevenueOrdersInRange: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    failedOrdersInRange: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    nonRevenueWarn: PropTypes.bool,
+    failedOrdersWarn: PropTypes.bool,
+    funnelPageViews: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    funnelAddToCart: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    funnelBeginCheckout: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
+    funnelPurchase: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
     ordersWithMarketingAttribution: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
       .isRequired,
     ordersWithoutMarketingAttribution: PropTypes.oneOfType([PropTypes.string, PropTypes.number])
