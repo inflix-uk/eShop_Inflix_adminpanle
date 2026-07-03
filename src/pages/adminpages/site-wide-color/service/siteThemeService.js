@@ -23,6 +23,8 @@ export const getSiteTheme = async () => {
         primaryColor: pick(response.data.data?.primaryColor),
         secondaryColor: pick(response.data.data?.secondaryColor),
         bodyBgColor: response.data.data?.bodyBgColor ?? "",
+        tagColors: response.data.data?.tagColors ?? null,
+        uiCustom: response.data.data?.uiCustom ?? null,
         typography: response.data.data?.typography || null,
         updatedAt: response.data.data?.updatedAt || null,
       };
@@ -74,6 +76,52 @@ export const saveBodyBackgroundTheme = async (bodyBgColor) => {
     console.error("Error saving body background:", error);
     toast.error(
       error.response?.data?.message || "Failed to save body background"
+    );
+    return false;
+  }
+};
+
+/** Global h1–h6, p colors — `PUT /api/theme/tag-colors` (admin). */
+export const saveTagColorsTheme = async (tagColors) => {
+  try {
+    const response = await axios.put(
+      `${API_BASE_URL}api/theme/tag-colors`,
+      { tagColors },
+      { headers: getHeaders() }
+    );
+    if (response.data.success) {
+      toast.success("Tag colors saved");
+      return true;
+    }
+    toast.error(response.data.message || "Failed to save tag colors");
+    return false;
+  } catch (error) {
+    console.error("Error saving tag colors:", error);
+    toast.error(
+      error.response?.data?.message || "Failed to save tag colors"
+    );
+    return false;
+  }
+};
+
+/** Booking module UI — `PUT /api/theme/booking-ui` (admin). */
+export const saveBookingUiTheme = async (serviceCardBgColor) => {
+  try {
+    const response = await axios.put(
+      `${API_BASE_URL}api/theme/booking-ui`,
+      { serviceCardBgColor },
+      { headers: getHeaders() }
+    );
+    if (response.data.success) {
+      toast.success("Booking UI saved");
+      return true;
+    }
+    toast.error(response.data.message || "Failed to save booking UI");
+    return false;
+  } catch (error) {
+    console.error("Error saving booking UI:", error);
+    toast.error(
+      error.response?.data?.message || "Failed to save booking UI"
     );
     return false;
   }

@@ -1,5 +1,5 @@
 import PropTypes from "prop-types";
-import { Clock, Coffee } from "lucide-react";
+import { Clock, Coffee, MessageCircle, MessageCircleOff } from "lucide-react";
 import VisitorItem from "./VisitorItem";
 import ConversationListSkeleton from "./ConversationListSkeleton";
 
@@ -18,6 +18,9 @@ export default function ConversationList({
   autoReplyEnabled,
   onOpenAway,
   isAway,
+  chatEnabled,
+  onToggleChatEnabled,
+  isTogglingChat,
 }) {
   return (
     <div
@@ -35,6 +38,30 @@ export default function ConversationList({
                 {unreadCount} new
               </span>
             )}
+            {/* Live Chat On/Off Button — hides storefront chat widget when off */}
+            <button
+              onClick={onToggleChatEnabled}
+              disabled={isTogglingChat}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors disabled:opacity-60 ${
+                chatEnabled
+                  ? "bg-white/20 text-white hover:bg-white/30"
+                  : "bg-red-500 text-white hover:bg-red-600"
+              }`}
+              title={
+                chatEnabled
+                  ? "Live chat is ON — click to hide widget on storefront"
+                  : "Live chat is OFF — click to show widget on storefront"
+              }
+            >
+              {chatEnabled ? (
+                <MessageCircle className="w-3.5 h-3.5" />
+              ) : (
+                <MessageCircleOff className="w-3.5 h-3.5" />
+              )}
+              <span className="hidden sm:inline">
+                {chatEnabled ? "Live: On" : "Live: Off"}
+              </span>
+            </button>
             {/* Away Button */}
             <button
               onClick={onOpenAway}
@@ -140,6 +167,9 @@ ConversationList.propTypes = {
   autoReplyEnabled: PropTypes.bool,
   onOpenAway: PropTypes.func.isRequired,
   isAway: PropTypes.bool,
+  chatEnabled: PropTypes.bool,
+  onToggleChatEnabled: PropTypes.func,
+  isTogglingChat: PropTypes.bool,
 };
 
 ConversationList.defaultProps = {
@@ -149,4 +179,7 @@ ConversationList.defaultProps = {
   visitorTyping: {},
   autoReplyEnabled: false,
   isAway: false,
+  chatEnabled: true,
+  onToggleChatEnabled: () => {},
+  isTogglingChat: false,
 };

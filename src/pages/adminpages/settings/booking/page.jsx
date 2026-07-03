@@ -4,6 +4,8 @@ import LoadingBar from 'react-top-loading-bar';
 import Side from '../../nav/Side';
 import Top from '../../nav/Top';
 import {
+  ContentTab,
+  BookingSeoTab,
   SettingsTab,
   PackagesTab,
   AvailabilityTab,
@@ -12,6 +14,8 @@ import {
 } from './components';
 
 const TABS = [
+  { id: 'content', label: 'Content', icon: 'document' },
+  { id: 'seo', label: 'SEO', icon: 'search' },
   { id: 'settings', label: 'Settings', icon: 'cog' },
   { id: 'packages', label: 'Packages', icon: 'cube' },
   { id: 'availability', label: 'Availability', icon: 'clock' },
@@ -23,13 +27,25 @@ export default function BookingManagement() {
   const [selectedPage, setSelectedPage] = useState('booking-management');
   const [progress, setProgress] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('settings');
+  const [activeTab, setActiveTab] = useState('content');
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
   const closeSidebar = () => setIsSidebarOpen(false);
 
   const renderIcon = (icon) => {
     switch (icon) {
+      case 'document':
+        return (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        );
+      case 'search':
+        return (
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        );
       case 'cog':
         return (
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -126,6 +142,8 @@ export default function BookingManagement() {
             </div>
 
             {/* Tab Content */}
+            {activeTab === 'content' && <ContentTab setProgress={setProgress} />}
+            {activeTab === 'seo' && <BookingSeoTab setProgress={setProgress} />}
             {activeTab === 'settings' && <SettingsTab setProgress={setProgress} />}
             {activeTab === 'packages' && <PackagesTab setProgress={setProgress} />}
             {activeTab === 'availability' && <AvailabilityTab setProgress={setProgress} />}

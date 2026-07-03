@@ -17,6 +17,8 @@ import {
   transferToMessages,
   getAwayStatus,
   saveAwayStatus,
+  getChatEnabledSettings,
+  saveChatEnabledSettings,
 } from "./service";
 
 // Unlock audio on first user interaction (browser autoplay policy workaround)
@@ -77,6 +79,10 @@ export default function VisitorMessages() {
   const [isAwayModalOpen, setIsAwayModalOpen] = useState(false);
   const [awaySettings, setAwaySettings] = useState(null);
   const [isSavingAway, setIsSavingAway] = useState(false);
+
+  // Live chat enable/disable state (controls storefront widget visibility)
+  const [chatEnabled, setChatEnabled] = useState(true);
+  const [isTogglingChat, setIsTogglingChat] = useState(false);
 
   // Sidebar handlers
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
@@ -478,6 +484,55 @@ export default function VisitorMessages() {
   }, [fetchAwayStatus]);
 
   /**
+   * Fetch live chat enabled setting
+   */
+  const fetchChatEnabled = useCallback(async () => {
+    try {
+      const data = await getChatEnabledSettings();
+      if (data?.success && data.settings) {
+        setChatEnabled(!!data.settings.isEnabled);
+      }
+    } catch (error) {
+      console.error("Error fetching chat enabled setting:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchChatEnabled();
+  }, [fetchChatEnabled]);
+
+  /**
+   * Toggle live chat on/off — hides/shows storefront chat widget
+   */
+  const handleToggleChatEnabled = async () => {
+    if (isTogglingChat) return;
+    setIsTogglingChat(true);
+    const nextValue = !chatEnabled;
+    // Optimistic update
+    setChatEnabled(nextValue);
+    try {
+      const data = await saveChatEnabledSettings(nextValue);
+      if (data?.success) {
+        setChatEnabled(!!data.settings.isEnabled);
+        toast.success(
+          data.settings.isEnabled
+            ? "Live chat enabled — visible on storefront"
+            : "Live chat disabled — hidden on storefront"
+        );
+      } else {
+        setChatEnabled(!nextValue);
+        toast.error("Failed to update live chat status");
+      }
+    } catch (error) {
+      console.error("Error toggling live chat:", error);
+      setChatEnabled(!nextValue);
+      toast.error("Failed to update live chat status");
+    } finally {
+      setIsTogglingChat(false);
+    }
+  };
+
+  /**
    * Handle opening transfer modal and checking if user is registered
    */
   const handleOpenTransferModal = async (visitor) => {
@@ -618,6 +673,9 @@ export default function VisitorMessages() {
                 autoReplyEnabled={autoReplySettings?.isEnabled}
                 onOpenAway={() => setIsAwayModalOpen(true)}
                 isAway={awaySettings?.isAway}
+                chatEnabled={chatEnabled}
+                onToggleChatEnabled={handleToggleChatEnabled}
+                isTogglingChat={isTogglingChat}
               />
               <ChatPanel
                 selectedVisitor={selectedVisitor}
