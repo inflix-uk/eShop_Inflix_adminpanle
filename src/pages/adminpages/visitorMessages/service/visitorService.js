@@ -149,3 +149,34 @@ export const toggleAwayStatus = async () => {
   const response = await axios.patch(`${BACKEND_URL}visitor-messages/away/toggle`);
   return response.data;
 };
+
+// ========================================================================
+// LIVE CHAT ENABLE / DISABLE
+// ========================================================================
+
+/**
+ * Get live chat enabled settings
+ */
+export const getChatEnabledSettings = async () => {
+  const response = await axios.get(`${BACKEND_URL}visitor-messages/chat-enabled/settings`);
+  return response.data;
+};
+
+/**
+ * Save live chat enabled settings
+ */
+export const saveChatEnabledSettings = async (isEnabled) => {
+  const response = await axios.post(
+    `${BACKEND_URL}visitor-messages/chat-enabled/settings`,
+    { isEnabled }
+  );
+  return response.data;
+};
+
+/**
+ * Toggle live chat on/off
+ */
+export const toggleChatEnabled = async () => {
+  const response = await axios.patch(`${BACKEND_URL}visitor-messages/chat-enabled/toggle`);
+  return response.data;
+};

@@ -1,3 +1,5 @@
+export { default as ContentTab } from './ContentTab';
+export { default as BookingSeoTab } from './BookingSeoTab';
 export { default as SettingsTab } from './SettingsTab';
 export { default as PackagesTab } from './PackagesTab';
 export { default as PackageModal } from './PackageModal';

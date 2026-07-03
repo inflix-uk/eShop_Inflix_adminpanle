@@ -46,6 +46,86 @@ export const updateBookingSettings = async (settings) => {
 };
 
 // ============================================================================
+// BOOKING PAGE SEO
+// ============================================================================
+
+export const getBookingSeo = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}booking/settings/seo`, {
+      headers: getHeaders(),
+    });
+    if (response.data?.success) {
+      return response.data.data;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching booking SEO:', error);
+    toast.error('Failed to load booking SEO');
+    return null;
+  }
+};
+
+export const patchBookingSeo = async ({ metaTitle, metaDescription, jsonLd }) => {
+  try {
+    const response = await axios.patch(
+      `${API_BASE_URL}booking/settings/seo`,
+      { metaTitle, metaDescription, jsonLd },
+      { headers: getHeaders() }
+    );
+    if (response.data?.success) {
+      toast.success('Booking SEO saved');
+      return response.data.data;
+    }
+    toast.error(response.data?.message || 'Failed to save booking SEO');
+    return null;
+  } catch (error) {
+    console.error('Error saving booking SEO:', error);
+    toast.error(error.response?.data?.message || 'Failed to save booking SEO');
+    return null;
+  }
+};
+
+// ============================================================================
+// BOOKING PAGE CONTENT
+// ============================================================================
+
+export const getBookingPageContent = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}booking/settings/content`, {
+      headers: getHeaders(),
+    });
+    if (response.data?.success) {
+      return response.data.data;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching booking page content:', error);
+    toast.error('Failed to load booking page content');
+    return null;
+  }
+};
+
+export const patchBookingPageContent = async (content) => {
+  try {
+    const response = await axios.patch(
+      `${API_BASE_URL}booking/settings/content`,
+      { content },
+      { headers: getHeaders() }
+    );
+    if (response.data?.success) {
+      toast.success('Booking page content saved');
+      return response.data.data;
+    }
+    toast.error(response.data?.message || 'Failed to save content');
+    return null;
+  } catch (error) {
+    console.error('Error saving booking page content:', error);
+    toast.error(error.response?.data?.message || 'Failed to save content');
+    return null;
+  }
+};
+
+// ============================================================================
 // BOOKING PACKAGES
 // ============================================================================
 

@@ -4,9 +4,13 @@ import LoadingBar from "react-top-loading-bar";
 import Side from "../nav/Side";
 import Top from "../nav/Top";
 import BodyBackgroundColorForm, { adminDisplayBodyBg } from "./components/BodyBackgroundColorForm";
+import TagColorsForm from "./components/TagColorsForm";
+import BookingUiCustomForm from "./components/BookingUiCustomForm";
 import TypographySettingsForm from "./components/TypographySettingsForm";
 import { DEFAULT_TYPOGRAPHY, ALLOWED_FONTS, ALLOWED_WEIGHTS } from "./typographyDefaults";
-import { getSiteTheme, saveSiteTheme, saveTypographyTheme, saveBodyBackgroundTheme } from "./service/siteThemeService";
+import { adminDisplayBookingServiceCardBg } from "./bookingUiDefaults";
+import { adminDisplayTagColors } from "./tagColorsDefaults";
+import { getSiteTheme, saveSiteTheme, saveTypographyTheme, saveBodyBackgroundTheme, saveBookingUiTheme, saveTagColorsTheme } from "./service/siteThemeService";
 
 /** Matches storefront / API when no CMS hex is set — no green fallbacks. */
 const DEFAULT_PRIMARY = "transparent";
@@ -71,6 +75,12 @@ export default function SiteWideColor() {
   const [typographySaving, setTypographySaving] = useState(false);
   const [bodyBgColor, setBodyBgColor] = useState(() => adminDisplayBodyBg(""));
   const [bodyBgSaving, setBodyBgSaving] = useState(false);
+  const [tagColors, setTagColors] = useState(() => adminDisplayTagColors(null));
+  const [tagColorsSaving, setTagColorsSaving] = useState(false);
+  const [bookingServiceCardBg, setBookingServiceCardBg] = useState(() =>
+    adminDisplayBookingServiceCardBg("")
+  );
+  const [bookingUiSaving, setBookingUiSaving] = useState(false);
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
   const closeSidebar = () => setIsSidebarOpen(false);
@@ -92,6 +102,10 @@ export default function SiteWideColor() {
         );
         setTypography(normalizeTypography(data.typography));
         setBodyBgColor(adminDisplayBodyBg(data.bodyBgColor));
+        setTagColors(adminDisplayTagColors(data.tagColors));
+        setBookingServiceCardBg(
+          adminDisplayBookingServiceCardBg(data.uiCustom?.booking?.serviceCardBgColor)
+        );
       }
       if (!cancelled) {
         setLoading(false);
@@ -156,6 +170,28 @@ export default function SiteWideColor() {
     if (fresh) setBodyBgColor(adminDisplayBodyBg(fresh.bodyBgColor));
   };
 
+  const handleSaveTagColors = async () => {
+    setTagColorsSaving(true);
+    const ok = await saveTagColorsTheme(tagColors);
+    setTagColorsSaving(false);
+    if (!ok) return;
+    const fresh = await getSiteTheme();
+    if (fresh) setTagColors(adminDisplayTagColors(fresh.tagColors));
+  };
+
+  const handleSaveBookingUi = async () => {
+    setBookingUiSaving(true);
+    const ok = await saveBookingUiTheme(bookingServiceCardBg);
+    setBookingUiSaving(false);
+    if (!ok) return;
+    const fresh = await getSiteTheme();
+    if (fresh) {
+      setBookingServiceCardBg(
+        adminDisplayBookingServiceCardBg(fresh.uiCustom?.booking?.serviceCardBgColor)
+      );
+    }
+  };
+
   return (
     <>
       <Helmet>
@@ -210,6 +246,33 @@ export default function SiteWideColor() {
                     onChange={setBodyBgColor}
                     onSave={handleSaveBodyBackground}
                     saving={bodyBgSaving}
+                  />
+                )}
+              </div>
+            </div>
+
+            <div className="mb-10 bg-white shadow rounded-lg overflow-hidden">
+              <div className="px-6 py-5 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-gray-900">HTML tag colors</h2>
+                <p className="mt-1 text-sm text-gray-600">
+                  Set global colors for <span className="font-mono text-xs">h1–h6</span>,{" "}
+                  <span className="font-mono text-xs">p</span>, and{" "}
+                  <span className="font-mono text-xs">span</span> across the public website — one
+                  place, no code edits per page.
+                </p>
+              </div>
+              <div className="px-6 py-6">
+                {loading ? (
+                  <div className="py-12 text-center">
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    <p className="mt-4 text-gray-600">Loading…</p>
+                  </div>
+                ) : (
+                  <TagColorsForm
+                    tagColors={tagColors}
+                    onChange={setTagColors}
+                    onSave={handleSaveTagColors}
+                    saving={tagColorsSaving}
                   />
                 )}
               </div>
@@ -340,6 +403,33 @@ export default function SiteWideColor() {
                   </div>
                 </form>
               )}
+            </div>
+
+            <div className="mt-10 bg-white shadow rounded-lg overflow-hidden">
+              <div className="px-6 py-5 border-b border-gray-200">
+                <h2 className="text-xl font-semibold text-gray-900">UI custom — Booking module</h2>
+                <p className="mt-1 text-sm text-gray-600">
+                  Customize booking page UI. Controls the background of &quot;Our Services&quot; cards on{" "}
+                  <span className="font-mono text-xs">/booking</span>.
+                </p>
+              </div>
+              <div className="px-6 py-6">
+                {loading ? (
+                  <div className="py-12 text-center">
+                    <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                    <p className="mt-4 text-gray-600">Loading…</p>
+                  </div>
+                ) : (
+                  <BookingUiCustomForm
+                    serviceCardBgColor={bookingServiceCardBg}
+                    onChange={setBookingServiceCardBg}
+                    onSave={handleSaveBookingUi}
+                    saving={bookingUiSaving}
+                    primaryColor={primaryColor}
+                    secondaryColor={secondaryColor}
+                  />
+                )}
+              </div>
             </div>
 
             <div className="mt-10 bg-white shadow rounded-lg overflow-hidden">
