@@ -48,6 +48,12 @@ const NAVBAR_LAYOUT_PRESETS = [
     preview: "Logo + Links | Wide search | Icons",
   },
   {
+    id: "business-2",
+    variant: "business-2",
+    label: "Business-2",
+    preview: "Logo + Links | Wide search | Icons (Business copy)",
+  },
+  {
     id: "bold-left",
     variant: "bold-left",
     label: "Bold left",
@@ -143,7 +149,8 @@ function createInitialVariantConfig(preset) {
     label: preset.label,
     layoutLabel: preset.preview,
     navbarBgColor: "#ffffff",
-    classicRightSectionBgColor: "#DEE3DE",
+    classicRightSectionBgColor:
+      preset.variant === "business" || preset.variant === "business-2" ? "#333333" : "#DEE3DE",
     logoText: "Brand",
     logoUrl: "",
     showSearch: true,
@@ -201,6 +208,61 @@ function getNavbarPreviewStoreUrl() {
     }
   }
   return getPublicStoreBaseUrl();
+}
+
+function normalizeHexColor(value, fallback) {
+  return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(String(value || ""))
+    ? value
+    : fallback;
+}
+
+function FormField({ label, hint, children }) {
+  return (
+    <div>
+      <label className="mb-1 block text-xs font-medium text-gray-700">{label}</label>
+      {children}
+      {hint ? <p className="mt-1 text-[11px] leading-relaxed text-gray-500">{hint}</p> : null}
+    </div>
+  );
+}
+
+function VisibilityToggle({ checked, onChange, label }) {
+  return (
+    <label className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 shadow-sm transition hover:border-gray-300">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+      />
+      <span>{label}</span>
+    </label>
+  );
+}
+
+function ColorPickerField({ label, value, fallback, onChange, onClear, clearLabel = "Clear" }) {
+  return (
+    <div>
+      <label className="mb-1 block text-xs font-medium text-gray-700">{label}</label>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={normalizeHexColor(value, fallback)}
+          onChange={onChange}
+          className="h-9 w-14 cursor-pointer rounded border border-gray-300 bg-white"
+        />
+        {onClear ? (
+          <button
+            type="button"
+            onClick={onClear}
+            className="rounded-md border border-gray-300 px-2.5 py-1.5 text-xs text-gray-600 hover:bg-gray-50"
+          >
+            {clearLabel}
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
 }
 
 function SectionTitle({ step, title, description }) {
@@ -738,6 +800,51 @@ export default function ProductCentralNavbarHub() {
                               </div>
                             </div>
                           ) : null}
+                          {selectedConfig.variant === "business" ||
+                          selectedConfig.variant === "business-2" ? (
+                            <div>
+                              <label className="mb-1 block text-xs font-medium text-gray-600">
+                                Right strip background (search, icons &amp; buttons)
+                              </label>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="color"
+                                  value={
+                                    /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(
+                                      String(selectedConfig.classicRightSectionBgColor || "")
+                                    )
+                                      ? selectedConfig.classicRightSectionBgColor
+                                      : "#333333"
+                                  }
+                                  onChange={(e) =>
+                                    updateSelectedVariantConfig({
+                                      classicRightSectionBgColor: e.target.value,
+                                    })
+                                  }
+                                  className="h-8 w-16 rounded border border-gray-300"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    updateSelectedVariantConfig({
+                                      classicRightSectionBgColor: "transparent",
+                                    });
+                                    setVariantSaveMessage(
+                                      "Right strip background reset successfully."
+                                    );
+                                    toast.success("Right strip background reset successfully.");
+                                  }}
+                                  className="rounded border border-gray-300 px-2 py-1 text-[11px] text-gray-700 hover:bg-gray-50"
+                                >
+                                  Reset to default
+                                </button>
+                              </div>
+                              <p className="mt-1 text-[11px] text-gray-500">
+                                Background behind search, action icons, and CTA buttons on the right
+                                side of the business navbar strip.
+                              </p>
+                            </div>
+                          ) : null}
                         </div>
 
                         <div className="rounded-md border border-blue-100 bg-blue-50 p-3">
@@ -998,364 +1105,243 @@ export default function ProductCentralNavbarHub() {
                 </div>
 
                 <div className="rounded-xl border border-gray-200 bg-white p-4 sm:p-5">
-                      <SectionTitle
-                        step="4"
-                        title="Search, icons & buttons"
-                        description="Toggle what appears on the right side of the navbar."
-                      />
-                        <div className="rounded-md border border-gray-200 bg-gray-50 p-3">
-                          <p className="mb-2 text-sm font-medium text-gray-700">
-                            What to show
-                          </p>
-                          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                            <label className="flex items-center gap-2 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700">
-                              <input
-                                type="checkbox"
-                                checked={selectedConfig.showSearch}
-                                onChange={(e) =>
-                                  updateSelectedVariantConfig({ showSearch: e.target.checked })
-                                }
-                              />
-                              Show search
-                            </label>
-                            <label className="flex items-center gap-2 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700">
-                              <input
-                                type="checkbox"
-                                checked={selectedConfig.showButtons}
-                                onChange={(e) =>
-                                  updateSelectedVariantConfig({ showButtons: e.target.checked })
-                                }
-                              />
-                              Show icons
-                            </label>
-                            <label className="flex items-center gap-2 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700">
-                              <input
-                                type="checkbox"
-                                checked={selectedConfig.showPrimaryButton !== false}
-                                onChange={(e) =>
-                                  updateSelectedVariantConfig({
-                                    showPrimaryButton: e.target.checked,
-                                  })
-                                }
-                              />
-                              Show primary button
-                            </label>
-                            <label className="flex items-center gap-2 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700">
-                              <input
-                                type="checkbox"
-                                checked={selectedConfig.showSecondaryButton !== false}
-                                onChange={(e) =>
-                                  updateSelectedVariantConfig({
-                                    showSecondaryButton: e.target.checked,
-                                  })
-                                }
-                              />
-                              Show secondary button
-                            </label>
-                          </div>
-                        </div>
+                  <SectionTitle
+                    step="4"
+                    title="Search, icons & buttons"
+                    description="Control what appears on the right side of the navbar and how each action looks."
+                  />
 
-                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                          <div className="rounded-md border border-gray-200 p-3">
-                            <p className="mb-2 text-xs font-medium text-gray-600">Action icon 1</p>
-                            <input
-                              type="text"
-                              value={selectedConfig.actionIcon1}
-                              onChange={(e) =>
-                                updateSelectedVariantConfig({ actionIcon1: e.target.value })
-                              }
-                              className="mb-2 w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs"
-                              placeholder="Action icon 1 (e.g. fi-rr-shopping-cart)"
-                            />
-                            <input
-                              type="text"
-                              value={selectedConfig.actionIcon1Url || ""}
-                              onChange={(e) =>
-                                updateSelectedVariantConfig({ actionIcon1Url: e.target.value })
-                              }
-                              className="mb-2 w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs"
-                              placeholder="Action icon 1 path (e.g. /cart)"
-                            />
-                            <label className="mb-2 flex items-center gap-2 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700">
-                              <input
-                                type="checkbox"
-                                checked={selectedConfig.actionIcon1OpenCart === true}
-                                onChange={(e) =>
-                                  updateSelectedVariantConfig({
-                                    actionIcon1OpenCart: e.target.checked,
-                                  })
-                                }
-                              />
-                              Open sidebar cart on click (ignore path)
-                            </label>
-                            <div className="grid grid-cols-2 gap-3">
-                              <div>
-                                <label className="block text-[11px] text-gray-600">Bg color</label>
-                                <div className="mt-1 flex items-center gap-2">
-                                  <input
-                                    type="color"
-                                    value={
-                                      /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(
-                                        String(selectedConfig.actionIcon1BgColor || "")
-                                      )
-                                        ? selectedConfig.actionIcon1BgColor
-                                        : "#0e9f6e"
-                                    }
-                                    onChange={(e) =>
-                                      updateSelectedVariantConfig({
-                                        actionIcon1BgColor: e.target.value,
-                                      })
-                                    }
-                                    className="h-8 w-16 rounded border border-gray-300"
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      updateSelectedVariantConfig({
-                                        actionIcon1BgColor: "transparent",
-                                      });
-                                      setVariantSaveMessage(
-                                        "Action icon 1 background removed successfully."
-                                      );
-                                      toast.success(
-                                        "Action icon 1 background removed successfully."
-                                      );
-                                    }}
-                                    className="rounded border border-gray-300 px-2 py-1 text-[11px] text-gray-700 hover:bg-gray-50"
-                                  >
-                                    Remove bg
-                                  </button>
-                                </div>
-                              </div>
-                              <div>
-                                <label className="block text-[11px] text-gray-600">Icon color</label>
+                  <div className="space-y-6">
+                    <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+                      <p className="mb-3 text-sm font-medium text-gray-800">Visibility</p>
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                        <VisibilityToggle
+                          checked={selectedConfig.showSearch}
+                          onChange={(e) =>
+                            updateSelectedVariantConfig({ showSearch: e.target.checked })
+                          }
+                          label="Search bar"
+                        />
+                        <VisibilityToggle
+                          checked={selectedConfig.showButtons}
+                          onChange={(e) =>
+                            updateSelectedVariantConfig({ showButtons: e.target.checked })
+                          }
+                          label="Action icons"
+                        />
+                        <VisibilityToggle
+                          checked={selectedConfig.showPrimaryButton !== false}
+                          onChange={(e) =>
+                            updateSelectedVariantConfig({
+                              showPrimaryButton: e.target.checked,
+                            })
+                          }
+                          label="Primary button"
+                        />
+                        <VisibilityToggle
+                          checked={selectedConfig.showSecondaryButton !== false}
+                          onChange={(e) =>
+                            updateSelectedVariantConfig({
+                              showSecondaryButton: e.target.checked,
+                            })
+                          }
+                          label="Secondary button"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="mb-3 text-sm font-medium text-gray-800">Action icons</p>
+                      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        {[
+                          {
+                            slot: 1,
+                            title: "Icon 1",
+                            iconKey: "actionIcon1",
+                            urlKey: "actionIcon1Url",
+                            cartKey: "actionIcon1OpenCart",
+                            bgKey: "actionIcon1BgColor",
+                            colorKey: "actionIcon1Color",
+                            placeholder: "fi-rr-shopping-cart",
+                            urlPlaceholder: "/cart",
+                          },
+                          {
+                            slot: 2,
+                            title: "Icon 2",
+                            iconKey: "actionIcon2",
+                            urlKey: "actionIcon2Url",
+                            cartKey: "actionIcon2OpenCart",
+                            bgKey: "actionIcon2BgColor",
+                            colorKey: "actionIcon2Color",
+                            placeholder: "fi-rr-user",
+                            urlPlaceholder: "/account",
+                          },
+                        ].map((icon) => (
+                          <div
+                            key={icon.slot}
+                            className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+                          >
+                            <h4 className="mb-3 text-sm font-semibold text-gray-900">{icon.title}</h4>
+                            <div className="space-y-3">
+                              <FormField
+                                label="Flaticon class"
+                                hint="Use classes from the Flaticon library link above."
+                              >
                                 <input
-                                  type="color"
-                                  value={selectedConfig.actionIcon1Color || "#ffffff"}
+                                  type="text"
+                                  value={selectedConfig[icon.iconKey]}
+                                  onChange={(e) =>
+                                    updateSelectedVariantConfig({ [icon.iconKey]: e.target.value })
+                                  }
+                                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                  placeholder={icon.placeholder}
+                                />
+                              </FormField>
+                              <FormField label="Link path">
+                                <input
+                                  type="text"
+                                  value={selectedConfig[icon.urlKey] || ""}
+                                  onChange={(e) =>
+                                    updateSelectedVariantConfig({ [icon.urlKey]: e.target.value })
+                                  }
+                                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                  placeholder={icon.urlPlaceholder}
+                                />
+                              </FormField>
+                              <label className="flex cursor-pointer items-start gap-2 rounded-md border border-gray-100 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                                <input
+                                  type="checkbox"
+                                  checked={selectedConfig[icon.cartKey] === true}
                                   onChange={(e) =>
                                     updateSelectedVariantConfig({
-                                      actionIcon1Color: e.target.value,
+                                      [icon.cartKey]: e.target.checked,
                                     })
                                   }
-                                  className="mt-1 h-8 w-16 rounded border border-gray-300"
+                                  className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                                 />
-                              </div>
+                                <span>Open cart drawer instead of navigating</span>
+                              </label>
                             </div>
-                          </div>
-                          <div className="rounded-md border border-gray-200 p-3">
-                            <p className="mb-2 text-xs font-medium text-gray-600">Action icon 2</p>
-                            <input
-                              type="text"
-                              value={selectedConfig.actionIcon2}
-                              onChange={(e) =>
-                                updateSelectedVariantConfig({ actionIcon2: e.target.value })
-                              }
-                              className="mb-2 w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs"
-                              placeholder="Action icon 2 (e.g. fi-rr-user)"
-                            />
-                            <input
-                              type="text"
-                              value={selectedConfig.actionIcon2Url || ""}
-                              onChange={(e) =>
-                                updateSelectedVariantConfig({ actionIcon2Url: e.target.value })
-                              }
-                              className="mb-2 w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs"
-                              placeholder="Action icon 2 path (e.g. /account)"
-                            />
-                            <label className="mb-2 flex items-center gap-2 rounded-md border border-gray-200 bg-white px-2 py-1.5 text-xs text-gray-700">
-                              <input
-                                type="checkbox"
-                                checked={selectedConfig.actionIcon2OpenCart === true}
+                            <div className="mt-4 grid grid-cols-1 gap-4 border-t border-gray-100 pt-4 sm:grid-cols-2">
+                              <ColorPickerField
+                                label="Background"
+                                value={selectedConfig[icon.bgKey]}
+                                fallback="#0e9f6e"
                                 onChange={(e) =>
-                                  updateSelectedVariantConfig({
-                                    actionIcon2OpenCart: e.target.checked,
-                                  })
+                                  updateSelectedVariantConfig({ [icon.bgKey]: e.target.value })
+                                }
+                                onClear={() => {
+                                  updateSelectedVariantConfig({ [icon.bgKey]: "transparent" });
+                                  setVariantSaveMessage(`Icon ${icon.slot} background cleared.`);
+                                  toast.success(`Icon ${icon.slot} background cleared.`);
+                                }}
+                              />
+                              <ColorPickerField
+                                label="Icon color"
+                                value={selectedConfig[icon.colorKey]}
+                                fallback="#ffffff"
+                                onChange={(e) =>
+                                  updateSelectedVariantConfig({ [icon.colorKey]: e.target.value })
                                 }
                               />
-                              Open sidebar cart on click (ignore path)
-                            </label>
-                            <div className="grid grid-cols-2 gap-3">
-                              <div>
-                                <label className="block text-[11px] text-gray-600">Bg color</label>
-                                <div className="mt-1 flex items-center gap-2">
-                                  <input
-                                    type="color"
-                                    value={
-                                      /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(
-                                        String(selectedConfig.actionIcon2BgColor || "")
-                                      )
-                                        ? selectedConfig.actionIcon2BgColor
-                                        : "#0e9f6e"
-                                    }
-                                    onChange={(e) =>
-                                      updateSelectedVariantConfig({
-                                        actionIcon2BgColor: e.target.value,
-                                      })
-                                    }
-                                    className="h-8 w-16 rounded border border-gray-300"
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      updateSelectedVariantConfig({
-                                        actionIcon2BgColor: "transparent",
-                                      });
-                                      setVariantSaveMessage(
-                                        "Action icon 2 background removed successfully."
-                                      );
-                                      toast.success(
-                                        "Action icon 2 background removed successfully."
-                                      );
-                                    }}
-                                    className="rounded border border-gray-300 px-2 py-1 text-[11px] text-gray-700 hover:bg-gray-50"
-                                  >
-                                    Remove bg
-                                  </button>
-                                </div>
-                              </div>
-                              <div>
-                                <label className="block text-[11px] text-gray-600">Icon color</label>
-                                <input
-                                  type="color"
-                                  value={selectedConfig.actionIcon2Color || "#ffffff"}
-                                  onChange={(e) =>
-                                    updateSelectedVariantConfig({
-                                      actionIcon2Color: e.target.value,
-                                    })
-                                  }
-                                  className="mt-1 h-8 w-16 rounded border border-gray-300"
-                                />
-                              </div>
                             </div>
                           </div>
-                        </div>
+                        ))}
+                      </div>
+                    </div>
 
-                        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                          <div className="rounded-md border border-gray-200 p-3">
-                            <p className="mb-2 text-xs font-medium text-gray-600">
-                              Primary button
-                            </p>
-                            <input
-                              type="text"
-                              value={selectedConfig.primaryButtonLabel}
-                              onChange={(e) =>
-                                updateSelectedVariantConfig({
-                                  primaryButtonLabel: e.target.value,
-                                })
-                              }
-                              className="mb-2 w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs"
-                              placeholder="Label"
-                            />
-                            <input
-                              type="text"
-                              value={selectedConfig.primaryButtonUrl}
-                              onChange={(e) =>
-                                updateSelectedVariantConfig({ primaryButtonUrl: e.target.value })
-                              }
-                              className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs"
-                              placeholder="/login"
-                            />
-                            <input
-                              type="text"
-                              value={selectedConfig.primaryButtonIcon || ""}
-                              onChange={(e) =>
-                                updateSelectedVariantConfig({
-                                  primaryButtonIcon: e.target.value,
-                                })
-                              }
-                              className="mt-2 w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs"
-                              placeholder="Primary icon (e.g. fi-rr-download)"
-                            />
-                            <label className="mt-2 block text-xs font-medium text-gray-600">
-                              Primary color
-                            </label>
-                            <input
-                              type="color"
-                              value={selectedConfig.primaryButtonColor || "#0e9f6e"}
-                              onChange={(e) =>
-                                updateSelectedVariantConfig({
-                                  primaryButtonColor: e.target.value,
-                                })
-                              }
-                              className="mt-1 h-8 w-16 rounded border border-gray-300"
-                            />
-                            <label className="mt-2 block text-xs font-medium text-gray-600">
-                              Primary text color
-                            </label>
-                            <input
-                              type="color"
-                              value={selectedConfig.primaryButtonTextColor || "#ffffff"}
-                              onChange={(e) =>
-                                updateSelectedVariantConfig({
-                                  primaryButtonTextColor: e.target.value,
-                                })
-                              }
-                              className="mt-1 h-8 w-16 rounded border border-gray-300"
-                            />
+                    <div>
+                      <p className="mb-3 text-sm font-medium text-gray-800">Call-to-action buttons</p>
+                      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                        {[
+                          {
+                            title: "Primary button",
+                            labelKey: "primaryButtonLabel",
+                            urlKey: "primaryButtonUrl",
+                            iconKey: "primaryButtonIcon",
+                            colorKey: "primaryButtonColor",
+                            textColorKey: "primaryButtonTextColor",
+                            labelPlaceholder: "Sign in",
+                            urlPlaceholder: "/login",
+                            iconPlaceholder: "fi-rr-download",
+                            colorFallback: "#0e9f6e",
+                          },
+                          {
+                            title: "Secondary button",
+                            labelKey: "secondaryButtonLabel",
+                            urlKey: "secondaryButtonUrl",
+                            iconKey: "secondaryButtonIcon",
+                            colorKey: "secondaryButtonColor",
+                            textColorKey: "secondaryButtonTextColor",
+                            labelPlaceholder: "Get started",
+                            urlPlaceholder: "/register",
+                            iconPlaceholder: "fi-rr-phone-call",
+                            colorFallback: "#f97316",
+                          },
+                        ].map((btn) => (
+                          <div
+                            key={btn.title}
+                            className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
+                          >
+                            <h4 className="mb-3 text-sm font-semibold text-gray-900">{btn.title}</h4>
+                            <div className="space-y-3">
+                              <FormField label="Button label">
+                                <input
+                                  type="text"
+                                  value={selectedConfig[btn.labelKey]}
+                                  onChange={(e) =>
+                                    updateSelectedVariantConfig({ [btn.labelKey]: e.target.value })
+                                  }
+                                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                  placeholder={btn.labelPlaceholder}
+                                />
+                              </FormField>
+                              <FormField label="Button link">
+                                <input
+                                  type="text"
+                                  value={selectedConfig[btn.urlKey]}
+                                  onChange={(e) =>
+                                    updateSelectedVariantConfig({ [btn.urlKey]: e.target.value })
+                                  }
+                                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                  placeholder={btn.urlPlaceholder}
+                                />
+                              </FormField>
+                              <FormField label="Button icon (optional)">
+                                <input
+                                  type="text"
+                                  value={selectedConfig[btn.iconKey] || ""}
+                                  onChange={(e) =>
+                                    updateSelectedVariantConfig({ [btn.iconKey]: e.target.value })
+                                  }
+                                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+                                  placeholder={btn.iconPlaceholder}
+                                />
+                              </FormField>
+                            </div>
+                            <div className="mt-4 grid grid-cols-1 gap-4 border-t border-gray-100 pt-4 sm:grid-cols-2">
+                              <ColorPickerField
+                                label="Button color"
+                                value={selectedConfig[btn.colorKey]}
+                                fallback={btn.colorFallback}
+                                onChange={(e) =>
+                                  updateSelectedVariantConfig({ [btn.colorKey]: e.target.value })
+                                }
+                              />
+                              <ColorPickerField
+                                label="Text color"
+                                value={selectedConfig[btn.textColorKey]}
+                                fallback="#ffffff"
+                                onChange={(e) =>
+                                  updateSelectedVariantConfig({ [btn.textColorKey]: e.target.value })
+                                }
+                              />
+                            </div>
                           </div>
-                          <div className="rounded-md border border-gray-200 p-3">
-                            <p className="mb-2 text-xs font-medium text-gray-600">
-                              Secondary button
-                            </p>
-                            <input
-                              type="text"
-                              value={selectedConfig.secondaryButtonLabel}
-                              onChange={(e) =>
-                                updateSelectedVariantConfig({
-                                  secondaryButtonLabel: e.target.value,
-                                })
-                              }
-                              className="mb-2 w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs"
-                              placeholder="Label"
-                            />
-                            <input
-                              type="text"
-                              value={selectedConfig.secondaryButtonUrl}
-                              onChange={(e) =>
-                                updateSelectedVariantConfig({ secondaryButtonUrl: e.target.value })
-                              }
-                              className="w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs"
-                              placeholder="/register"
-                            />
-                            <input
-                              type="text"
-                              value={selectedConfig.secondaryButtonIcon || ""}
-                              onChange={(e) =>
-                                updateSelectedVariantConfig({
-                                  secondaryButtonIcon: e.target.value,
-                                })
-                              }
-                              className="mt-2 w-full rounded-md border border-gray-300 px-2 py-1.5 text-xs"
-                              placeholder="Secondary icon (e.g. fi-rr-phone-call)"
-                            />
-                            <label className="mt-2 block text-xs font-medium text-gray-600">
-                              Secondary color
-                            </label>
-                            <input
-                              type="color"
-                              value={selectedConfig.secondaryButtonColor || "#f97316"}
-                              onChange={(e) =>
-                                updateSelectedVariantConfig({
-                                  secondaryButtonColor: e.target.value,
-                                })
-                              }
-                              className="mt-1 h-8 w-16 rounded border border-gray-300"
-                            />
-                            <label className="mt-2 block text-xs font-medium text-gray-600">
-                              Secondary text color
-                            </label>
-                            <input
-                              type="color"
-                              value={selectedConfig.secondaryButtonTextColor || "#ffffff"}
-                              onChange={(e) =>
-                                updateSelectedVariantConfig({
-                                  secondaryButtonTextColor: e.target.value,
-                                })
-                              }
-                              className="mt-1 h-8 w-16 rounded border border-gray-300"
-                            />
-                          </div>
-                        </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
             </div>
 
