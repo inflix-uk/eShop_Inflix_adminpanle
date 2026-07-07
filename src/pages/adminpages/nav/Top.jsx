@@ -18,6 +18,21 @@ function getPublicStoreBaseUrl() {
   return String(fromEnv || fallback).replace(/\/$/, "");
 }
 
+/** Local admin → local Next storefront for sitemap (matches ProductCentral navbar preview). */
+function getSitemapStoreBaseUrl() {
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    if (host === "localhost" || host === "127.0.0.1") {
+      const local =
+        import.meta.env.VITE_LOCAL_STOREFRONT_URL ||
+        import.meta.env.VITE_DEV_STOREFRONT_URL ||
+        "http://localhost:3000";
+      return String(local).replace(/\/$/, "");
+    }
+  }
+  return getPublicStoreBaseUrl();
+}
+
 const generateImageFromInitial = (initial) => {
   const canvas = document.createElement('canvas');
   canvas.width = 100;
@@ -53,7 +68,7 @@ export default function Top({ toggleSidebar, isSidebarOpen, selectedPage = 'dash
   };
 
   const handleGenerateSitemap = async () => {
-    const siteUrl = getPublicStoreBaseUrl();
+    const siteUrl = getSitemapStoreBaseUrl();
     const url = `${siteUrl}/sitemap.xml?refresh=${Date.now()}`;
     setIsGenerating(true);
     try {
@@ -222,10 +237,10 @@ export default function Top({ toggleSidebar, isSidebarOpen, selectedPage = 'dash
           <div className="relative z-50 w-full max-w-sm rounded-lg bg-white shadow-lg p-6 mx-4">
             <h3 className="text-lg font-semibold text-gray-900">Live sitemap</h3>
             <p className="mt-2 text-sm text-gray-600">
-              Opens your storefront <code className="rounded bg-gray-100 px-1 text-xs">/sitemap.xml</code> (built on
-              the live site with correct <code className="rounded bg-gray-100 px-1 text-xs">&lt;loc&gt;</code> URLs).
-              Set <code className="rounded bg-gray-100 px-1 text-xs">VITE_FRONTEND_URL</code> in admin{' '}
-              <code className="rounded bg-gray-100 px-1 text-xs">.env</code> if this should use another domain.
+              Opens your storefront <code className="rounded bg-gray-100 px-1 text-xs">/sitemap.xml</code>.
+              When admin runs on <code className="rounded bg-gray-100 px-1 text-xs">localhost</code>, the link uses
+              your local Next app (<code className="rounded bg-gray-100 px-1 text-xs">:3000</code>). On a deployed
+              admin, it uses <code className="rounded bg-gray-100 px-1 text-xs">VITE_PUBLIC_SITE_URL</code>.
             </p>
             <div className="mt-5 flex items-center justify-end gap-3">
               <button
@@ -236,7 +251,7 @@ export default function Top({ toggleSidebar, isSidebarOpen, selectedPage = 'dash
                 Close
               </button>
               <a
-                href={sitemapUrl || `${getPublicStoreBaseUrl()}/sitemap.xml?refresh=${Date.now()}`}
+                href={sitemapUrl || `${getSitemapStoreBaseUrl()}/sitemap.xml?refresh=${Date.now()}`}
                 target="_blank"
                 rel="noreferrer"
                 className="px-3 py-2 text-sm rounded-md bg-primary text-white hover:opacity-90"

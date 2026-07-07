@@ -11,6 +11,7 @@ const LABELS = {
   h6: "Heading 6 (h6)",
   p: "Paragraph (p)",
   span: "Span (span)",
+  label: "Form label (label)",
 };
 
 export default function TagColorsForm({ tagColors, onChange, onSave, saving }) {
@@ -36,9 +37,9 @@ export default function TagColorsForm({ tagColors, onChange, onSave, saving }) {
     <form onSubmit={handleSave} className="space-y-6">
       <p className="text-xs text-gray-500">
         Applies site-wide to all <span className="font-mono">h1–h6</span>,{" "}
-        <span className="font-mono">p</span>, and <span className="font-mono">span</span> tags —
-        including pages that use Tailwind <span className="font-mono">text-gray-*</span>. No per-file
-        code changes.
+        <span className="font-mono">p</span>, <span className="font-mono">span</span>, and{" "}
+        <span className="font-mono">label</span> tags — including pages that use Tailwind{" "}
+        <span className="font-mono">text-gray-*</span>. No per-file code changes.
       </p>
 
       <div className="grid gap-5 sm:grid-cols-2">
@@ -86,6 +87,20 @@ export default function TagColorsForm({ tagColors, onChange, onSave, saving }) {
             </span>{" "}
             — storefront body copy preview.
           </p>
+          <label
+            htmlFor="tag-colors-preview-field"
+            className="block text-sm font-medium text-gray-700"
+            style={{ color: tagColors.label }}
+          >
+            Sample form label
+          </label>
+          <input
+            id="tag-colors-preview-field"
+            type="text"
+            readOnly
+            value="Sample input field"
+            className="mt-1 w-full max-w-xs rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-900"
+          />
         </div>
       </div>
 
