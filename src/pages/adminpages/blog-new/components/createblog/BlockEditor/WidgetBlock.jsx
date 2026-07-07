@@ -131,6 +131,7 @@ const NAVBAR_LAYOUT_PRESETS = [
   { id: "split", variant: "dark-sidebar", label: "Split actions", preview: "Logo + Links | Search | Icons" },
   { id: "minimal", variant: "developer", label: "Minimal", preview: "Logo + Links | Search + Profile" },
   { id: "business", variant: "business", label: "Business", preview: "Logo + Links | Wide search | Icons" },
+  { id: "business-2", variant: "business-2", label: "Business-2", preview: "Logo + Links | Wide search | Icons (copy)" },
   { id: "bold-left", variant: "bold-left", label: "Bold left", preview: "Logo | Center search | Icons" },
 ];
 
@@ -455,7 +456,7 @@ export default function WidgetBlock({
                 </div>
               )}
 
-              {variant === "business" && (
+              {(variant === "business" || variant === "business-2") && (
                 <div className="min-w-[860px] rounded-xl border bg-white px-4 py-3 shadow-sm">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5">
