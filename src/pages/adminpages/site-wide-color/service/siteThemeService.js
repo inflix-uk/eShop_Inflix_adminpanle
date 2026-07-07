@@ -105,11 +105,11 @@ export const saveTagColorsTheme = async (tagColors) => {
 };
 
 /** Booking module UI — `PUT /api/theme/booking-ui` (admin). */
-export const saveBookingUiTheme = async (serviceCardBgColor) => {
+export const saveBookingUiTheme = async (bookingUi) => {
   try {
     const response = await axios.put(
       `${API_BASE_URL}api/theme/booking-ui`,
-      { serviceCardBgColor },
+      { booking: bookingUi },
       { headers: getHeaders() }
     );
     if (response.data.success) {

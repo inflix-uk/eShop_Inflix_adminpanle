@@ -40,6 +40,9 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
     extras: [],
     image: '',
     isActive: true,
+    highlightBadgeEnabled: false,
+    highlightBadgeText: 'Most Popular',
+    highlightBadgeUrl: '',
   });
   const [imagePreview, setImagePreview] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -72,6 +75,9 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
           : [],
         image,
         isActive: editPackage.isActive !== false,
+        highlightBadgeEnabled: Boolean(editPackage.highlightBadgeEnabled),
+        highlightBadgeText: editPackage.highlightBadgeText || 'Most Popular',
+        highlightBadgeUrl: editPackage.highlightBadgeUrl || '',
       });
       setImagePreview(image ? resolveImagePreview(image) : '');
       const previews = {};
@@ -91,6 +97,9 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
         extras: [],
         image: '',
         isActive: true,
+        highlightBadgeEnabled: false,
+        highlightBadgeText: 'Most Popular',
+        highlightBadgeUrl: '',
       });
       setImagePreview('');
       setExtraImagePreviews({});
@@ -218,6 +227,8 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
     setSaving(true);
     const payload = {
       ...formData,
+      highlightBadgeText: formData.highlightBadgeText?.trim() || 'Most Popular',
+      highlightBadgeUrl: formData.highlightBadgeUrl?.trim() || '',
       features: formData.features
         .map((item) => item.trim())
         .filter((item) => item.length > 0),
@@ -382,6 +393,58 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
               {uploadingImage && (
                 <p className="mt-2 text-sm text-gray-500">Uploading image...</p>
               )}
+            </div>
+
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-4">
+              <div className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  id="highlightBadgeEnabled"
+                  checked={formData.highlightBadgeEnabled}
+                  onChange={(e) => handleChange('highlightBadgeEnabled', e.target.checked)}
+                  className="mt-1 h-4 w-4 text-primary rounded border-gray-300"
+                />
+                <div className="flex-1">
+                  <label htmlFor="highlightBadgeEnabled" className="text-sm font-medium text-gray-900">
+                    Show highlight badge on booking card
+                  </label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Only one package can have this badge at a time. It appears at the top of the card on the booking page.
+                  </p>
+                </div>
+              </div>
+
+              {formData.highlightBadgeEnabled ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pl-7">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Badge text
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.highlightBadgeText}
+                      onChange={(e) => handleChange('highlightBadgeText', e.target.value)}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-primary focus:border-primary"
+                      placeholder="Most Popular"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Badge link URL (optional)
+                    </label>
+                    <input
+                      type="url"
+                      value={formData.highlightBadgeUrl}
+                      onChange={(e) => handleChange('highlightBadgeUrl', e.target.value)}
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-primary focus:border-primary"
+                      placeholder="https://example.com/page"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      If set, clicking the badge opens this URL in a new tab.
+                    </p>
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div className="flex items-center gap-2">

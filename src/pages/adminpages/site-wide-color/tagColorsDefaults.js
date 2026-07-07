@@ -7,9 +7,10 @@ export const DEFAULT_TAG_COLORS = {
   h6: "#374151",
   p: "#374151",
   span: "#374151",
+  label: "#374151",
 };
 
-export const TAG_COLOR_KEYS = ["h1", "h2", "h3", "h4", "h5", "h6", "p", "span"];
+export const TAG_COLOR_KEYS = ["h1", "h2", "h3", "h4", "h5", "h6", "p", "span", "label"];
 
 export function adminDisplayTagColors(stored) {
   const src = stored && typeof stored === "object" ? stored : {};

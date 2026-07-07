@@ -8,7 +8,7 @@ import TagColorsForm from "./components/TagColorsForm";
 import BookingUiCustomForm from "./components/BookingUiCustomForm";
 import TypographySettingsForm from "./components/TypographySettingsForm";
 import { DEFAULT_TYPOGRAPHY, ALLOWED_FONTS, ALLOWED_WEIGHTS } from "./typographyDefaults";
-import { adminDisplayBookingServiceCardBg } from "./bookingUiDefaults";
+import { adminDisplayBookingModuleUi } from "./bookingUiDefaults";
 import { adminDisplayTagColors } from "./tagColorsDefaults";
 import { getSiteTheme, saveSiteTheme, saveTypographyTheme, saveBodyBackgroundTheme, saveBookingUiTheme, saveTagColorsTheme } from "./service/siteThemeService";
 
@@ -77,8 +77,8 @@ export default function SiteWideColor() {
   const [bodyBgSaving, setBodyBgSaving] = useState(false);
   const [tagColors, setTagColors] = useState(() => adminDisplayTagColors(null));
   const [tagColorsSaving, setTagColorsSaving] = useState(false);
-  const [bookingServiceCardBg, setBookingServiceCardBg] = useState(() =>
-    adminDisplayBookingServiceCardBg("")
+  const [bookingModuleUi, setBookingModuleUi] = useState(() =>
+    adminDisplayBookingModuleUi(null)
   );
   const [bookingUiSaving, setBookingUiSaving] = useState(false);
 
@@ -103,9 +103,7 @@ export default function SiteWideColor() {
         setTypography(normalizeTypography(data.typography));
         setBodyBgColor(adminDisplayBodyBg(data.bodyBgColor));
         setTagColors(adminDisplayTagColors(data.tagColors));
-        setBookingServiceCardBg(
-          adminDisplayBookingServiceCardBg(data.uiCustom?.booking?.serviceCardBgColor)
-        );
+        setBookingModuleUi(adminDisplayBookingModuleUi(data.uiCustom?.booking));
       }
       if (!cancelled) {
         setLoading(false);
@@ -181,14 +179,12 @@ export default function SiteWideColor() {
 
   const handleSaveBookingUi = async () => {
     setBookingUiSaving(true);
-    const ok = await saveBookingUiTheme(bookingServiceCardBg);
+    const ok = await saveBookingUiTheme(bookingModuleUi);
     setBookingUiSaving(false);
     if (!ok) return;
     const fresh = await getSiteTheme();
     if (fresh) {
-      setBookingServiceCardBg(
-        adminDisplayBookingServiceCardBg(fresh.uiCustom?.booking?.serviceCardBgColor)
-      );
+      setBookingModuleUi(adminDisplayBookingModuleUi(fresh.uiCustom?.booking));
     }
   };
 
@@ -256,8 +252,9 @@ export default function SiteWideColor() {
                 <h2 className="text-xl font-semibold text-gray-900">HTML tag colors</h2>
                 <p className="mt-1 text-sm text-gray-600">
                   Set global colors for <span className="font-mono text-xs">h1–h6</span>,{" "}
-                  <span className="font-mono text-xs">p</span>, and{" "}
-                  <span className="font-mono text-xs">span</span> across the public website — one
+                  <span className="font-mono text-xs">p</span>,{" "}
+                  <span className="font-mono text-xs">span</span>, and{" "}
+                  <span className="font-mono text-xs">label</span> across the public website — one
                   place, no code edits per page.
                 </p>
               </div>
@@ -421,12 +418,10 @@ export default function SiteWideColor() {
                   </div>
                 ) : (
                   <BookingUiCustomForm
-                    serviceCardBgColor={bookingServiceCardBg}
-                    onChange={setBookingServiceCardBg}
+                    bookingUi={bookingModuleUi}
+                    onChange={setBookingModuleUi}
                     onSave={handleSaveBookingUi}
                     saving={bookingUiSaving}
-                    primaryColor={primaryColor}
-                    secondaryColor={secondaryColor}
                   />
                 )}
               </div>

@@ -137,6 +137,11 @@ export default function PackagesTab({ setProgress }) {
                       )}
                       <div>
                         <div className="text-sm font-medium text-gray-900">{pkg.name}</div>
+                        {pkg.highlightBadgeEnabled ? (
+                          <div className="mt-1 inline-flex items-center rounded-full bg-lime-100 px-2 py-0.5 text-xs font-medium text-lime-900">
+                            Badge: {pkg.highlightBadgeText || 'Most Popular'}
+                          </div>
+                        ) : null}
                         {pkg.description && (
                           <div className="text-sm text-gray-500 truncate max-w-xs">
                             {pkg.description}
