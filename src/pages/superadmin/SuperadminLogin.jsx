@@ -24,7 +24,7 @@ export default function SuperadminLogin() {
 
     try {
       setIsSubmitting(true);
-      const response = await axios.post(`${API_BASE_URL}superadmin/login`, { email, password });
+      const response = await axios.post(`${API_BASE_URL}superadmin/login`, { email, password }, { withCredentials: true });
 
       if (response?.data?.status !== 201) {
         toast.error(response?.data?.message || "Login failed.");
