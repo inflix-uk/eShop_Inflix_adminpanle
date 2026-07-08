@@ -38,7 +38,7 @@ export default function Login() {
     }
 
     try {
-      const response = await axios.post(`${API_BASE_URL}login`, { email, password });
+      const response = await axios.post(`${API_BASE_URL}login`, { email, password }, { withCredentials: true });
 
       if (response.data.status === 201) {
         toast.success(response.data.message);
@@ -49,7 +49,7 @@ export default function Login() {
         } else {
           const user = response.data.user;
           auth.login(user);
-          if (user.role === "admin") {
+          if (user.role === "admin" || user.role === "superadmin") {
             navigate("/admin/landing", { replace: true });
           } else if (user.role === "user") {
             navigate("/customer/dashboard", { replace: true });
@@ -69,7 +69,7 @@ export default function Login() {
     e.preventDefault();
 
     try {
-      const response = await axios.post(`${API_BASE_URL}login`, { email, password, enteredOtp: otp });
+      const response = await axios.post(`${API_BASE_URL}login`, { email, password, enteredOtp: otp }, { withCredentials: true });
 
       if (response.data.status === 201) {
         toast.success(response.data.message);
