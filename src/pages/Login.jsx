@@ -38,6 +38,7 @@ export default function Login() {
     }
 
     try {
+      await axios.post(`${API_BASE_URL}logout`, {}, { withCredentials: true });
       const response = await axios.post(`${API_BASE_URL}login`, { email, password }, { withCredentials: true });
 
       if (response.data.status === 201) {
@@ -69,6 +70,7 @@ export default function Login() {
     e.preventDefault();
 
     try {
+      await axios.post(`${API_BASE_URL}logout`, {}, { withCredentials: true });
       const response = await axios.post(`${API_BASE_URL}login`, { email, password, enteredOtp: otp }, { withCredentials: true });
 
       if (response.data.status === 201) {

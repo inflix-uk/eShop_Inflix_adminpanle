@@ -179,7 +179,7 @@ export const deleteOrder = async (orderId) => {
  */
 export const getOrderById = async (orderId) => {
   try {
-    const response = await axios.get(`${BACKEND_URL}get/order/${orderId}`);
+    const response = await axios.get(`${BACKEND_URL}get/order/admin/${orderId}`);
     return {
       success: true,
       data: response.data,
