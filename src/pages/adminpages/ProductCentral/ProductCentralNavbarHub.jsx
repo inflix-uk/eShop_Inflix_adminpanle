@@ -1075,7 +1075,10 @@ export default function ProductCentralNavbarHub() {
                           </div>
                           <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
                             <div className="text-xs text-gray-700">
-                              <p>Link text color</p>
+                              <p>Link &amp; icon color</p>
+                              <p className="mt-0.5 text-[10px] text-gray-500">
+                                Applies to labels and menu link icons (icon-only / icon + label).
+                              </p>
                               <input
                                 type="color"
                                 value={selectedConfig.menuLinkTextColor || "#334155"}

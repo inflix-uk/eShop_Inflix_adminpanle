@@ -24,8 +24,11 @@ function attachAuthInterceptor(client) {
     (error) => {
       const status = error.response?.status;
       const message = String(error.response?.data?.message || '').toLowerCase();
+      const requestUrl = String(error.config?.url || '');
+      const isAuthAttempt =
+        requestUrl.includes('login') || requestUrl.includes('superadmin/login');
 
-      if (status === 401) {
+      if (status === 401 && !isAuthAttempt) {
         handleAuthFailure();
       } else if (status === 403 && message.includes('admin access')) {
         handleAuthFailure();

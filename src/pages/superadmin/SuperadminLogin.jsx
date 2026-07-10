@@ -3,6 +3,10 @@ import axios from "axios";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/Auth";
+import {
+  getAxiosLoginErrorMessage,
+  isAxiosLoginSuccess,
+} from "../../utils/loginResponse";
 
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -26,17 +30,17 @@ export default function SuperadminLogin() {
       setIsSubmitting(true);
       const response = await axios.post(`${API_BASE_URL}superadmin/login`, { email, password }, { withCredentials: true });
 
-      if (response?.data?.status !== 201) {
+      if (!isAxiosLoginSuccess(response)) {
         toast.error(response?.data?.message || "Login failed.");
         return;
       }
 
       const user = response?.data?.user;
       auth.login(user);
-      toast.success("Superadmin login successful.");
+      toast.success(response.data.message || "Superadmin login successful.");
       navigate("/admin/superadmin/dashboard", { replace: true });
     } catch (error) {
-      toast.error("Unable to login. Please try again.");
+      toast.error(getAxiosLoginErrorMessage(error, "Unable to login. Please try again."));
     } finally {
       setIsSubmitting(false);
     }

@@ -5,6 +5,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/Auth";
 import { CountdownCircleTimer } from "react-countdown-circle-timer";
 import Nav from "./Nav";
+import {
+  getAxiosLoginErrorMessage,
+  isAxiosLoginSuccess,
+} from "../utils/loginResponse";
 const API_BASE_URL = import.meta.env.VITE_BACKEND_URL;
 export default function Login() {
   const auth = useAuth();
@@ -41,7 +45,7 @@ export default function Login() {
       await axios.post(`${API_BASE_URL}logout`, {}, { withCredentials: true });
       const response = await axios.post(`${API_BASE_URL}login`, { email, password }, { withCredentials: true });
 
-      if (response.data.status === 201) {
+      if (isAxiosLoginSuccess(response)) {
         toast.success(response.data.message);
 
         if (response.data.otpRequired) {
@@ -59,10 +63,10 @@ export default function Login() {
           }
         }
       } else {
-        toast.error(response.data.message);
+        toast.error(response.data.message || "Login failed.");
       }
     } catch (error) {
-      toast.error("Login failed. Please try again.");
+      toast.error(getAxiosLoginErrorMessage(error));
     }
   }, [email, password, auth, navigate]);
 
@@ -73,16 +77,16 @@ export default function Login() {
       await axios.post(`${API_BASE_URL}logout`, {}, { withCredentials: true });
       const response = await axios.post(`${API_BASE_URL}login`, { email, password, enteredOtp: otp }, { withCredentials: true });
 
-      if (response.data.status === 201) {
+      if (isAxiosLoginSuccess(response)) {
         toast.success(response.data.message);
         const user = response.data.user;
         auth.login(user);
         navigate("/admin/landing", { replace: true });
       } else {
-        toast.error(response.data.message);
+        toast.error(response.data.message || "OTP verification failed.");
       }
     } catch (error) {
-      toast.error("OTP verification failed. Please try again.");
+      toast.error(getAxiosLoginErrorMessage(error, "OTP verification failed. Please try again."));
     }
   }, [otp, email, password, auth, navigate]);
   return (
