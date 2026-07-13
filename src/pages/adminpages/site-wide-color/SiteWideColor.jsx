@@ -76,6 +76,7 @@ export default function SiteWideColor() {
   const [bodyBgColor, setBodyBgColor] = useState(() => adminDisplayBodyBg(""));
   const [bodyBgSaving, setBodyBgSaving] = useState(false);
   const [tagColors, setTagColors] = useState(() => adminDisplayTagColors(null));
+  const [tagColorsEnabled, setTagColorsEnabled] = useState(true);
   const [tagColorsSaving, setTagColorsSaving] = useState(false);
   const [bookingModuleUi, setBookingModuleUi] = useState(() =>
     adminDisplayBookingModuleUi(null)
@@ -103,6 +104,9 @@ export default function SiteWideColor() {
         setTypography(normalizeTypography(data.typography));
         setBodyBgColor(adminDisplayBodyBg(data.bodyBgColor));
         setTagColors(adminDisplayTagColors(data.tagColors));
+        setTagColorsEnabled(
+          typeof data.tagColorsEnabled === "boolean" ? data.tagColorsEnabled : true
+        );
         setBookingModuleUi(adminDisplayBookingModuleUi(data.uiCustom?.booking));
       }
       if (!cancelled) {
@@ -170,11 +174,16 @@ export default function SiteWideColor() {
 
   const handleSaveTagColors = async () => {
     setTagColorsSaving(true);
-    const ok = await saveTagColorsTheme(tagColors);
+    const ok = await saveTagColorsTheme(tagColors, tagColorsEnabled);
     setTagColorsSaving(false);
     if (!ok) return;
     const fresh = await getSiteTheme();
-    if (fresh) setTagColors(adminDisplayTagColors(fresh.tagColors));
+    if (fresh) {
+      setTagColors(adminDisplayTagColors(fresh.tagColors));
+      setTagColorsEnabled(
+        typeof fresh.tagColorsEnabled === "boolean" ? fresh.tagColorsEnabled : true
+      );
+    }
   };
 
   const handleSaveBookingUi = async () => {
@@ -251,11 +260,8 @@ export default function SiteWideColor() {
               <div className="px-6 py-5 border-b border-gray-200">
                 <h2 className="text-xl font-semibold text-gray-900">HTML tag colors</h2>
                 <p className="mt-1 text-sm text-gray-600">
-                  Set global colors for <span className="font-mono text-xs">h1–h6</span>,{" "}
-                  <span className="font-mono text-xs">p</span>,{" "}
-                  <span className="font-mono text-xs">span</span>, and{" "}
-                  <span className="font-mono text-xs">label</span> across the public website — one
-                  place, no code edits per page.
+                  Optional global colors for h1–h6, p, span, and label. Turn off when
+                  homepage sections and widgets use their own color pickers (dark/light themes).
                 </p>
               </div>
               <div className="px-6 py-6">
@@ -267,7 +273,9 @@ export default function SiteWideColor() {
                 ) : (
                   <TagColorsForm
                     tagColors={tagColors}
+                    tagColorsEnabled={tagColorsEnabled}
                     onChange={setTagColors}
+                    onEnabledChange={setTagColorsEnabled}
                     onSave={handleSaveTagColors}
                     saving={tagColorsSaving}
                   />

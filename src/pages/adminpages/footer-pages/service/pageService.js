@@ -2,6 +2,7 @@
  * Footer Page Service
  * Handles all footer page-related operations including CRUD operations
  */
+import axios from 'axios';
 
 export const API_BASE_URL = import.meta.env.VITE_BACKEND_URL?.replace(/\/$/, '');
 
@@ -24,18 +25,11 @@ export const generateSlugFromTitle = (title) => {
 
 /**
  * Helper function to handle API errors
- * @param {Response} response - Fetch API response
- * @returns {Promise} - Promise that resolves with JSON or rejects with error
+ * @param {Object} response - Axios response
+ * @returns {Object} - Response data
  */
-async function handleResponse(response) {
-  const data = await response.json();
-  
-  if (!response.ok) {
-    const error = (data && data.message) || response.statusText;
-    return Promise.reject(error);
-  }
-  
-  return data;
+function handleResponse(response) {
+  return response.data;
 }
 
 /**
@@ -79,16 +73,12 @@ export const createFooterPage = async (pageData) => {
     
     console.log('Sending page data with files to API');
     
-    const response = await fetch(`${API_BASE_URL}/footer-pages/pages`, {
-      method: 'POST',
-      body: formData
-    });
-    
-    const data = await handleResponse(response);
+    const response = await axios.post(`${API_BASE_URL}/footer-pages/pages`, formData);
+    const data = handleResponse(response);
     return data.data;
   } catch (error) {
     console.error('Error creating footer page:', error);
-    throw error;
+    throw error.response?.data?.message || error.message || error;
   }
 };
 
@@ -139,16 +129,12 @@ export const updateFooterPage = async (id, pageData) => {
     
     console.log('Sending updated page data with files to API');
     
-    const response = await fetch(`${API_BASE_URL}/footer-pages/pages/${id}`, {
-      method: 'PUT',
-      body: formData
-    });
-    
-    const data = await handleResponse(response);
+    const response = await axios.put(`${API_BASE_URL}/footer-pages/pages/${id}`, formData);
+    const data = handleResponse(response);
     return data.data;
   } catch (error) {
     console.error('Error updating footer page:', error);
-    throw error;
+    throw error.response?.data?.message || error.message || error;
   }
 };
 
@@ -159,12 +145,12 @@ export const updateFooterPage = async (id, pageData) => {
  */
 export const getFooterPageById = async (id) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/footer-pages/pages/${id}`);
-    const data = await handleResponse(response);
+    const response = await axios.get(`${API_BASE_URL}/footer-pages/pages/${id}`);
+    const data = handleResponse(response);
     return data.data;
   } catch (error) {
     console.error('Error getting footer page:', error);
-    throw error;
+    throw error.response?.data?.message || error.message || error;
   }
 };
 
@@ -176,18 +162,19 @@ export const getFooterPageById = async (id) => {
 export const getFooterPageBySlug = async (slug, parentSlug = null) => {
   try {
     const encoded = encodeURIComponent(slug);
-    const qs =
-      parentSlug != null && String(parentSlug).trim()
-        ? `?parentSlug=${encodeURIComponent(String(parentSlug).trim())}`
-        : '';
-    const response = await fetch(
-      `${API_BASE_URL}/footer-pages/pagesBySlug/${encoded}${qs}`
+    const params = {};
+    if (parentSlug != null && String(parentSlug).trim()) {
+      params.parentSlug = String(parentSlug).trim();
+    }
+    const response = await axios.get(
+      `${API_BASE_URL}/footer-pages/pagesBySlug/${encoded}`,
+      { params }
     );
-    const data = await handleResponse(response);
+    const data = handleResponse(response);
     return data.data;
   } catch (error) {
     console.error('Error getting footer page:', error);
-    throw error;
+    throw error.response?.data?.message || error.message || error;
   }
 };
 
@@ -206,18 +193,16 @@ export const getAllFooterPages = async (filters = {}) => {
     let reportedTotal = null;
 
     while (true) {
-      const queryParams = new URLSearchParams();
-      Object.entries({ ...rest, page, limit: perPage }).forEach(([key, value]) => {
-        if (value !== undefined && value !== null && String(value).trim() !== '') {
-          queryParams.append(key, String(value));
+      const params = { ...rest, page, limit: perPage };
+      // Filter out empty values
+      Object.keys(params).forEach((key) => {
+        if (params[key] === undefined || params[key] === null || String(params[key]).trim() === '') {
+          delete params[key];
         }
       });
 
-      const queryString = queryParams.toString();
-      const url = `${API_BASE_URL}/footer-pages/get/all/pages${queryString ? `?${queryString}` : ''}`;
-
-      const response = await fetch(url);
-      const data = await handleResponse(response);
+      const response = await axios.get(`${API_BASE_URL}/footer-pages/get/all/pages`, { params });
+      const data = handleResponse(response);
       const batch = Array.isArray(data.data) ? data.data : [];
       const total = data.pagination?.total;
       if (total != null && reportedTotal == null) {
@@ -244,7 +229,7 @@ export const getAllFooterPages = async (filters = {}) => {
     return aggregated;
   } catch (error) {
     console.error('Error getting footer pages:', error);
-    throw error;
+    throw error.response?.data?.message || error.message || error;
   }
 };
 
@@ -255,14 +240,10 @@ export const getAllFooterPages = async (filters = {}) => {
  */
 export const deleteFooterPage = async (id) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/footer-pages/pages/${id}`, {
-      method: 'DELETE'
-    });
-    
-    const data = await handleResponse(response);
-    return data.success;
+    const response = await axios.delete(`${API_BASE_URL}/footer-pages/pages/${id}`);
+    return response.data?.success ?? true;
   } catch (error) {
     console.error('Error deleting footer page:', error);
-    throw error;
+    throw error.response?.data?.message || error.message || error;
   }
 };

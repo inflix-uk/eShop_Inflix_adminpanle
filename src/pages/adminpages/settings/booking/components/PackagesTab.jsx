@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { getPackages, createPackage, updatePackage, deletePackage } from '../service/bookingService';
+import { useState, useEffect, useRef } from 'react';
+import { getPackages, createPackage, updatePackage, deletePackage, reorderPackages } from '../service/bookingService';
 import PackageModal from './PackageModal';
 
 const TYPE_COLORS = {
@@ -15,6 +15,9 @@ export default function PackagesTab({ setProgress }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editPackage, setEditPackage] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [draggedIndex, setDraggedIndex] = useState(null);
+  const [dragOverIndex, setDragOverIndex] = useState(null);
+  const dragNode = useRef(null);
 
   useEffect(() => {
     loadPackages();
@@ -58,6 +61,41 @@ export default function PackagesTab({ setProgress }) {
     loadPackages();
   };
 
+  const handleDragStart = (e, index) => {
+    setDraggedIndex(index);
+    dragNode.current = e.target;
+    e.target.style.opacity = '0.5';
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragEnd = async (e) => {
+    e.target.style.opacity = '1';
+    if (draggedIndex !== null && dragOverIndex !== null && draggedIndex !== dragOverIndex) {
+      const newPackages = [...packages];
+      const [draggedItem] = newPackages.splice(draggedIndex, 1);
+      newPackages.splice(dragOverIndex, 0, draggedItem);
+      setPackages(newPackages);
+      
+      const orderedIds = newPackages.map((pkg) => pkg._id);
+      await reorderPackages(orderedIds);
+    }
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+    dragNode.current = null;
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+    if (draggedIndex === null) return;
+    if (index !== dragOverIndex) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -85,6 +123,16 @@ export default function PackagesTab({ setProgress }) {
         </button>
       </div>
 
+      {/* Drag hint */}
+      {packages.length > 1 && (
+        <p className="text-sm text-gray-500 flex items-center gap-2">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+          </svg>
+          Drag rows to reorder packages. Order updates on frontend automatically.
+        </p>
+      )}
+
       {/* Packages Table */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         {loading ? (
@@ -103,6 +151,9 @@ export default function PackagesTab({ setProgress }) {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
+                <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-10">
+                  <span className="sr-only">Drag</span>
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Package
                 </th>
@@ -124,8 +175,23 @@ export default function PackagesTab({ setProgress }) {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {packages.map((pkg) => (
-                <tr key={pkg._id} className="hover:bg-gray-50">
+              {packages.map((pkg, index) => (
+                <tr
+                  key={pkg._id}
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, index)}
+                  onDragEnd={handleDragEnd}
+                  onDragOver={(e) => handleDragOver(e, index)}
+                  onDragLeave={handleDragLeave}
+                  className={`hover:bg-gray-50 cursor-move transition-all ${
+                    dragOverIndex === index ? 'bg-primary/10 border-t-2 border-primary' : ''
+                  } ${draggedIndex === index ? 'opacity-50' : ''}`}
+                >
+                  <td className="px-3 py-4 whitespace-nowrap">
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
+                    </svg>
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       {pkg.image && (

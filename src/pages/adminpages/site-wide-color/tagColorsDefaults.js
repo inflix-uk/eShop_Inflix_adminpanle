@@ -8,9 +8,12 @@ export const DEFAULT_TAG_COLORS = {
   p: "#374151",
   span: "#374151",
   label: "#374151",
+  bookingCalendarDate: "#111827",
+  bookingSelectedDateBg: "#c2fc12",
+  bookingSelectedSlotBg: "#c2fc12",
 };
 
-export const TAG_COLOR_KEYS = ["h1", "h2", "h3", "h4", "h5", "h6", "p", "span", "label"];
+export const TAG_COLOR_KEYS = ["h1", "h2", "h3", "h4", "h5", "h6", "p", "span", "label", "bookingCalendarDate", "bookingSelectedDateBg", "bookingSelectedSlotBg"];
 
 export function adminDisplayTagColors(stored) {
   const src = stored && typeof stored === "object" ? stored : {};
