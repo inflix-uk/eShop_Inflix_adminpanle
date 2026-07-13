@@ -24,6 +24,10 @@ export const getSiteTheme = async () => {
         secondaryColor: pick(response.data.data?.secondaryColor),
         bodyBgColor: response.data.data?.bodyBgColor ?? "",
         tagColors: response.data.data?.tagColors ?? null,
+        tagColorsEnabled:
+          typeof response.data.data?.tagColorsEnabled === "boolean"
+            ? response.data.data.tagColorsEnabled
+            : true,
         uiCustom: response.data.data?.uiCustom ?? null,
         typography: response.data.data?.typography || null,
         updatedAt: response.data.data?.updatedAt || null,
@@ -82,11 +86,15 @@ export const saveBodyBackgroundTheme = async (bodyBgColor) => {
 };
 
 /** Global h1–h6, p colors — `PUT /api/theme/tag-colors` (admin). */
-export const saveTagColorsTheme = async (tagColors) => {
+export const saveTagColorsTheme = async (tagColors, tagColorsEnabled) => {
   try {
     const response = await axios.put(
       `${API_BASE_URL}api/theme/tag-colors`,
-      { tagColors },
+      {
+        tagColors,
+        tagColorsEnabled:
+          typeof tagColorsEnabled === "boolean" ? tagColorsEnabled : true,
+      },
       { headers: getHeaders() }
     );
     if (response.data.success) {

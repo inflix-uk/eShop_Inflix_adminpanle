@@ -12,9 +12,19 @@ const LABELS = {
   p: "Paragraph (p)",
   span: "Span (span)",
   label: "Form label (label)",
+  bookingCalendarDate: "Booking Calendar Dates",
+  bookingSelectedDateBg: "Booking Selected Date Background",
+  bookingSelectedSlotBg: "Booking Selected Slot Background",
 };
 
-export default function TagColorsForm({ tagColors, onChange, onSave, saving }) {
+export default function TagColorsForm({
+  tagColors,
+  tagColorsEnabled,
+  onChange,
+  onEnabledChange,
+  onSave,
+  saving,
+}) {
   const handleColorChange = (key, value) => {
     onChange({ ...tagColors, [key]: value });
   };
@@ -35,13 +45,39 @@ export default function TagColorsForm({ tagColors, onChange, onSave, saving }) {
 
   return (
     <form onSubmit={handleSave} className="space-y-6">
+      <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+        <label className="flex cursor-pointer items-start gap-3">
+          <input
+            type="checkbox"
+            checked={tagColorsEnabled !== false}
+            onChange={(e) => onEnabledChange(e.target.checked)}
+            className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+          />
+          <span>
+            <span className="block text-sm font-medium text-gray-900">
+              Enable site-wide HTML tag colors
+            </span>
+            <span className="mt-1 block text-xs leading-relaxed text-gray-600">
+              When off, global h1–h6 / p / span / label colors are not applied on the
+              storefront. Use this when sections use their own color pickers (banners,
+              homepage blocks, dark/light themes).
+            </span>
+          </span>
+        </label>
+      </div>
+
       <p className="text-xs text-gray-500">
-        Applies site-wide to all <span className="font-mono">h1–h6</span>,{" "}
-        <span className="font-mono">p</span>, <span className="font-mono">span</span>, and{" "}
-        <span className="font-mono">label</span> tags — including pages that use Tailwind{" "}
-        <span className="font-mono">text-gray-*</span>. No per-file code changes.
+        {tagColorsEnabled !== false
+          ? "Applies site-wide to all h1–h6, p, span, and label tags on blog/product pages and generic content."
+          : "Disabled — storefront sections will use their own dynamic admin colors (Tailwind / per-widget pickers)."}
       </p>
 
+      <fieldset
+        disabled={tagColorsEnabled === false}
+        className={`space-y-6 border-0 p-0 m-0 ${
+          tagColorsEnabled === false ? "opacity-50 pointer-events-none" : ""
+        }`}
+      >
       <div className="grid gap-5 sm:grid-cols-2">
         {TAG_COLOR_KEYS.map((key) => (
           <div key={key}>
@@ -103,12 +139,14 @@ export default function TagColorsForm({ tagColors, onChange, onSave, saving }) {
           />
         </div>
       </div>
+      </fieldset>
 
       <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-gray-200">
         <button
           type="button"
           onClick={handleReset}
-          className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+          disabled={tagColorsEnabled === false}
+          className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50"
         >
           Reset to defaults
         </button>
@@ -126,11 +164,14 @@ export default function TagColorsForm({ tagColors, onChange, onSave, saving }) {
 
 TagColorsForm.propTypes = {
   tagColors: PropTypes.object.isRequired,
+  tagColorsEnabled: PropTypes.bool,
   onChange: PropTypes.func.isRequired,
+  onEnabledChange: PropTypes.func.isRequired,
   onSave: PropTypes.func.isRequired,
   saving: PropTypes.bool,
 };
 
 TagColorsForm.defaultProps = {
+  tagColorsEnabled: true,
   saving: false,
 };

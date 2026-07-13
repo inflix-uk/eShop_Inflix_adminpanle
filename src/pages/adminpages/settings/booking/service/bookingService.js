@@ -232,6 +232,24 @@ export const deletePackage = async (id) => {
   }
 };
 
+export const reorderPackages = async (orderedIds) => {
+  try {
+    const response = await axios.patch(`${API_BASE_URL}reorder/booking/packages`, {
+      orderedIds,
+    }, {
+      headers: getHeaders(),
+    });
+    if (response.data.status === 200) {
+      toast.success('Package order updated');
+    }
+    return response.data;
+  } catch (error) {
+    console.error('Error reordering packages:', error);
+    toast.error(error.response?.data?.error || 'Failed to reorder packages');
+    return null;
+  }
+};
+
 // ============================================================================
 // AVAILABILITY
 // ============================================================================

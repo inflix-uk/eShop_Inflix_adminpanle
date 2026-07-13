@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Code2 } from "lucide-react";
 import {
   getBookingPageContent,
   patchBookingPageContent,
@@ -16,6 +17,9 @@ const DEFAULT_CONTENT = {
     stat2Label: "Online Booking",
     stat3Value: "100%",
     stat3Label: "Secure Payment",
+    statsValueColor: "#111827",
+    statsLabelColor: "#6b7280",
+    statsBgColor: "",
   },
   services: {
     heading: "Our Services",
@@ -35,6 +39,11 @@ const DEFAULT_CONTENT = {
       description: "Pay securely with card, Apple Pay, or Google Pay",
     },
   ],
+  customWidget: {
+    enabled: false,
+    html: "",
+    css: "",
+  },
 };
 
 function mergeContent(incoming) {
@@ -72,7 +81,15 @@ function mergeContent(incoming) {
     };
   });
 
-  return { hero, services, trust };
+  const customWidgetSrc =
+    incoming.customWidget && typeof incoming.customWidget === "object" ? incoming.customWidget : {};
+  const customWidget = {
+    enabled: typeof customWidgetSrc.enabled === "boolean" ? customWidgetSrc.enabled : DEFAULT_CONTENT.customWidget.enabled,
+    html: typeof customWidgetSrc.html === "string" ? customWidgetSrc.html : DEFAULT_CONTENT.customWidget.html,
+    css: typeof customWidgetSrc.css === "string" ? customWidgetSrc.css : DEFAULT_CONTENT.customWidget.css,
+  };
+
+  return { hero, services, trust, customWidget };
 }
 
 export default function ContentTab({ setProgress }) {
@@ -80,6 +97,7 @@ export default function ContentTab({ setProgress }) {
   const [saving, setSaving] = useState(false);
   const [content, setContent] = useState(DEFAULT_CONTENT);
   const [updatedAt, setUpdatedAt] = useState(null);
+  const [htmlCssTab, setHtmlCssTab] = useState("html");
 
   useEffect(() => {
     loadContent();
@@ -117,6 +135,13 @@ export default function ContentTab({ setProgress }) {
     });
   };
 
+  const setCustomWidget = (key, value) => {
+    setContent((prev) => ({
+      ...prev,
+      customWidget: { ...prev.customWidget, [key]: value },
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -136,6 +161,7 @@ export default function ContentTab({ setProgress }) {
       hero: { ...DEFAULT_CONTENT.hero },
       services: { ...DEFAULT_CONTENT.services },
       trust: DEFAULT_CONTENT.trust.map((b) => ({ ...b })),
+      customWidget: { ...DEFAULT_CONTENT.customWidget },
     });
   };
 
@@ -325,48 +351,178 @@ export default function ContentTab({ setProgress }) {
                 </div>
               </div>
             </div>
+
+            {/* Stats Colors */}
+            <div className="mt-5 pt-5 border-t border-gray-200">
+              <p className="text-sm font-medium text-gray-700 mb-3">Stats Colors</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs text-gray-600 mb-2">Value Color</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={content.hero.statsValueColor || "#111827"}
+                      onChange={(e) => setHero("statsValueColor", e.target.value)}
+                      className="h-9 w-12 cursor-pointer rounded border border-gray-300 bg-white p-0.5"
+                    />
+                    <input
+                      type="text"
+                      value={content.hero.statsValueColor || ""}
+                      onChange={(e) => setHero("statsValueColor", e.target.value)}
+                      placeholder="#111827"
+                      className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm font-mono focus:ring-primary focus:border-primary"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-600 mb-2">Label Color</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={content.hero.statsLabelColor || "#6b7280"}
+                      onChange={(e) => setHero("statsLabelColor", e.target.value)}
+                      className="h-9 w-12 cursor-pointer rounded border border-gray-300 bg-white p-0.5"
+                    />
+                    <input
+                      type="text"
+                      value={content.hero.statsLabelColor || ""}
+                      onChange={(e) => setHero("statsLabelColor", e.target.value)}
+                      placeholder="#6b7280"
+                      className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm font-mono focus:ring-primary focus:border-primary"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-600 mb-2">Background Color</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={content.hero.statsBgColor || "#ffffff"}
+                      onChange={(e) => setHero("statsBgColor", e.target.value)}
+                      className="h-9 w-12 cursor-pointer rounded border border-gray-300 bg-white p-0.5"
+                    />
+                    <input
+                      type="text"
+                      value={content.hero.statsBgColor || ""}
+                      onChange={(e) => setHero("statsBgColor", e.target.value)}
+                      placeholder="transparent"
+                      className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm font-mono focus:ring-primary focus:border-primary"
+                    />
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">Leave empty for transparent</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* TRUST */}
+      {/* CUSTOM HTML/CSS WIDGET */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-1">Trust section</h3>
-        <p className="text-sm text-gray-500 mb-6">
-          Three benefit blocks at the bottom (icons stay fixed).
-        </p>
-
-        <div className="space-y-4">
-          {content.trust.map((item, index) => (
-            <div
-              key={index}
-              className="rounded-lg border border-gray-100 bg-gray-50 p-4 space-y-3"
-            >
-              <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
-                Block {index + 1}
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <Code2 className="text-violet-600" size={22} />
+            <div>
+              <h3 className="text-lg font-medium text-gray-900">Custom HTML / CSS Widget</h3>
+              <p className="text-sm text-gray-500">
+                Add custom HTML and CSS below the packages section.
               </p>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
-                <input
-                  type="text"
-                  value={item.title}
-                  onChange={(e) => setTrust(index, "title", e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white focus:ring-primary focus:border-primary"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description
-                </label>
-                <textarea
-                  rows={2}
-                  value={item.description}
-                  onChange={(e) => setTrust(index, "description", e.target.value)}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white focus:ring-primary focus:border-primary"
-                />
-              </div>
             </div>
-          ))}
+          </div>
+          <div className="flex items-center gap-3">
+            <span
+              className={`text-xs font-semibold ${
+                content.customWidget?.enabled ? "text-green-600" : "text-gray-400"
+              }`}
+            >
+              {content.customWidget?.enabled ? "Enabled" : "Disabled"}
+            </span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={content.customWidget?.enabled}
+              onClick={() => setCustomWidget("enabled", !content.customWidget?.enabled)}
+              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                content.customWidget?.enabled ? "bg-primary" : "bg-gray-300"
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  content.customWidget?.enabled ? "translate-x-6" : "translate-x-1"
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+
+        <div
+          className={`space-y-4 transition-opacity ${
+            content.customWidget?.enabled ? "" : "opacity-50 pointer-events-none"
+          }`}
+        >
+          <p className="text-xs text-gray-600">
+            Use <strong>HTML</strong> for tags only (sections, divs, headings, etc.). Do not paste{" "}
+            <code className="text-[11px] bg-gray-100 px-1 rounded">&lt;!DOCTYPE&gt;</code>,{" "}
+            <code className="text-[11px] bg-gray-100 px-1 rounded">&lt;html&gt;</code>,{" "}
+            <code className="text-[11px] bg-gray-100 px-1 rounded">&lt;head&gt;</code>, or{" "}
+            <code className="text-[11px] bg-gray-100 px-1 rounded">&lt;body&gt;</code>. Put all rules in the{" "}
+            <strong>CSS</strong> tab — CSS is scoped to this widget only.
+          </p>
+
+          {/* Tabs */}
+          <div className="inline-flex rounded-lg bg-gray-100 p-1" role="tablist">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={htmlCssTab === "html"}
+              onClick={() => setHtmlCssTab("html")}
+              className={`min-w-[5rem] rounded-md px-4 py-2 text-center text-sm font-semibold transition-colors focus:outline-none ${
+                htmlCssTab === "html"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "bg-transparent text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              HTML
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={htmlCssTab === "css"}
+              onClick={() => setHtmlCssTab("css")}
+              className={`min-w-[5rem] rounded-md px-4 py-2 text-center text-sm font-semibold transition-colors focus:outline-none ${
+                htmlCssTab === "css"
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "bg-transparent text-gray-600 hover:text-gray-900"
+              }`}
+            >
+              CSS
+            </button>
+          </div>
+
+          {/* Editor */}
+          {htmlCssTab === "html" ? (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">HTML fragment</label>
+              <textarea
+                value={content.customWidget?.html || ""}
+                onChange={(e) => setCustomWidget("html", e.target.value)}
+                rows={14}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono bg-gray-50 focus:ring-primary focus:border-primary"
+                placeholder={'e.g. <section class="my-block"><h2>Hello</h2><p>Your content here</p></section>'}
+              />
+            </div>
+          ) : (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">CSS rules</label>
+              <textarea
+                value={content.customWidget?.css || ""}
+                onChange={(e) => setCustomWidget("css", e.target.value)}
+                rows={14}
+                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono bg-gray-50 focus:ring-primary focus:border-primary"
+                placeholder={`.my-block { padding: 2rem; background: #f9fafb; }\n.my-block h2 { font-size: 1.5rem; color: #111827; }`}
+              />
+            </div>
+          )}
         </div>
       </div>
 
