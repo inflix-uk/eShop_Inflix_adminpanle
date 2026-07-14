@@ -28,9 +28,13 @@ function attachAuthInterceptor(client) {
       const isAuthAttempt =
         requestUrl.includes('login') || requestUrl.includes('superadmin/login');
 
+      // Only logout on 401 if it's not a login attempt
       if (status === 401 && !isAuthAttempt) {
         handleAuthFailure();
-      } else if (status === 403 && message.includes('admin access')) {
+      }
+      // Don't logout on 403 for permission-related endpoints (superadmin required)
+      // Only logout on 403 if message explicitly says "admin access required" (not superadmin)
+      else if (status === 403 && message.includes('admin access required')) {
         handleAuthFailure();
       }
 
