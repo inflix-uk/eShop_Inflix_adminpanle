@@ -140,12 +140,19 @@ export default function AnalyticsOverview() {
       profitByCampaign: mapProfitByCampaign(data.profitByCampaign, currency),
       fraudInsights: mapFraudInsights(data.fraudInsights, currency),
       fraudAdjusted: mapFraudAdjustedAdvertising(data.advertisingPerformance, data.meta),
-      roasVsPoas: mapRoasVsPoas(data.roasVsPoas),
+      roasVsPoas: mapRoasVsPoas(data.roasVsPoas, currency),
       advertisingPerformance: mapAdvertisingPerformanceZextons(data.advertisingPerformance, data.meta),
-      campaignRoasCpa: mapCampaignRoasCpa(data.campaignRoasRoi, currency),
+      campaignRoasCpa: mapCampaignRoasCpa(
+        data.campaignRoasCpa || data.campaignRoasRoi || data.campaignPerformance,
+        currency
+      ),
       profitability: mapProfitability(data.profitability, data.meta),
       dailyOrdersRevenue: mapDailyOrdersRevenue(data.dailyOrdersRevenue),
-      ordersProductsSold: mapOrdersProductsSoldModal(data.kpis, data.productsSold, data.meta),
+      ordersProductsSold: mapOrdersProductsSoldModal(
+        data.kpis,
+        data.topSellingProducts || data.productsSold,
+        data.meta
+      ),
       trackingStarted: viewModelTrackingLabel(data.meta?.trackingStartedAt),
       preTrackingNote: data.meta?.preTrackingNote,
     };
@@ -270,14 +277,12 @@ export default function AnalyticsOverview() {
                 </SectionCard>
 
                 <SectionCard title="Campaign ROAS & CPA">
-                  {viewModel.campaignRoasCpa.length > 0 ? (
-                    <PerformanceTable
-                      columns={ZEXTONS_CAMPAIGN_ROAS_COLUMNS}
-                      rows={viewModel.campaignRoasCpa}
-                    />
-                  ) : (
-                    <UnavailableNotice message="No Google Ads spend matched campaigns in this range. Import spend with campaign names matching order UTM campaigns." />
-                  )}
+                  <PerformanceTable
+                    columns={ZEXTONS_CAMPAIGN_ROAS_COLUMNS}
+                    rows={viewModel.campaignRoasCpa}
+                    rowKey="name"
+                    emptyMessage="No Google Ads spend in this date range. Add spend in Advertising performance above (campaign + date + amount)."
+                  />
                 </SectionCard>
 
                 <ProfitabilityPoasSection
@@ -310,7 +315,7 @@ export default function AnalyticsOverview() {
                 </div>
 
                 <SectionCard
-                  title="ROAS vs POAS"
+                  title="ROAS vs POAS (fraud-adjusted)"
                   subtitle={viewModel.roasVsPoas.subtitle}
                 >
                   {viewModel.roasVsPoas.unavailable ? (
@@ -319,6 +324,8 @@ export default function AnalyticsOverview() {
                     <PerformanceTable
                       columns={ROAS_POAS_COLUMNS}
                       rows={viewModel.roasVsPoas.rows}
+                      rowKey="source"
+                      emptyMessage="No revenue orders in this range for ROAS vs POAS."
                     />
                   )}
                 </SectionCard>
@@ -328,12 +335,20 @@ export default function AnalyticsOverview() {
                   dailyOrdersRevenue={viewModel.dailyOrdersRevenue}
                 />
 
-                <div className="grid gap-6 xl:grid-cols-2">
-                  <SectionCard title="Top traffic sources">
-                    <PerformanceTable columns={TOP_TRAFFIC_COLUMNS} rows={viewModel.topTrafficSources} />
+                <div className="grid gap-6 lg:grid-cols-2 items-stretch">
+                  <SectionCard title="Top traffic sources" className="h-full">
+                    <PerformanceTable
+                      columns={TOP_TRAFFIC_COLUMNS}
+                      rows={viewModel.topTrafficSources}
+                      emptyMessage="No traffic source orders in this range."
+                    />
                   </SectionCard>
-                  <SectionCard title="Top campaigns">
-                    <PerformanceTable columns={TOP_CAMPAIGN_COLUMNS} rows={viewModel.topCampaigns} />
+                  <SectionCard title="Top campaigns" className="h-full">
+                    <PerformanceTable
+                      columns={TOP_CAMPAIGN_COLUMNS}
+                      rows={viewModel.topCampaigns}
+                      emptyMessage="No campaign orders in this range."
+                    />
                   </SectionCard>
                 </div>
 
@@ -344,60 +359,35 @@ export default function AnalyticsOverview() {
                     <PerformanceTable
                       columns={TOP_LANDING_COLUMNS}
                       rows={viewModel.topLandingPages.rows}
+                      rowKey="landingPage"
+                      emptyMessage="No landing page sessions recorded in this range."
                     />
                   )}
                 </SectionCard>
 
-                <SectionCard title="Fraud insights">
+                <section className="space-y-4">
+                  <h2 className="text-base font-semibold text-gray-900">Fraud insights</h2>
                   {viewModel.fraudInsights.unavailable ? (
                     <UnavailableNotice message={viewModel.fraudInsights.emptyMessage} />
                   ) : (
-                    <div className="space-y-6">
-                      <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-                        <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-center">
-                          <p className="text-[11px] uppercase text-gray-500">Flagged orders</p>
-                          <p className="mt-1 text-sm font-semibold text-gray-900">
-                            {viewModel.fraudInsights.totals.fraudOrders}
-                          </p>
-                        </div>
-                        <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-center">
-                          <p className="text-[11px] uppercase text-gray-500">Fraud rate</p>
-                          <p className="mt-1 text-sm font-semibold text-gray-900">
-                            {viewModel.fraudInsights.totals.fraudRate}
-                          </p>
-                        </div>
-                        <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-center">
-                          <p className="text-[11px] uppercase text-gray-500">Excluded revenue</p>
-                          <p className="mt-1 text-sm font-semibold text-gray-900">
-                            {viewModel.fraudInsights.totals.excludedRevenue}
-                          </p>
-                        </div>
-                        <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-3 text-center">
-                          <p className="text-[11px] uppercase text-gray-500">Excluded profit</p>
-                          <p className="mt-1 text-sm font-semibold text-gray-900">
-                            {viewModel.fraudInsights.totals.excludedProfit}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="grid gap-8 lg:grid-cols-2">
-                        <div>
-                          <h3 className="text-sm font-semibold text-gray-900 mb-3">Fraud rate by source</h3>
-                          <PerformanceTable
-                            columns={FRAUD_SOURCE_COLUMNS}
-                            rows={viewModel.fraudInsights.bySource}
-                          />
-                        </div>
-                        <div>
-                          <h3 className="text-sm font-semibold text-gray-900 mb-3">Fraud rate by campaign</h3>
-                          <PerformanceTable
-                            columns={FRAUD_CAMPAIGN_COLUMNS}
-                            rows={viewModel.fraudInsights.byCampaign}
-                          />
-                        </div>
-                      </div>
+                    <div className="grid gap-6 lg:grid-cols-2 items-stretch">
+                      <SectionCard title="Fraud rate by source" className="h-full">
+                        <PerformanceTable
+                          columns={FRAUD_SOURCE_COLUMNS}
+                          rows={viewModel.fraudInsights.bySource}
+                          emptyMessage="No revenue orders in this range."
+                        />
+                      </SectionCard>
+                      <SectionCard title="Fraud rate by campaign" className="h-full">
+                        <PerformanceTable
+                          columns={FRAUD_CAMPAIGN_COLUMNS}
+                          rows={viewModel.fraudInsights.byCampaign}
+                          emptyMessage="No revenue orders in this range."
+                        />
+                      </SectionCard>
                     </div>
                   )}
-                </SectionCard>
+                </section>
               </>
             )}
           </div>

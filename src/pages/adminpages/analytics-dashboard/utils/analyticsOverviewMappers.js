@@ -1,5 +1,4 @@
 import {
-  CHANNEL_FILTER_OPTIONS,
   CHANNEL_SOURCE_LABELS,
   LIMITED_DATA_LABEL,
   TRAFFIC_SOURCE_LABELS,
@@ -12,13 +11,6 @@ import {
   formatPercent,
   formatShortChartDay,
 } from './analyticsFormatters';
-
-function formatFunnelCount(funnel, key) {
-  if (!funnel || funnel.availability === 'unavailable') {
-    return formatNumber(funnel?.counts?.[key] ?? 0);
-  }
-  return formatNumber(funnel.counts?.[key] ?? 0);
-}
 
 export function mapDataQuality(meta, dataQuality) {
   const visitorSessions = formatNumber(dataQuality?.visitorSessionsInRange ?? 0);
@@ -34,23 +26,11 @@ export function mapDataQuality(meta, dataQuality) {
 
   return {
     selectedRange: meta?.selectedRangeLabel || '—',
-    channelFilter:
-      meta?.channel != null
-        ? CHANNEL_FILTER_OPTIONS.find((option) => option.id === meta.channel)?.label ||
-          meta.channel
-        : 'All channels',
     trackingStarted,
     visitorSessions,
-    allOrdersInRange: formatNumber(dataQuality?.allOrdersInRange ?? dataQuality?.ordersInRange ?? 0),
-    revenueOrdersInRange: formatNumber(dataQuality?.revenueOrdersInRange ?? 0),
-    nonRevenueOrdersInRange: formatNumber(dataQuality?.nonRevenueOrdersInRange ?? 0),
-    failedOrdersInRange: formatNumber(dataQuality?.failedOrdersInRange ?? 0),
-    nonRevenueWarn: (dataQuality?.nonRevenueOrdersInRange ?? 0) > 0,
-    failedOrdersWarn: (dataQuality?.failedOrdersInRange ?? 0) > 0,
-    funnelPageViews: formatFunnelCount(dataQuality?.marketingFunnel, 'page_view'),
-    funnelAddToCart: formatFunnelCount(dataQuality?.marketingFunnel, 'add_to_cart'),
-    funnelBeginCheckout: formatFunnelCount(dataQuality?.marketingFunnel, 'begin_checkout'),
-    funnelPurchase: formatFunnelCount(dataQuality?.marketingFunnel, 'purchase'),
+    ordersInRange: formatNumber(
+      dataQuality?.allOrdersInRange ?? dataQuality?.ordersInRange ?? 0
+    ),
     ordersWithMarketingAttribution: formatNumber(
       dataQuality?.ordersWithMarketingAttribution ?? 0
     ),
@@ -61,15 +41,8 @@ export function mapDataQuality(meta, dataQuality) {
     ordersWithGclid: formatNumber(dataQuality?.ordersWithGclid ?? 0),
     ordersWithFbclid: formatNumber(dataQuality?.ordersWithFbclid ?? 0),
     ordersWithReferrer: formatNumber(dataQuality?.ordersWithReferrer ?? 0),
-    rangeIncludesPreTrackingPeriod: meta?.preTrackingNote
-      ? meta.preTrackingNote
-      : meta?.rangeIncludesPreTrackingPeriod
-        ? 'Yes'
-        : 'No',
+    rangeIncludesPreTrackingPeriod: meta?.rangeIncludesPreTrackingPeriod ? 'Yes' : 'No',
     preTrackingWarn: meta?.rangeIncludesPreTrackingPeriod === true,
-    revenueMetricsNote:
-      meta?.revenueMetricsNote ||
-      'Revenue metrics only include Pending, Approved, Shipped, and Delivered orders.',
   };
 }
 
@@ -89,19 +62,22 @@ function formatDimensionName(value) {
 }
 
 function mapEnrichedRevenueRow(row, nameKey, currency, { includeFraud = false } = {}) {
+  const visitorsAvailable =
+    row.visitorsAvailability === 'available' || row.visitors != null;
+  const conversionAvailable =
+    row.conversionRateAvailability === 'available' || row.conversionRate != null;
+
   const mapped = {
     name: formatDimensionName(row[nameKey]),
-    visitors:
-      row.visitorsAvailability === 'available' || (row.visitors ?? 0) > 0
-        ? formatNumber(row.visitors ?? 0)
-        : LIMITED_DATA_LABEL,
+    visitors: visitorsAvailable
+      ? formatNumber(row.visitors ?? 0)
+      : LIMITED_DATA_LABEL,
     orders: formatNumber(row.orders ?? 0),
     revenue: formatCurrency(row.revenue ?? 0, currency),
     aov: calcAov(row.revenue, row.orders, currency),
-    conversionRate:
-      row.conversionRateAvailability === 'available' && row.conversionRate != null
-        ? formatPercent(row.conversionRate)
-        : LIMITED_DATA_LABEL,
+    conversionRate: conversionAvailable
+      ? formatPercent(row.conversionRate ?? 0)
+      : LIMITED_DATA_LABEL,
   };
 
   if (includeFraud) {
@@ -198,18 +174,25 @@ export function mapZextonsRevenueByCampaign(rows, currency) {
 }
 
 export function mapZextonsRevenueByMedium(rows, currency) {
-  return (rows || []).map((row) => mapEnrichedRevenueRow(row, 'medium', currency));
+  return (rows || []).map((row) => {
+    const mapped = mapEnrichedRevenueRow(row, 'medium', currency);
+    // Keep analytics medium labels as stored (cpc, (direct), Email, social).
+    mapped.name = row.medium || '(direct)';
+    return mapped;
+  });
 }
 
-export function mapTopTrafficSources(sourceRows, channelRows, currency) {
-  return mapZextonsRevenueBySource(sourceRows, channelRows, currency).map(
-    ({ name, orders, revenue }) => ({ name, orders, revenue })
-  );
+export function mapTopTrafficSources(sourceRows, _channelRows, currency) {
+  return (sourceRows || []).map((row) => ({
+    name: row.source || 'Direct',
+    orders: formatNumber(row.orders ?? 0),
+    revenue: formatCurrency(row.revenue ?? 0, currency),
+  }));
 }
 
 export function mapTopCampaignsSummary(rows, currency) {
   return (rows || []).map((row) => ({
-    name: formatDimensionName(row.campaign),
+    name: row.campaign || '(unassigned)',
     orders: formatNumber(row.orders ?? 0),
     revenue: formatCurrency(row.revenue ?? 0, currency),
   }));
@@ -256,10 +239,20 @@ export function mapVisitorsByDevice(visitorsByDevice) {
   };
 }
 
+function formatRatioOrNa(value, availability) {
+  if (availability !== 'available' || value == null) return 'N/A';
+  return formatMultiplier(value);
+}
+
+function formatMarginOrNa(value, availability) {
+  if (availability !== 'available' || value == null) return 'N/A';
+  return formatPercent(value);
+}
+
 export function mapProfitBySource(profitBySource, currency) {
   const rows = profitBySource?.rows || [];
   return {
-    unavailable: profitBySource?.availability !== 'available',
+    unavailable: profitBySource?.availability !== 'available' || rows.length === 0,
     emptyMessage: 'No revenue orders in this range for profit breakdown.',
     rows: rows.map((row) => ({
       name: formatDimensionName(row.source),
@@ -267,9 +260,18 @@ export function mapProfitBySource(profitBySource, currency) {
       revenue: formatCurrency(row.revenue ?? 0, currency),
       estCost: formatCurrency(row.cogs ?? 0, currency),
       grossProfit: formatCurrency(row.grossProfit ?? 0, currency),
-      margin: formatPercent(row.margin ?? 0),
+      margin: formatMarginOrNa(row.margin, row.marginAvailability),
       spend: formatCurrency(row.spend ?? 0, currency),
-      roas: formatMultiplier(row.roasAvailability === 'available' ? row.roas : 0),
+      roas: formatRatioOrNa(row.roas, row.roasAvailability),
+      poas: formatRatioOrNa(row.poas, row.poasAvailability),
+      fraudAdjustedRoas: formatRatioOrNa(
+        row.fraudAdjustedRoas,
+        row.fraudAdjustedRoasAvailability
+      ),
+      fraudAdjustedPoas: formatRatioOrNa(
+        row.fraudAdjustedPoas,
+        row.fraudAdjustedPoasAvailability
+      ),
     })),
   };
 }
@@ -277,7 +279,7 @@ export function mapProfitBySource(profitBySource, currency) {
 export function mapProfitByCampaign(profitByCampaign, currency) {
   const rows = profitByCampaign?.rows || [];
   return {
-    unavailable: profitByCampaign?.availability !== 'available',
+    unavailable: profitByCampaign?.availability !== 'available' || rows.length === 0,
     emptyMessage: 'No revenue orders in this range for campaign profit breakdown.',
     rows: rows.map((row) => ({
       name: formatDimensionName(row.campaign),
@@ -285,9 +287,12 @@ export function mapProfitByCampaign(profitByCampaign, currency) {
       revenue: formatCurrency(row.revenue ?? 0, currency),
       estCost: formatCurrency(row.cogs ?? 0, currency),
       grossProfit: formatCurrency(row.grossProfit ?? 0, currency),
-      margin: formatPercent(row.margin ?? 0),
+      margin: formatMarginOrNa(row.margin, row.marginAvailability),
       spend: formatCurrency(row.spend ?? 0, currency),
-      roas: formatMultiplier(row.roasAvailability === 'available' ? row.roas : 0),
+      roas: formatRatioOrNa(row.roas, row.roasAvailability),
+      poas: formatRatioOrNa(row.poas, row.poasAvailability),
+      excludedRevenue: formatCurrency(row.excludedRevenue ?? 0, currency),
+      excludedProfit: formatCurrency(row.excludedProfit ?? 0, currency),
     })),
   };
 }
@@ -300,13 +305,13 @@ export function mapFraudInsights(fraudInsights, currency) {
     unavailable,
     emptyMessage: 'No revenue orders in this range.',
     bySource: (fi.bySource || []).map((row) => ({
-      name: formatDimensionName(row.source),
+      name: row.source || 'Direct',
       orders: formatNumber(row.orders ?? 0),
       fraudOrders: formatNumber(row.fraudOrders ?? 0),
       fraudRate: formatPercent(row.fraudRate ?? 0),
     })),
     byCampaign: (fi.byCampaign || []).map((row) => ({
-      name: formatDimensionName(row.campaign),
+      name: row.campaign || '(unassigned)',
       orders: formatNumber(row.orders ?? 0),
       fraudOrders: formatNumber(row.fraudOrders ?? 0),
       fraudRate: formatPercent(row.fraudRate ?? 0),
@@ -336,59 +341,94 @@ export function mapFraudAdjustedAdvertising(advertisingPerformance, meta) {
   };
 }
 
-export function mapRoasVsPoas(roasVsPoas) {
+export function mapRoasVsPoas(roasVsPoas, currency = 'GBP') {
   const data = roasVsPoas || {};
-  const unavailable = data.availability !== 'available';
-  const poasUnavailable = data.poasAvailability !== 'available';
-
-  const formatRoas = (value) => formatMultiplier(value ?? 0);
-  const formatPoas = (value) => formatMultiplier(poasUnavailable ? 0 : value ?? 0);
+  const rows = data.rows || [];
+  const unavailable = data.availability !== 'available' || rows.length === 0;
 
   return {
     unavailable,
-    emptyMessage: 'Import ad spend in this date range to compare ROAS vs POAS.',
-    subtitle: poasUnavailable
-      ? 'ROAS uses ad spend vs revenue. POAS needs product Cost on variants (see Profit data quality above).'
-      : 'Blended uses revenue from campaigns with ad spend. Fraud-adjusted excludes flagged orders.',
-    rows: [
-      {
-        metric: 'Blended',
-        roas: formatRoas(data.roas),
-        poas: formatPoas(data.poas),
-      },
-      {
-        metric: 'Fraud-adjusted',
-        roas: formatRoas(data.fraudAdjustedRoas),
-        poas: formatPoas(data.fraudAdjustedPoas),
-      },
-    ],
+    emptyMessage: 'No revenue orders in this range for ROAS vs POAS.',
+    subtitle:
+      'Fraud-adjusted (FA) columns exclude orders flagged as marketing fraud. ROAS/POAS need ad spend; POAS also needs product Cost.',
+    rows: rows.map((row) => ({
+      source: row.source || 'Direct',
+      revenue: formatCurrency(row.revenue ?? 0, currency),
+      grossProfit: formatCurrency(row.grossProfit ?? 0, currency),
+      adSpend: formatCurrency(row.adSpend ?? 0, currency),
+      roas: formatRatioOrNa(row.roas, row.roasAvailability),
+      poas: formatRatioOrNa(row.poas, row.poasAvailability),
+      faRevenue: formatCurrency(row.faRevenue ?? 0, currency),
+      faProfit: formatCurrency(row.faProfit ?? 0, currency),
+      fraudAdjustedRoas: formatRatioOrNa(
+        row.fraudAdjustedRoas,
+        row.fraudAdjustedRoasAvailability
+      ),
+      fraudAdjustedPoas: formatRatioOrNa(
+        row.fraudAdjustedPoas,
+        row.fraudAdjustedPoasAvailability
+      ),
+      excludedOrders: formatNumber(row.excludedOrders ?? 0),
+    })),
   };
 }
 
 export function mapTopLandingPages(topLandingPages) {
   const pages = topLandingPages?.pages || [];
   return {
-    unavailable: topLandingPages?.availability !== 'available',
+    unavailable: topLandingPages?.availability !== 'available' || pages.length === 0,
     emptyMessage: 'No landing page sessions recorded in this range.',
     rows: pages.map((row) => ({
-      landingPage: row.landingPage,
+      landingPage: row.landingPage || '/',
       sessions: formatNumber(row.sessions ?? 0),
     })),
   };
 }
 
+/**
+ * Campaign ROAS & CPA table — prefer dedicated campaignRoasCpa rows (spend only).
+ * Falls back to campaignRoasRoi / campaignPerformance filtered by spend.
+ */
 export function mapCampaignRoasCpa(rows, currency) {
-  return mapCampaignRoasRoi(rows, currency)
-    .filter((row) => row.hasSpend)
-    .map((row) => ({
-      source: 'Google Ads',
-      name: row.name,
-      spend: row.spend,
-      revenue: row.revenue,
-      orders: row.orders,
-      roas: row.roas,
-      cpa: row.cac,
-    }));
+  const list = Array.isArray(rows) ? rows : [];
+
+  return list
+    .filter((row) => {
+      const spend = Number(row.spend);
+      return (
+        row.spendAvailability === 'available' ||
+        (Number.isFinite(spend) && spend > 0)
+      );
+    })
+    .map((row) => {
+      const spend = Number(row.spend) || 0;
+      const orders = Number(row.orders) || 0;
+      const revenue = Number(row.revenue) || 0;
+      const roas =
+        row.roas != null
+          ? Number(row.roas)
+          : spend > 0
+            ? revenue / spend
+            : 0;
+      const cpa =
+        row.cpa != null
+          ? Number(row.cpa)
+          : row.cac != null
+            ? Number(row.cac)
+            : spend > 0 && orders > 0
+              ? spend / orders
+              : 0;
+
+      return {
+        source: row.source || 'Google Ads',
+        name: row.campaign || row.name || '(unnamed)',
+        spend: formatCurrency(spend, currency),
+        revenue: formatCurrency(revenue, currency),
+        orders: formatNumber(orders),
+        roas: formatMultiplier(Number.isFinite(roas) ? roas : 0),
+        cpa: formatCurrency(Number.isFinite(cpa) ? cpa : 0, currency),
+      };
+    });
 }
 
 export function mapAdvertisingPerformanceZextons(advertisingPerformance, meta) {
@@ -715,13 +755,13 @@ export function mapOrdersProductsSoldModal(kpis, productsSold, meta) {
   const currency = meta?.currency || 'GBP';
 
   return {
-    subtitle: 'All orders in range',
+    subtitle: 'Revenue orders in selected range (Pending, Approved, Shipped, Delivered)',
     orders: formatNumber(kpis?.orders ?? 0),
     unitsSold: formatNumber(kpis?.salesUnits ?? 0),
     revenue: formatCurrency(kpis?.revenue ?? 0, currency),
     products: (productsSold || []).map((row) => ({
       name: row.name,
-      qty: formatNumber(row.unitsSold ?? 0),
+      qty: formatNumber(row.unitsSold ?? row.qty ?? 0),
       revenue: formatCurrency(row.revenue ?? 0, currency),
       orders: formatNumber(row.orders ?? 0),
     })),

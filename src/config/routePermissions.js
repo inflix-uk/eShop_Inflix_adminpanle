@@ -7,6 +7,9 @@ export const ROUTE_PERMISSIONS = {
     // Dashboard - accessible to all authenticated users
     '/admin/dashboard': [],
     '/admin/analytics/overview': ['view_dashboard'],
+    '/admin/analytics/ad-performance': ['view_dashboard'],
+    '/admin/analytics/campaign-analytics': ['view_dashboard'],
+    '/admin/analytics/campaign-orders': ['view_dashboard'],
 
     // Profile - accessible to all authenticated users
     '/admin/profile': [],

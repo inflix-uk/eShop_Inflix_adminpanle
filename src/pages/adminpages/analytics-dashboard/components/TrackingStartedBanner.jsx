@@ -4,14 +4,14 @@ export default function TrackingStartedBanner({ trackingStarted, preTrackingNote
   if (!trackingStarted) return null;
 
   return (
-    <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3.5 text-sm text-red-900 shadow-sm">
       <p>
         Visitor tracking started on{" "}
         <span className="font-semibold">{trackingStarted}</span>. Older orders may not have
         visitor/session attribution.
       </p>
       {preTrackingNote ? (
-        <p className="mt-1 text-xs text-amber-800">{preTrackingNote}</p>
+        <p className="mt-1 text-xs text-red-800/90">{preTrackingNote}</p>
       ) : null}
     </div>
   );

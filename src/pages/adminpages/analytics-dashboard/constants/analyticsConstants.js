@@ -109,6 +109,9 @@ export const PROFIT_BY_SOURCE_COLUMNS = [
   { key: 'margin', label: 'Margin', align: 'right' },
   { key: 'spend', label: 'Ad spend', align: 'right' },
   { key: 'roas', label: 'ROAS', align: 'right' },
+  { key: 'poas', label: 'POAS', align: 'right' },
+  { key: 'fraudAdjustedRoas', label: 'FA ROAS', align: 'right' },
+  { key: 'fraudAdjustedPoas', label: 'FA POAS', align: 'right' },
 ];
 
 export const PROFIT_BY_CAMPAIGN_COLUMNS = [
@@ -120,6 +123,9 @@ export const PROFIT_BY_CAMPAIGN_COLUMNS = [
   { key: 'margin', label: 'Margin', align: 'right' },
   { key: 'spend', label: 'Ad spend', align: 'right' },
   { key: 'roas', label: 'ROAS', align: 'right' },
+  { key: 'poas', label: 'POAS', align: 'right' },
+  { key: 'excludedRevenue', label: 'Excluded rev.', align: 'right' },
+  { key: 'excludedProfit', label: 'Excluded profit', align: 'right' },
 ];
 
 export const FRAUD_SOURCE_COLUMNS = [
@@ -137,9 +143,17 @@ export const FRAUD_CAMPAIGN_COLUMNS = [
 ];
 
 export const ROAS_POAS_COLUMNS = [
-  { key: 'metric', label: 'Metric' },
+  { key: 'source', label: 'Source' },
+  { key: 'revenue', label: 'Revenue', align: 'right' },
+  { key: 'grossProfit', label: 'Gross profit', align: 'right' },
+  { key: 'adSpend', label: 'Ad spend', align: 'right' },
   { key: 'roas', label: 'ROAS', align: 'right' },
   { key: 'poas', label: 'POAS', align: 'right' },
+  { key: 'faRevenue', label: 'FA revenue', align: 'right' },
+  { key: 'faProfit', label: 'FA profit', align: 'right' },
+  { key: 'fraudAdjustedRoas', label: 'FA ROAS', align: 'right' },
+  { key: 'fraudAdjustedPoas', label: 'FA POAS', align: 'right' },
+  { key: 'excludedOrders', label: 'Excluded orders', align: 'right' },
 ];
 
 /** Must match keys in backend `analyticsOrderMatch.CHANNEL_FILTERS`. */
