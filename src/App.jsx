@@ -35,6 +35,15 @@ const Customer360 = lazy(() => import("./pages/adminpages/crm/Customer360"));
 const AnalyticsOverview = lazy(() =>
   import("./pages/adminpages/analytics-dashboard/Overview")
 );
+const AdPerformanceReport = lazy(() =>
+  import("./pages/adminpages/analytics-dashboard/AdPerformanceReport")
+);
+const CampaignAnalyticsReport = lazy(() =>
+  import("./pages/adminpages/analytics-dashboard/CampaignAnalyticsReport")
+);
+const CampaignOrdersReport = lazy(() =>
+  import("./pages/adminpages/analytics-dashboard/CampaignOrdersReport")
+);
 const ProductCentral = lazy(() =>
   import("./pages/adminpages/ProductCentral/ProductCentral")
 );
@@ -610,6 +619,48 @@ function App() {
                     <Suspense fallback={<PageSkeleton />}>
                       <PermissionRoute permission="store.view_dashboard">
                         <AnalyticsOverview />
+                      </PermissionRoute>
+                    </Suspense>
+                  </ErrorBoundary>
+                </>
+              }
+            />
+            <Route
+              path="/admin/analytics/ad-performance"
+              element={
+                <>
+                  <ErrorBoundary fallback={<div>Error</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
+                      <PermissionRoute permission="store.view_dashboard">
+                        <AdPerformanceReport />
+                      </PermissionRoute>
+                    </Suspense>
+                  </ErrorBoundary>
+                </>
+              }
+            />
+            <Route
+              path="/admin/analytics/campaign-analytics"
+              element={
+                <>
+                  <ErrorBoundary fallback={<div>Error</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
+                      <PermissionRoute permission="store.view_dashboard">
+                        <CampaignAnalyticsReport />
+                      </PermissionRoute>
+                    </Suspense>
+                  </ErrorBoundary>
+                </>
+              }
+            />
+            <Route
+              path="/admin/analytics/campaign-orders"
+              element={
+                <>
+                  <ErrorBoundary fallback={<div>Error</div>}>
+                    <Suspense fallback={<PageSkeleton />}>
+                      <PermissionRoute permission="store.view_dashboard">
+                        <CampaignOrdersReport />
                       </PermissionRoute>
                     </Suspense>
                   </ErrorBoundary>
