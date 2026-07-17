@@ -1,5 +1,13 @@
 import { useState, useEffect } from 'react';
 import { getBookingSettings, updateBookingSettings } from '../service/bookingService';
+import {
+  UnitToggle,
+  displayValueToHours,
+  displayValueToMinutes,
+  hoursToDisplayValue,
+  minutesToDisplayValue,
+  normalizeDurationUnit,
+} from '../utils/durationDisplay';
 
 const TIMEZONES = [
   { value: 'Europe/London', label: 'Europe/London (GMT/BST)' },
@@ -15,9 +23,15 @@ export default function SettingsTab({ setProgress }) {
   const [settings, setSettings] = useState({
     isEnabled: false,
     slotIntervalMinutes: 30,
+    slotIntervalDisplayUnit: 'minutes',
+    slotIntervalInput: 30,
     holdDurationMinutes: 15,
+    holdDurationDisplayUnit: 'minutes',
+    holdDurationInput: 15,
     timezone: 'Europe/London',
     minAdvanceBookingHours: 1,
+    minAdvanceDisplayUnit: 'hours',
+    minAdvanceInput: 1,
     maxAdvanceBookingDays: 30,
   });
 
@@ -30,7 +44,28 @@ export default function SettingsTab({ setProgress }) {
     setProgress(30);
     const data = await getBookingSettings();
     if (data?.settings) {
-      setSettings(data.settings);
+      const s = data.settings;
+      const slotUnit = normalizeDurationUnit(s.slotIntervalDisplayUnit || 'minutes');
+      const holdUnit = normalizeDurationUnit(s.holdDurationDisplayUnit || 'minutes');
+      const advanceUnit = normalizeDurationUnit(s.minAdvanceDisplayUnit || 'hours');
+      const slotMinutes = Number(s.slotIntervalMinutes) || 30;
+      const holdMinutes = Number(s.holdDurationMinutes) || 15;
+      const advanceHours = Number(s.minAdvanceBookingHours) ?? 1;
+
+      setSettings({
+        isEnabled: Boolean(s.isEnabled),
+        slotIntervalMinutes: slotMinutes,
+        slotIntervalDisplayUnit: slotUnit,
+        slotIntervalInput: minutesToDisplayValue(slotMinutes, slotUnit),
+        holdDurationMinutes: holdMinutes,
+        holdDurationDisplayUnit: holdUnit,
+        holdDurationInput: minutesToDisplayValue(holdMinutes, holdUnit),
+        timezone: s.timezone || 'Europe/London',
+        minAdvanceBookingHours: advanceHours,
+        minAdvanceDisplayUnit: advanceUnit,
+        minAdvanceInput: hoursToDisplayValue(advanceHours, advanceUnit),
+        maxAdvanceBookingDays: Number(s.maxAdvanceBookingDays) || 30,
+      });
     }
     setLoading(false);
     setProgress(100);
@@ -40,13 +75,73 @@ export default function SettingsTab({ setProgress }) {
     e.preventDefault();
     setSaving(true);
     setProgress(50);
-    await updateBookingSettings(settings);
+
+    const slotMinutes = displayValueToMinutes(
+      settings.slotIntervalInput,
+      settings.slotIntervalDisplayUnit
+    );
+    const holdMinutes = displayValueToMinutes(
+      settings.holdDurationInput,
+      settings.holdDurationDisplayUnit
+    );
+    const advanceHours = displayValueToHours(
+      settings.minAdvanceInput,
+      settings.minAdvanceDisplayUnit
+    );
+
+    await updateBookingSettings({
+      isEnabled: settings.isEnabled,
+      slotIntervalMinutes: Math.max(1, slotMinutes || 30),
+      slotIntervalDisplayUnit: settings.slotIntervalDisplayUnit,
+      holdDurationMinutes: Math.max(1, holdMinutes || 15),
+      holdDurationDisplayUnit: settings.holdDurationDisplayUnit,
+      timezone: settings.timezone,
+      minAdvanceBookingHours: Math.max(0, advanceHours),
+      minAdvanceDisplayUnit: settings.minAdvanceDisplayUnit,
+      maxAdvanceBookingDays: Math.max(1, Number(settings.maxAdvanceBookingDays) || 30),
+    });
+
     setSaving(false);
     setProgress(100);
   };
 
   const handleChange = (field, value) => {
     setSettings((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleMinutesFieldUnitChange = (fieldPrefix, nextUnit) => {
+    setSettings((prev) => {
+      const unit = normalizeDurationUnit(nextUnit);
+      const minutesKey = `${fieldPrefix}Minutes`;
+      const unitKey = `${fieldPrefix}DisplayUnit`;
+      const inputKey = `${fieldPrefix}Input`;
+      const minutes =
+        prev[inputKey] === '' || prev[inputKey] == null
+          ? prev[minutesKey]
+          : displayValueToMinutes(prev[inputKey], prev[unitKey]);
+      return {
+        ...prev,
+        [unitKey]: unit,
+        [minutesKey]: minutes > 0 ? minutes : prev[minutesKey],
+        [inputKey]: minutesToDisplayValue(minutes > 0 ? minutes : prev[minutesKey], unit),
+      };
+    });
+  };
+
+  const handleAdvanceUnitChange = (nextUnit) => {
+    setSettings((prev) => {
+      const unit = normalizeDurationUnit(nextUnit);
+      const hours =
+        prev.minAdvanceInput === '' || prev.minAdvanceInput == null
+          ? prev.minAdvanceBookingHours
+          : displayValueToHours(prev.minAdvanceInput, prev.minAdvanceDisplayUnit);
+      return {
+        ...prev,
+        minAdvanceDisplayUnit: unit,
+        minAdvanceBookingHours: hours,
+        minAdvanceInput: hoursToDisplayValue(hours, unit),
+      };
+    });
   };
 
   if (loading) {
@@ -90,40 +185,61 @@ export default function SettingsTab({ setProgress }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Slot Interval (minutes)
+              Slot Interval
             </label>
-            <select
-              value={settings.slotIntervalMinutes}
-              onChange={(e) => handleChange('slotIntervalMinutes', Number(e.target.value))}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-primary focus:border-primary"
-            >
-              <option value={15}>15 minutes</option>
-              <option value={30}>30 minutes</option>
-              <option value={45}>45 minutes</option>
-              <option value={60}>60 minutes</option>
-            </select>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                min={settings.slotIntervalDisplayUnit === 'hours' ? 0.25 : 1}
+                step={settings.slotIntervalDisplayUnit === 'hours' ? 0.25 : 1}
+                value={settings.slotIntervalInput}
+                onChange={(e) =>
+                  handleChange(
+                    'slotIntervalInput',
+                    e.target.value === '' ? '' : Number(e.target.value)
+                  )
+                }
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-primary focus:border-primary"
+                required
+              />
+              <UnitToggle
+                value={settings.slotIntervalDisplayUnit}
+                onChange={(unit) => handleMinutesFieldUnitChange('slotInterval', unit)}
+              />
+            </div>
             <p className="mt-1 text-xs text-gray-500">
-              Time between each available slot start time
+              Time between each available slot start time (saved & shown as{' '}
+              {settings.slotIntervalDisplayUnit})
             </p>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Hold Duration (minutes)
+              Hold Duration
             </label>
-            <select
-              value={settings.holdDurationMinutes}
-              onChange={(e) => handleChange('holdDurationMinutes', Number(e.target.value))}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-primary focus:border-primary"
-            >
-              <option value={5}>5 minutes</option>
-              <option value={10}>10 minutes</option>
-              <option value={15}>15 minutes</option>
-              <option value={20}>20 minutes</option>
-              <option value={30}>30 minutes</option>
-            </select>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                min={settings.holdDurationDisplayUnit === 'hours' ? 0.25 : 1}
+                step={settings.holdDurationDisplayUnit === 'hours' ? 0.25 : 1}
+                value={settings.holdDurationInput}
+                onChange={(e) =>
+                  handleChange(
+                    'holdDurationInput',
+                    e.target.value === '' ? '' : Number(e.target.value)
+                  )
+                }
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-primary focus:border-primary"
+                required
+              />
+              <UnitToggle
+                value={settings.holdDurationDisplayUnit}
+                onChange={(unit) => handleMinutesFieldUnitChange('holdDuration', unit)}
+              />
+            </div>
             <p className="mt-1 text-xs text-gray-500">
-              How long a slot is held during checkout
+              How long a slot is held during checkout (saved & shown as{' '}
+              {settings.holdDurationDisplayUnit})
             </p>
           </div>
         </div>
@@ -152,17 +268,30 @@ export default function SettingsTab({ setProgress }) {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Min. Advance Booking (hours)
+              Min. Advance Booking
             </label>
-            <input
-              type="number"
-              min={0}
-              value={settings.minAdvanceBookingHours}
-              onChange={(e) => handleChange('minAdvanceBookingHours', Number(e.target.value))}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-primary focus:border-primary"
-            />
+            <div className="flex gap-2">
+              <input
+                type="number"
+                min={0}
+                step={settings.minAdvanceDisplayUnit === 'hours' ? 0.25 : 1}
+                value={settings.minAdvanceInput}
+                onChange={(e) =>
+                  handleChange(
+                    'minAdvanceInput',
+                    e.target.value === '' ? '' : Number(e.target.value)
+                  )
+                }
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-primary focus:border-primary"
+              />
+              <UnitToggle
+                value={settings.minAdvanceDisplayUnit}
+                onChange={handleAdvanceUnitChange}
+              />
+            </div>
             <p className="mt-1 text-xs text-gray-500">
-              Minimum hours before a slot can be booked
+              Minimum notice before a slot can be booked (shown as{' '}
+              {settings.minAdvanceDisplayUnit})
             </p>
           </div>
 

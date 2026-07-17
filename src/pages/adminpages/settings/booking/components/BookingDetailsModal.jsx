@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { updateBookingStatus, cancelBooking, rescheduleBooking } from '../service/bookingService';
+import { formatDurationLabel } from '../utils/durationDisplay';
 
 const API_BASE_URL = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
 
@@ -115,8 +116,12 @@ export default function BookingDetailsModal({ booking, onClose, onRefresh }) {
                 {booking.packageId?.name || 'N/A'}
               </div>
               <div className="text-sm text-gray-500 capitalize">
-                {booking.type} • {booking.packageId?.durationMinutes || '?'} min •{' '}
-                £{booking.packageId?.price?.toFixed(2) || '0.00'}
+                {booking.type} •{' '}
+                {formatDurationLabel(
+                  booking.packageId?.durationMinutes,
+                  booking.packageId?.durationDisplayUnit
+                )}{' '}
+                • £{booking.packageId?.price?.toFixed(2) || '0.00'}
               </div>
             </div>
 

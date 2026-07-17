@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { getPackages, createPackage, updatePackage, deletePackage, reorderPackages } from '../service/bookingService';
 import PackageModal from './PackageModal';
+import { formatDurationLabel } from '../utils/durationDisplay';
 
 const TYPE_COLORS = {
   service: 'bg-blue-100 text-blue-800',
@@ -222,7 +223,7 @@ export default function PackagesTab({ setProgress }) {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {pkg.durationMinutes} min
+                    {formatDurationLabel(pkg.durationMinutes, pkg.durationDisplayUnit)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
                     £{pkg.price.toFixed(2)}

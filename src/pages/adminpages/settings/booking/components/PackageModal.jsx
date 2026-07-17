@@ -3,6 +3,12 @@ import { Editor } from '@tinymce/tinymce-react';
 import ImageUploader from '../../../banners/components/ImageUploader';
 import { uploadPackageImage } from '../service/bookingService';
 import { tinymcePackageDescriptionInit } from './tinymcePackageConfig';
+import {
+  UnitToggle,
+  displayValueToMinutes,
+  minutesToDisplayValue,
+  normalizeDurationUnit,
+} from '../utils/durationDisplay';
 
 const API_BASE_URL = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
 
@@ -33,6 +39,8 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
     name: '',
     type: 'service',
     durationMinutes: 30,
+    durationDisplayUnit: 'minutes',
+    durationInput: 30,
     price: 0,
     description: '',
     detailPage: '',
@@ -55,10 +63,14 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
   useEffect(() => {
     if (editPackage) {
       const image = editPackage.image || '';
+      const durationMinutes = editPackage.durationMinutes || 30;
+      const durationDisplayUnit = normalizeDurationUnit(editPackage.durationDisplayUnit);
       setFormData({
         name: editPackage.name || '',
         type: editPackage.type || 'service',
-        durationMinutes: editPackage.durationMinutes || 30,
+        durationMinutes,
+        durationDisplayUnit,
+        durationInput: minutesToDisplayValue(durationMinutes, durationDisplayUnit),
         price: editPackage.price || 0,
         description: editPackage.description || '',
         detailPage: editPackage.detailPage || '',
@@ -92,6 +104,8 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
         name: '',
         type: 'service',
         durationMinutes: 30,
+        durationDisplayUnit: 'minutes',
+        durationInput: 30,
         price: 0,
         description: '',
         detailPage: '',
@@ -222,14 +236,52 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
     }
   };
 
+  const handleDurationInputChange = (raw) => {
+    const next = raw === '' ? '' : Number(raw);
+    setFormData((prev) => {
+      const durationMinutes =
+        next === '' ? prev.durationMinutes : displayValueToMinutes(next, prev.durationDisplayUnit);
+      return {
+        ...prev,
+        durationInput: next === '' ? '' : next,
+        durationMinutes: durationMinutes > 0 ? durationMinutes : prev.durationMinutes,
+      };
+    });
+  };
+
+  const handleDurationUnitChange = (nextUnit) => {
+    setFormData((prev) => {
+      const unit = normalizeDurationUnit(nextUnit);
+      const minutes =
+        prev.durationInput === ''
+          ? prev.durationMinutes
+          : displayValueToMinutes(prev.durationInput, prev.durationDisplayUnit);
+      return {
+        ...prev,
+        durationDisplayUnit: unit,
+        durationMinutes: minutes > 0 ? minutes : prev.durationMinutes,
+        durationInput: minutesToDisplayValue(minutes > 0 ? minutes : prev.durationMinutes, unit),
+      };
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.name.trim()) return;
     if (uploadingImage || uploadingExtraIndex !== null) return;
 
+    const durationMinutes = displayValueToMinutes(
+      formData.durationInput === '' ? formData.durationMinutes : formData.durationInput,
+      formData.durationDisplayUnit
+    );
+    if (!durationMinutes || durationMinutes < 1) return;
+
     setSaving(true);
+    const { durationInput, ...rest } = formData;
     const payload = {
-      ...formData,
+      ...rest,
+      durationMinutes,
+      durationDisplayUnit: normalizeDurationUnit(formData.durationDisplayUnit),
       highlightBadgeText: formData.highlightBadgeText?.trim() || 'Most Popular',
       highlightBadgeUrl: formData.highlightBadgeUrl?.trim() || '',
       bundleBenefits: formData.bundleBenefits?.trim() || '',
@@ -295,16 +347,27 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Duration (minutes) *
+                  Duration *
                 </label>
-                <input
-                  type="number"
-                  min={5}
-                  value={formData.durationMinutes}
-                  onChange={(e) => handleChange('durationMinutes', Number(e.target.value))}
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-primary focus:border-primary"
-                  required
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    min={formData.durationDisplayUnit === 'hours' ? 0.25 : 1}
+                    step={formData.durationDisplayUnit === 'hours' ? 0.25 : 1}
+                    value={formData.durationInput}
+                    onChange={(e) => handleDurationInputChange(e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-primary focus:border-primary"
+                    required
+                  />
+                  <UnitToggle
+                    value={formData.durationDisplayUnit}
+                    onChange={handleDurationUnitChange}
+                  />
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  Shown as {formData.durationDisplayUnit === 'hours' ? 'hours' : 'minutes'} on
+                  admin and storefront.
+                </p>
               </div>
             </div>
 

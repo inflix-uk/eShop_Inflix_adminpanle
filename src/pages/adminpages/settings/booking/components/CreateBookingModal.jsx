@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getPackages, getAvailableSlots, createAdminBooking } from '../service/bookingService';
+import { formatDurationLabel } from '../utils/durationDisplay';
 
 export default function CreateBookingModal({ isOpen, onClose, onSuccess }) {
   const [step, setStep] = useState(1);
@@ -148,7 +149,8 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess }) {
                         <div>
                           <div className="font-medium text-gray-900">{pkg.name}</div>
                           <div className="text-sm text-gray-500 capitalize">
-                            {pkg.type} • {pkg.durationMinutes} min
+                            {pkg.type} •{' '}
+                            {formatDurationLabel(pkg.durationMinutes, pkg.durationDisplayUnit)}
                           </div>
                         </div>
                         <div className="text-lg font-semibold text-gray-900">£{pkg.price.toFixed(2)}</div>
@@ -172,7 +174,11 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess }) {
                 <div className="bg-gray-50 rounded-lg p-4">
                   <div className="font-medium">{selectedPackage?.name}</div>
                   <div className="text-sm text-gray-500">
-                    {selectedPackage?.durationMinutes} min • £{selectedPackage?.price?.toFixed(2)}
+                    {formatDurationLabel(
+                      selectedPackage?.durationMinutes,
+                      selectedPackage?.durationDisplayUnit
+                    )}{' '}
+                    • £{selectedPackage?.price?.toFixed(2)}
                   </div>
                 </div>
 
