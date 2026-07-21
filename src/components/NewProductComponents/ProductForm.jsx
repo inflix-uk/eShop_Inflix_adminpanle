@@ -18,19 +18,23 @@ export default function ProductForm({
     condition,
     brands,
 }) {
-    const [selectedCategories, setSelectedCategories] = useState([]);
+    // A product belongs to a single category — the backend `category` field is one
+    // String, indexed and filtered as a single value. A multi-select here produced
+    // a "A,B" string that matched nothing downstream.
+    const [selectedCategory, setSelectedCategory] = useState(null);
     const [availableSubCategories, setAvailableSubCategories] = useState([]);
     const [selectedSubCategories, setSelectedSubCategories] = useState([]);
     const [selectedTags, setSelectedTags] = useState([]);
 
     useEffect(() => {
-        const subCategories = selectedCategories.flatMap(category =>
-            categories.find(cat => cat.name === category.value)?.subCategory || []
+        const subCats = selectedCategory
+            ? (categories.find(cat => cat.name === selectedCategory.value)?.subCategory || [])
+            : [];
+        const uniqueSubCategories = [...new Set(subCats)];
+        setAvailableSubCategories(
+            uniqueSubCategories.map(subCat => ({ value: subCat, label: subCat }))
         );
-        const uniqueSubCategories = [...new Set(subCategories)];
-        const subCategoryOptions = uniqueSubCategories.map(subCat => ({ value: subCat, label: subCat }));
-        setAvailableSubCategories(subCategoryOptions);
-    }, [selectedCategories, categories]);
+    }, [selectedCategory, categories]);
     const [selectedCondition, setSelectedCondition] = useState(null);
     const [selectedBrand, setSelectedBrand] = useState(null);
 
@@ -69,70 +73,49 @@ export default function ProductForm({
         setSelectedBrand(selectedOption);
     };
 
+    // Submitted category is a single value to match the backend `category` String.
     useEffect(() => {
-        setProductCategory(selectedCategories.map(option => option.value));
-    }, [selectedCategories, setProductCategory]);
+        setProductCategory(selectedCategory ? selectedCategory.value : "");
+    }, [selectedCategory, setProductCategory]);
 
     useEffect(() => {
         setProductTag(selectedTags.map(option => option.value));
     }, [selectedTags, setProductTag]);
 
-    const handleCategoryChange = (selectedOptions) => {
-        setSelectedCategories(selectedOptions);
-
-        const remainingSubCategories = selectedSubCategories.filter(subCat => {
-            const parentCategory = categories.find(category =>
-                category.subCategory.includes(subCat.value)
-            );
-            return parentCategory && selectedOptions.some(option => option.value === parentCategory.name);
-        });
-
-        setSelectedSubCategories(remainingSubCategories);
-
-        const subCategories = selectedOptions.flatMap(category =>
-            categories.find(cat => cat.name === category.value)?.subCategory || []
-        );
-        const uniqueSubCategories = [...new Set(subCategories)];
-        const subCategoryOptions = uniqueSubCategories.map(subCat => ({ value: subCat, label: subCat }));
-        setAvailableSubCategories(subCategoryOptions);
-
-        if (selectedOptions.length === 0) {
-            setSelectedSubCategories([]);
+    // subCategory is stored as { Category: [Sub, ...] }. With one category the map
+    // has a single key; empty when either the category or the subcategory list is.
+    const syncSubCategoryPayload = (category, subCats) => {
+        if (!category || subCats.length === 0) {
+            setProductSubCategory({});
+            return;
         }
+        setProductSubCategory({ [category.value]: subCats.map((s) => s.value) });
+    };
+
+    const handleCategoryChange = (selectedOption) => {
+        setSelectedCategory(selectedOption);
+
+        // Drop any chosen subcategories that don't belong to the new category, so
+        // the saved payload never carries subcategories from a category it lost.
+        const allowed = selectedOption
+            ? (categories.find(cat => cat.name === selectedOption.value)?.subCategory || [])
+            : [];
+        const remainingSubCategories = selectedSubCategories.filter(subCat =>
+            allowed.includes(subCat.value)
+        );
+        setSelectedSubCategories(remainingSubCategories);
+        syncSubCategoryPayload(selectedOption, remainingSubCategories);
     };
 
     const handleSubCategoryChange = (selectedOptions) => {
-        setSelectedSubCategories(selectedOptions);
-
-        const selectedSubCategoryValues = selectedOptions.map(option => option.value);
-        console.log('Selected Subcategories Values:', selectedSubCategoryValues);
-
-        const updatedCategories = categories.map(category => {
-            const matchingSubCategories = category.subCategory.filter(subCat =>
-                selectedSubCategoryValues.includes(subCat)
-            );
-            console.log(`Category: ${category.name}, Matching Subcategories:`, matchingSubCategories);
-
-            return {
-                ...category,
-                selectedSubCategories: matchingSubCategories
-            };
-        }).filter(category => category.selectedSubCategories.length > 0);
-
-        setSelectedCategories(updatedCategories.map(cat => ({ value: cat.name, label: cat.name })));
-
-        const categoryData = updatedCategories.reduce((acc, cat) => {
-            acc[cat.name] = cat.selectedSubCategories;
-            return acc;
-        }, {});
-
-        console.log('Category Data for FormData:', categoryData);
-        setProductSubCategory(categoryData);
+        const subCats = selectedOptions || [];
+        setSelectedSubCategories(subCats);
+        syncSubCategoryPayload(selectedCategory, subCats);
     };
 
     useEffect(() => {
-        console.log('Updated Selected Categories:', selectedCategories);
-    }, [selectedCategories]);
+        console.log('Updated Selected Category:', selectedCategory);
+    }, [selectedCategory]);
 
     useEffect(() => {
         console.log('Updated Product Subcategories:', productSubCategory);
@@ -203,10 +186,11 @@ export default function ProductForm({
                                         id="categories"
                                         name="categories"
                                         options={options}
-                                        isMulti
                                         className="block w-full rounded-md border-0 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 aa"
                                         onChange={handleCategoryChange}
-                                        value={selectedCategories}
+                                        value={selectedCategory}
+                                        placeholder="Select a category..."
+                                        isClearable
                                     />
                                 </div>
                             </div>
@@ -296,7 +280,7 @@ ProductForm.propTypes = {
     productUrl: PropTypes.string.isRequired,
     setProductUrl: PropTypes.func.isRequired,
     setProductCategory: PropTypes.func.isRequired,
-    productSubCategory: PropTypes.array.isRequired,
+    productSubCategory: PropTypes.object.isRequired,
     setProductSubCategory: PropTypes.func.isRequired,
     setProductCondition: PropTypes.func.isRequired,
     setProductBrand: PropTypes.func.isRequired,

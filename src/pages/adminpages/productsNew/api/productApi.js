@@ -124,6 +124,30 @@ class ProductApi {
   }
 
   /**
+   * Fetch every dropdown-backed value (categories, tags, variant attributes)
+   * used to build the spreadsheet export's validation lists
+   * @returns {Promise} - Axios response
+   */
+  async getCsvReferenceData() {
+    return axios.get(`${BACKEND_URL}get/product/csv-reference`);
+  }
+
+  /**
+   * Bulk import products parsed from a CSV file
+   * @param {Array} products - Product payloads from the CSV parser
+   * @param {{ updateExisting?: boolean, dryRun?: boolean }} options
+   * @returns {Promise} - Axios response
+   */
+  async importProducts(products, options = {}) {
+    const { updateExisting = true, dryRun = false } = options;
+    return axios.post(`${BACKEND_URL}import/products`, {
+      products,
+      updateExisting,
+      dryRun,
+    });
+  }
+
+  /**
    * Delete a product
    * @param {string} productId - The product ID
    * @returns {Promise} - Axios response

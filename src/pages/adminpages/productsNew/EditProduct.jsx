@@ -323,15 +323,24 @@ export default function EditProduct() {
   }, []);
 
   useEffect(() => {
-    const defaulttags = product?.tags?.split(",").map((tag) => ({
-      label: tag,
-      value: tag,
-    }));
+    const defaulttags = product?.tags
+      ?.split(",")
+      .filter(Boolean)
+      .map((tag) => ({
+        label: tag,
+        value: tag,
+      }));
     setSelectedTags(defaulttags);
   }, [product?.tags]);
 
   const handleTagsChange = (selectedOption) => {
     setSelectedTags(selectedOption);
+    // Sync into the product itself — prepareFormData reads product.tags, so
+    // without this the selection is never part of the update payload.
+    setProduct((prev) => ({
+      ...prev,
+      tags: (selectedOption || []).map((option) => option.value).join(","),
+    }));
   };
   function getTags() {
     setProgress(50);

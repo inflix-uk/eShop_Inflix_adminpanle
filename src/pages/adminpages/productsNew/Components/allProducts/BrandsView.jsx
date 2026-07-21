@@ -6,7 +6,9 @@ import {
   UNASSIGNED_BRAND_LABEL,
 } from '../../constants/brandConstants';
 
+/** `actions` renders beside the Brands/Products stats — used for the CSV export/import buttons. */
 const BrandsView = ({
+  actions,
   brands = [],
   brandsLoading = false,
   unassignedProductCount = 0,
@@ -79,18 +81,23 @@ const BrandsView = ({
             </div>
           </div>
 
-          {/* Stats Section */}
-          <div className="flex items-center gap-3 bg-white/60 px-3 py-2 rounded-lg border border-blue-100">
-            <div className="text-center px-2">
-              <div className="text-xl font-bold text-blue-600">{brands.length}</div>
-              <div className="text-xs font-medium text-blue-700">Brands</div>
-            </div>
-            <div className="h-8 w-px bg-gray-300"></div>
-            <div className="text-center px-2">
-              <div className="text-xl font-bold text-emerald-600">
-                {brands.reduce((total, brand) => total + (brand.productCount || 0), 0).toLocaleString()}
+          {/* Actions + Stats */}
+          <div className="flex flex-wrap items-center gap-3">
+            {actions}
+
+            {/* Stats Section */}
+            <div className="flex items-center gap-3 bg-white/60 px-3 py-2 rounded-lg border border-blue-100">
+              <div className="text-center px-2">
+                <div className="text-xl font-bold text-blue-600">{brands.length}</div>
+                <div className="text-xs font-medium text-blue-700">Brands</div>
               </div>
-              <div className="text-xs font-medium text-emerald-700">Products</div>
+              <div className="h-8 w-px bg-gray-300"></div>
+              <div className="text-center px-2">
+                <div className="text-xl font-bold text-emerald-600">
+                  {brands.reduce((total, brand) => total + (brand.productCount || 0), 0).toLocaleString()}
+                </div>
+                <div className="text-xs font-medium text-emerald-700">Products</div>
+              </div>
             </div>
           </div>
         </div>
@@ -391,12 +398,18 @@ BrandsView.propTypes = {
   /**
    * Authentication object containing user info and API base URL
    */
-  auth: AuthPropTypes
+  auth: AuthPropTypes,
+
+  /**
+   * Optional controls rendered beside the Brands/Products stats
+   */
+  actions: PropTypes.node
 };
 
 BrandsView.defaultProps = {
   unassignedProductCount: 0,
   auth: undefined,
+  actions: null,
 };
 
 export default BrandsView;

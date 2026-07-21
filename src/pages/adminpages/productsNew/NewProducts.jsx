@@ -15,6 +15,7 @@ import {
   VariantModal,
   Pagination,
   BrandsView,
+  ImportExportBar,
 } from "./Components/allProducts";
 
 // Import API and Service
@@ -432,6 +433,14 @@ export default function NewProducts() {
                   unassignedProductCount={unassignedProductCount}
                   onBrandSelect={handleBrandSelect}
                   auth={auth}
+                  // Bulk CSV controls sit inline with the Brands/Products stats
+                  actions={
+                    <ImportExportBar
+                      compact
+                      products={products}
+                      onImported={() => getProducts(false, selectedBrand)}
+                    />
+                  }
                 />
               ) : (
                 // Products view - existing table layout
@@ -462,15 +471,22 @@ export default function NewProducts() {
                           ? `${getBrandDisplayName(selectedBrand)} Products`
                           : "New Products"}
                       </h1>
-                      {selectedBrand && (
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                          isUnassignedBrandKey(selectedBrand)
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-blue-100 text-blue-700'
-                        }`}>
-                          {filteredProducts.length} products
-                        </span>
-                      )}
+                      <div className="flex items-center gap-3">
+                        <ImportExportBar
+                          compact
+                          products={products}
+                          onImported={() => getProducts(false, selectedBrand)}
+                        />
+                        {selectedBrand && (
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                            isUnassignedBrandKey(selectedBrand)
+                              ? 'bg-amber-100 text-amber-800'
+                              : 'bg-blue-100 text-blue-700'
+                          }`}>
+                            {filteredProducts.length} products
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <div className="relative shadow-lg rounded-lg border border-gray-200 overflow-hidden">
                       <SearchBar

@@ -28,6 +28,7 @@
     "browser-image-compression": "^2.0.2",
     "chart.js": "^4.4.4",
     "classnames": "^2.5.1",
+    "exceljs": "^4.4.0",
     "flowbite-react": "^0.10.2",
     "html2canvas": "^1.4.1",
     "jodit-react": "^4.1.2",
