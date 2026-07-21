@@ -77,7 +77,7 @@ class EditProductService {
     formData.append("mainCategory", product.mainCategory || "");
     formData.append("condition", product.condition);
     formData.append("brand", product.brand || "");
-    formData.append("tags", product.tags);
+    formData.append("tags", product.tags || "");
     formData.append("sim_option", product.sim_options);
     formData.append("is_featured", product.is_featured);
     formData.append("seeAccessoriesWeDontNeed", product.seeAccessoriesWeDontNeed);
