@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Code2 } from "lucide-react";
+import { Code2, Plus, Trash2 } from "lucide-react";
 import {
   getBookingPageContent,
   patchBookingPageContent,
@@ -44,7 +44,29 @@ const DEFAULT_CONTENT = {
     html: "",
     css: "",
   },
+  inlineWidgets: [],
 };
+
+function createEmptyInlineWidget(afterPackageCount = 3) {
+  return {
+    enabled: true,
+    afterPackageCount,
+    html: "",
+    css: "",
+  };
+}
+
+function nextAfterPackageCount(widgets) {
+  const used = new Set(
+    (widgets || [])
+      .map((w) => Number(w?.afterPackageCount))
+      .filter((n) => Number.isFinite(n) && n > 0)
+  );
+  for (let n = 3; n <= 60; n += 3) {
+    if (!used.has(n)) return n;
+  }
+  return ((widgets?.length || 0) + 1) * 3;
+}
 
 function mergeContent(incoming) {
   if (!incoming || typeof incoming !== "object") return DEFAULT_CONTENT;
@@ -84,12 +106,34 @@ function mergeContent(incoming) {
   const customWidgetSrc =
     incoming.customWidget && typeof incoming.customWidget === "object" ? incoming.customWidget : {};
   const customWidget = {
-    enabled: typeof customWidgetSrc.enabled === "boolean" ? customWidgetSrc.enabled : DEFAULT_CONTENT.customWidget.enabled,
-    html: typeof customWidgetSrc.html === "string" ? customWidgetSrc.html : DEFAULT_CONTENT.customWidget.html,
-    css: typeof customWidgetSrc.css === "string" ? customWidgetSrc.css : DEFAULT_CONTENT.customWidget.css,
+    enabled:
+      typeof customWidgetSrc.enabled === "boolean"
+        ? customWidgetSrc.enabled
+        : DEFAULT_CONTENT.customWidget.enabled,
+    html:
+      typeof customWidgetSrc.html === "string"
+        ? customWidgetSrc.html
+        : DEFAULT_CONTENT.customWidget.html,
+    css:
+      typeof customWidgetSrc.css === "string"
+        ? customWidgetSrc.css
+        : DEFAULT_CONTENT.customWidget.css,
   };
 
-  return { hero, services, trust, customWidget };
+  const inlineSrc = Array.isArray(incoming.inlineWidgets) ? incoming.inlineWidgets : [];
+  const inlineWidgets = inlineSrc
+    .filter((w) => w && typeof w === "object")
+    .map((w) => ({
+      enabled: typeof w.enabled === "boolean" ? w.enabled : true,
+      afterPackageCount:
+        Number.isFinite(Number(w.afterPackageCount)) && Number(w.afterPackageCount) > 0
+          ? Math.floor(Number(w.afterPackageCount))
+          : 3,
+      html: typeof w.html === "string" ? w.html : "",
+      css: typeof w.css === "string" ? w.css : "",
+    }));
+
+  return { hero, services, trust, customWidget, inlineWidgets };
 }
 
 export default function ContentTab({ setProgress }) {
@@ -98,6 +142,8 @@ export default function ContentTab({ setProgress }) {
   const [content, setContent] = useState(DEFAULT_CONTENT);
   const [updatedAt, setUpdatedAt] = useState(null);
   const [htmlCssTab, setHtmlCssTab] = useState("html");
+  const [inlineEditorTabs, setInlineEditorTabs] = useState({});
+  const [activeInlineIndex, setActiveInlineIndex] = useState(0);
 
   useEffect(() => {
     loadContent();
@@ -108,7 +154,9 @@ export default function ContentTab({ setProgress }) {
     setProgress?.(30);
     const data = await getBookingPageContent();
     if (data?.content) {
-      setContent(mergeContent(data.content));
+      const merged = mergeContent(data.content);
+      setContent(merged);
+      setActiveInlineIndex(0);
     }
     if (data?.updatedAt) setUpdatedAt(data.updatedAt);
     setLoading(false);
@@ -119,27 +167,47 @@ export default function ContentTab({ setProgress }) {
     setContent((prev) => ({ ...prev, hero: { ...prev.hero, [key]: value } }));
   };
 
-  const setServices = (key, value) => {
-    setContent((prev) => ({
-      ...prev,
-      services: { ...prev.services, [key]: value },
-    }));
-  };
-
-  const setTrust = (index, key, value) => {
-    setContent((prev) => {
-      const next = prev.trust.map((entry, i) =>
-        i === index ? { ...entry, [key]: value } : entry
-      );
-      return { ...prev, trust: next };
-    });
-  };
-
   const setCustomWidget = (key, value) => {
     setContent((prev) => ({
       ...prev,
       customWidget: { ...prev.customWidget, [key]: value },
     }));
+  };
+
+  const setInlineWidget = (index, key, value) => {
+    setContent((prev) => {
+      const next = (prev.inlineWidgets || []).map((entry, i) =>
+        i === index ? { ...entry, [key]: value } : entry
+      );
+      return { ...prev, inlineWidgets: next };
+    });
+  };
+
+  const addInlineWidget = () => {
+    setContent((prev) => {
+      const list = prev.inlineWidgets || [];
+      const next = [...list, createEmptyInlineWidget(nextAfterPackageCount(list))];
+      setActiveInlineIndex(next.length - 1);
+      return { ...prev, inlineWidgets: next };
+    });
+  };
+
+  const removeInlineWidget = (index) => {
+    setContent((prev) => {
+      const next = (prev.inlineWidgets || []).filter((_, i) => i !== index);
+      setActiveInlineIndex((cur) => {
+        if (next.length === 0) return 0;
+        if (cur >= next.length) return next.length - 1;
+        if (cur > index) return cur - 1;
+        return cur;
+      });
+      return { ...prev, inlineWidgets: next };
+    });
+    setInlineEditorTabs((prev) => {
+      const next = { ...prev };
+      delete next[index];
+      return next;
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -162,7 +230,10 @@ export default function ContentTab({ setProgress }) {
       services: { ...DEFAULT_CONTENT.services },
       trust: DEFAULT_CONTENT.trust.map((b) => ({ ...b })),
       customWidget: { ...DEFAULT_CONTENT.customWidget },
+      inlineWidgets: [],
     });
+    setActiveInlineIndex(0);
+    setInlineEditorTabs({});
   };
 
   if (loading) {
@@ -172,6 +243,10 @@ export default function ContentTab({ setProgress }) {
       </div>
     );
   }
+
+  const inlineWidgets = content.inlineWidgets || [];
+  const activeWidget = inlineWidgets[activeInlineIndex] || null;
+  const activeTab = inlineEditorTabs[activeInlineIndex] || "html";
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -241,9 +316,7 @@ export default function ContentTab({ setProgress }) {
               <div className="flex items-center gap-3">
                 <span
                   className={`text-xs font-semibold ${
-                    content.hero.statsEnabled
-                      ? "text-green-600"
-                      : "text-gray-400"
+                    content.hero.statsEnabled ? "text-green-600" : "text-gray-400"
                   }`}
                 >
                   {content.hero.statsEnabled ? "Enabled" : "Disabled"}
@@ -252,18 +325,14 @@ export default function ContentTab({ setProgress }) {
                   type="button"
                   role="switch"
                   aria-checked={content.hero.statsEnabled}
-                  onClick={() =>
-                    setHero("statsEnabled", !content.hero.statsEnabled)
-                  }
+                  onClick={() => setHero("statsEnabled", !content.hero.statsEnabled)}
                   className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
                     content.hero.statsEnabled ? "bg-primary" : "bg-gray-300"
                   }`}
                 >
                   <span
                     className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      content.hero.statsEnabled
-                        ? "translate-x-6"
-                        : "translate-x-1"
+                      content.hero.statsEnabled ? "translate-x-6" : "translate-x-1"
                     }`}
                   />
                 </button>
@@ -271,9 +340,7 @@ export default function ContentTab({ setProgress }) {
             </div>
             <div
               className={`grid grid-cols-1 md:grid-cols-3 gap-4 transition-opacity ${
-                content.hero.statsEnabled
-                  ? ""
-                  : "opacity-50 pointer-events-none"
+                content.hero.statsEnabled ? "" : "opacity-50 pointer-events-none"
               }`}
             >
               <div className="rounded-lg border border-gray-100 bg-gray-50 p-3 space-y-2">
@@ -352,7 +419,6 @@ export default function ContentTab({ setProgress }) {
               </div>
             </div>
 
-            {/* Stats Colors */}
             <div className="mt-5 pt-5 border-t border-gray-200">
               <p className="text-sm font-medium text-gray-700 mb-3">Stats Colors</p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -417,15 +483,236 @@ export default function ContentTab({ setProgress }) {
         </div>
       </div>
 
-      {/* CUSTOM HTML/CSS WIDGET */}
+      {/* INLINE HTML/CSS WIDGETS — after every 3 package cards */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
+          <div className="flex items-center gap-3">
+            <Code2 className="text-violet-600 shrink-0" size={22} />
+            <div>
+              <h3 className="text-lg font-medium text-gray-900">
+                Package row widgets (HTML / CSS)
+              </h3>
+              <p className="text-sm text-gray-500">
+                Insert custom HTML/CSS after every row of 3 package cards on{" "}
+                <span className="font-mono text-xs">/booking</span>.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={addInlineWidget}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-white text-sm font-medium hover:bg-secondary"
+          >
+            <Plus size={16} />
+            Add Widget
+          </button>
+        </div>
+
+        {inlineWidgets.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-10 text-center">
+            <p className="text-sm text-gray-600 mb-3">
+              No row widgets yet. Add one to place HTML/CSS after the 1st row (3 cards),
+              2nd row (6 cards), and so on.
+            </p>
+            <button
+              type="button"
+              onClick={addInlineWidget}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <Plus size={16} />
+              Add Widget
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {inlineWidgets.map((widget, index) => (
+                <button
+                  key={`inline-tab-${index}`}
+                  type="button"
+                  onClick={() => setActiveInlineIndex(index)}
+                  className={`inline-flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium border transition-colors ${
+                    activeInlineIndex === index
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                  }`}
+                >
+                  Widget {index + 1}
+                  <span className="text-xs text-gray-400">
+                    after {widget.afterPackageCount}
+                  </span>
+                  {!widget.enabled ? (
+                    <span className="text-[10px] uppercase tracking-wide text-gray-400">
+                      off
+                    </span>
+                  ) : null}
+                </button>
+              ))}
+            </div>
+
+            {activeWidget ? (
+              <div className="rounded-lg border border-gray-200 p-4 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">
+                        Insert after package count
+                      </label>
+                      <select
+                        value={activeWidget.afterPackageCount}
+                        onChange={(e) =>
+                          setInlineWidget(
+                            activeInlineIndex,
+                            "afterPackageCount",
+                            Number(e.target.value)
+                          )
+                        }
+                        className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-primary focus:border-primary"
+                      >
+                        {Array.from({ length: 20 }, (_, i) => (i + 1) * 3).map((n) => (
+                          <option key={n} value={n}>
+                            After {n} cards (row {n / 3})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="flex items-center gap-3 pt-5">
+                      <span
+                        className={`text-xs font-semibold ${
+                          activeWidget.enabled ? "text-green-600" : "text-gray-400"
+                        }`}
+                      >
+                        {activeWidget.enabled ? "Enabled" : "Disabled"}
+                      </span>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={activeWidget.enabled}
+                        onClick={() =>
+                          setInlineWidget(
+                            activeInlineIndex,
+                            "enabled",
+                            !activeWidget.enabled
+                          )
+                        }
+                        className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                          activeWidget.enabled ? "bg-primary" : "bg-gray-300"
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            activeWidget.enabled ? "translate-x-6" : "translate-x-1"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeInlineWidget(activeInlineIndex)}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-md text-sm text-red-600 hover:bg-red-50"
+                  >
+                    <Trash2 size={14} />
+                    Remove
+                  </button>
+                </div>
+
+                <p className="text-xs text-gray-600">
+                  Use <strong>HTML</strong> for tags only. Put styles in the{" "}
+                  <strong>CSS</strong> tab — CSS is scoped to this widget only.
+                </p>
+
+                <div className="inline-flex rounded-lg bg-gray-100 p-1" role="tablist">
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === "html"}
+                    onClick={() =>
+                      setInlineEditorTabs((prev) => ({
+                        ...prev,
+                        [activeInlineIndex]: "html",
+                      }))
+                    }
+                    className={`min-w-[5rem] rounded-md px-4 py-2 text-center text-sm font-semibold transition-colors focus:outline-none ${
+                      activeTab === "html"
+                        ? "bg-white text-gray-900 shadow-sm"
+                        : "bg-transparent text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    HTML
+                  </button>
+                  <button
+                    type="button"
+                    role="tab"
+                    aria-selected={activeTab === "css"}
+                    onClick={() =>
+                      setInlineEditorTabs((prev) => ({
+                        ...prev,
+                        [activeInlineIndex]: "css",
+                      }))
+                    }
+                    className={`min-w-[5rem] rounded-md px-4 py-2 text-center text-sm font-semibold transition-colors focus:outline-none ${
+                      activeTab === "css"
+                        ? "bg-white text-gray-900 shadow-sm"
+                        : "bg-transparent text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    CSS
+                  </button>
+                </div>
+
+                {activeTab === "html" ? (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      HTML fragment
+                    </label>
+                    <textarea
+                      value={activeWidget.html || ""}
+                      onChange={(e) =>
+                        setInlineWidget(activeInlineIndex, "html", e.target.value)
+                      }
+                      rows={12}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono bg-gray-50 focus:ring-primary focus:border-primary"
+                      placeholder={
+                        'e.g. <section class="promo"><h2>Special offer</h2><p>Book this week</p></section>'
+                      }
+                    />
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      CSS rules
+                    </label>
+                    <textarea
+                      value={activeWidget.css || ""}
+                      onChange={(e) =>
+                        setInlineWidget(activeInlineIndex, "css", e.target.value)
+                      }
+                      rows={12}
+                      className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono bg-gray-50 focus:ring-primary focus:border-primary"
+                      placeholder={
+                        `.promo { padding: 2rem; background: #111; color: #fff; }\n.promo h2 { font-size: 1.5rem; }`
+                      }
+                    />
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
+        )}
+      </div>
+
+      {/* CUSTOM HTML/CSS WIDGET — below all packages */}
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-3">
             <Code2 className="text-violet-600" size={22} />
             <div>
-              <h3 className="text-lg font-medium text-gray-900">Custom HTML / CSS Widget</h3>
+              <h3 className="text-lg font-medium text-gray-900">
+                Footer HTML / CSS Widget
+              </h3>
               <p className="text-sm text-gray-500">
-                Add custom HTML and CSS below the packages section.
+                Optional block below the entire packages section (not between rows).
               </p>
             </div>
           </div>
@@ -469,7 +756,6 @@ export default function ContentTab({ setProgress }) {
             <strong>CSS</strong> tab — CSS is scoped to this widget only.
           </p>
 
-          {/* Tabs */}
           <div className="inline-flex rounded-lg bg-gray-100 p-1" role="tablist">
             <button
               type="button"
@@ -499,7 +785,6 @@ export default function ContentTab({ setProgress }) {
             </button>
           </div>
 
-          {/* Editor */}
           {htmlCssTab === "html" ? (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">HTML fragment</label>
@@ -508,7 +793,9 @@ export default function ContentTab({ setProgress }) {
                 onChange={(e) => setCustomWidget("html", e.target.value)}
                 rows={14}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono bg-gray-50 focus:ring-primary focus:border-primary"
-                placeholder={'e.g. <section class="my-block"><h2>Hello</h2><p>Your content here</p></section>'}
+                placeholder={
+                  'e.g. <section class="my-block"><h2>Hello</h2><p>Your content here</p></section>'
+                }
               />
             </div>
           ) : (
@@ -519,7 +806,9 @@ export default function ContentTab({ setProgress }) {
                 onChange={(e) => setCustomWidget("css", e.target.value)}
                 rows={14}
                 className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm font-mono bg-gray-50 focus:ring-primary focus:border-primary"
-                placeholder={`.my-block { padding: 2rem; background: #f9fafb; }\n.my-block h2 { font-size: 1.5rem; color: #111827; }`}
+                placeholder={
+                  `.my-block { padding: 2rem; background: #f9fafb; }\n.my-block h2 { font-size: 1.5rem; color: #111827; }`
+                }
               />
             </div>
           )}
