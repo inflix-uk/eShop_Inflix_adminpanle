@@ -44,6 +44,9 @@ function createEmptyForm(order = 1) {
     buttonText: "",
     buttonLink: "",
     content: {
+      // Layout style selector
+      layoutStyle: "default",
+      // Default layout fields
       title: "",
       titleColor: "#FFFFFF",
       titleSize: "24px",
@@ -61,6 +64,18 @@ function createEmptyForm(order = 1) {
       sellnow: "",
       textAlign: "left",
       textPosition: "right",
+      // Podcast layout fields
+      heading: "",
+      headingAccent: "",
+      headingAccentColor: "#C2FC12",
+      tagline: "",
+      description: "",
+      ctaText: "",
+      ctaLink: "",
+      ctaIcon: "",
+      ctaButtonColor: "#C2FC12",
+      ctaButtonTextColor: "#000000",
+      featureCards: [],
     },
     order,
     isActive: true,
@@ -102,6 +117,11 @@ function mapBannerToForm(banner) {
     buttonText: banner.buttonText || "",
     buttonLink: banner.buttonLink || "",
     content: {
+      // Layout style selector
+      layoutStyle: ["default", "podcast"].includes(banner.content?.layoutStyle)
+        ? banner.content.layoutStyle
+        : "default",
+      // Default layout fields
       title: banner.content?.title || "",
       titleColor: banner.content?.titleColor || "#FFFFFF",
       titleSize: banner.content?.titleSize || "24px",
@@ -125,6 +145,18 @@ function mapBannerToForm(banner) {
       )
         ? banner.content.textPosition
         : "right",
+      // Podcast layout fields
+      heading: banner.content?.heading || "",
+      headingAccent: banner.content?.headingAccent || "",
+      headingAccentColor: banner.content?.headingAccentColor || "#C2FC12",
+      tagline: banner.content?.tagline || "",
+      description: banner.content?.description || "",
+      ctaText: banner.content?.ctaText || "",
+      ctaLink: banner.content?.ctaLink || "",
+      ctaIcon: banner.content?.ctaIcon || "",
+      ctaButtonColor: banner.content?.ctaButtonColor || "#C2FC12",
+      ctaButtonTextColor: banner.content?.ctaButtonTextColor || "#000000",
+      featureCards: banner.content?.featureCards || [],
     },
     order: banner.order || "",
     isActive: banner.isActive !== undefined ? banner.isActive : true,
@@ -245,8 +277,12 @@ export default function BannerEditorPage() {
       } else if (isPersistedImageUrl(formData.imageSmallPreview)) {
         bannerData.imageSmall = formData.imageSmallPreview;
       }
-      if (formData.type === "full" && formData.extraImage instanceof File) {
-        bannerData.extraImage = formData.extraImage;
+      if (formData.type === "full") {
+        if (formData.extraImage instanceof File) {
+          bannerData.extraImage = formData.extraImage;
+        } else if (isPersistedImageUrl(formData.extraImagePreview)) {
+          bannerData.extraImage = formData.extraImagePreview;
+        }
       }
       const result = isEdit && id
         ? await updateBanner(id, bannerData)

@@ -77,6 +77,12 @@ const NAVBAR_LAYOUT_PRESETS = [
     label: "Black pill bar",
     preview: "Black pill | White logo disc | Center links | White CTA pill",
   },
+  {
+    id: "podcast",
+    variant: "podcast",
+    label: "Podcast",
+    preview: "Dark bg | Logo left | Center links | CTA button right",
+  },
 ];
 const DEFAULT_NAVBAR_LINKS = [
   { id: "lnk-1", label: "Home", url: "/", icon: "", linkType: "label", children: [] },
@@ -143,22 +149,24 @@ function mergeVariantConfigsFromApi(cfg, presets) {
 }
 
 function createInitialVariantConfig(preset) {
+  const isPodcast = preset.variant === "podcast";
+  const isDarkVariant = preset.variant === "business" || preset.variant === "business-2" || isPodcast;
+  
   return {
     id: preset.id,
     variant: preset.variant,
     label: preset.label,
     layoutLabel: preset.preview,
-    navbarBgColor: "#ffffff",
-    classicRightSectionBgColor:
-      preset.variant === "business" || preset.variant === "business-2" ? "#333333" : "#DEE3DE",
+    navbarBgColor: isPodcast ? "#0a0f0a" : "#ffffff",
+    classicRightSectionBgColor: isDarkVariant ? "#333333" : "#DEE3DE",
     logoText: "Brand",
     logoUrl: "",
-    showSearch: true,
+    showSearch: isPodcast ? false : true,
     showOnStorefront: true,
     stickyNavbar: false,
-    showButtons: true,
+    showButtons: isPodcast ? false : true,
     showPrimaryButton: true,
-    showSecondaryButton: true,
+    showSecondaryButton: isPodcast ? false : true,
     actionIcon1: "fi-rr-shopping-cart",
     actionIcon2: "fi-rr-user",
     actionIcon1Url: "/cart",
@@ -169,18 +177,18 @@ function createInitialVariantConfig(preset) {
     actionIcon1Color: "#ffffff",
     actionIcon2BgColor: "#0e9f6e",
     actionIcon2Color: "#ffffff",
-    primaryButtonLabel: "Sign in",
-    primaryButtonUrl: "/login",
-    primaryButtonIcon: "fi-rr-download",
-    primaryButtonColor: "#0e9f6e",
-    primaryButtonTextColor: "#ffffff",
+    primaryButtonLabel: isPodcast ? "Book Now" : "Sign in",
+    primaryButtonUrl: isPodcast ? "/booking" : "/login",
+    primaryButtonIcon: isPodcast ? "fi-rr-calendar" : "fi-rr-download",
+    primaryButtonColor: isPodcast ? "#c2fc12" : "#0e9f6e",
+    primaryButtonTextColor: isPodcast ? "#0a0f0a" : "#ffffff",
     secondaryButtonLabel: "Get started",
     secondaryButtonUrl: "/register",
     secondaryButtonIcon: "fi-rr-phone-call",
     secondaryButtonColor: "#f97316",
     secondaryButtonTextColor: "#ffffff",
-    menuLinkTextColor: "#334155",
-    menuLinkHoverColor: "#0f172a",
+    menuLinkTextColor: isPodcast ? "#e5e7eb" : "#334155",
+    menuLinkHoverColor: isPodcast ? "#c2fc12" : "#0f172a",
     links: DEFAULT_NAVBAR_LINKS.map((l) => ({ ...l })),
   };
 }

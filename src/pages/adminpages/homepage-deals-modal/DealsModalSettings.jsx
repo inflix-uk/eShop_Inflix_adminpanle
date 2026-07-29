@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Helmet } from "react-helmet-async";
 import { toast } from "react-toastify";
+import { FaUpload, FaFolder } from "react-icons/fa";
 import Side from "../nav/Side";
 import Top from "../nav/Top";
 import { useAuth } from "../../../context/Auth";
+import MediaLibraryPicker from "../media/components/media/MediaLibraryPicker";
 import { getDealsModalAdmin, saveDealsModal } from "./service/dealsModalApi";
 
 /** ISO / API string → value for datetime-local input */
@@ -26,6 +28,9 @@ export default function DealsModalSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [bannerFile, setBannerFile] = useState(null);
+  const [bannerPreview, setBannerPreview] = useState(null);
+  const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false);
+  const bannerInputRef = useRef(null);
 
   const [form, setForm] = useState({
     enabled: true,
@@ -85,6 +90,7 @@ export default function DealsModalSettings() {
         bannerImageUrl: d.bannerImageUrl || "",
       });
       setBannerFile(null);
+      setBannerPreview(null);
     } catch (e) {
       console.error(e);
       toast.error("Failed to load deals modal settings");
@@ -99,6 +105,44 @@ export default function DealsModalSettings() {
 
   const setField = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleBannerFileChange = (e) => {
+    const file = e.target.files?.[0] || null;
+    e.target.value = "";
+    setBannerFile(file);
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setBannerPreview((prev) => {
+        if (prev && prev.startsWith("blob:")) URL.revokeObjectURL(prev);
+        return url;
+      });
+    } else {
+      setBannerPreview((prev) => {
+        if (prev && prev.startsWith("blob:")) URL.revokeObjectURL(prev);
+        return null;
+      });
+    }
+  };
+
+  const handleMediaLibrarySelect = (url) => {
+    setBannerFile(null);
+    setBannerPreview((prev) => {
+      if (prev && prev.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setField("bannerImageUrl", url);
+    setIsMediaPickerOpen(false);
+    toast.success("Image selected from Media Library");
+  };
+
+  const handleClearBanner = () => {
+    setBannerFile(null);
+    setBannerPreview((prev) => {
+      if (prev && prev.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setField("bannerImageUrl", "");
   };
 
   const handleSave = async () => {
@@ -133,6 +177,9 @@ export default function DealsModalSettings() {
         privacyDisclaimerText: form.privacyDisclaimerText,
         rightPanelImageAlt: form.rightPanelImageAlt,
         bannerImageUrl: form.bannerImageUrl,
+        ...(!bannerFile && !form.bannerImageUrl
+          ? { clearBannerImage: true }
+          : {}),
       };
       const res = await saveDealsModal(auth.ip, payload, bannerFile);
       if (res.success) {
@@ -578,33 +625,76 @@ export default function DealsModalSettings() {
                       placeholder="Describe the image for screen readers"
                     />
                   </div>
-                  {form.bannerImageUrl && !bannerFile && (
-                    <p className="text-xs text-gray-600 break-all">
-                      <span className="font-medium text-gray-700">
-                        Current image URL:{" "}
-                      </span>
-                      {form.bannerImageUrl}
-                    </p>
+
+                  {(bannerPreview || form.bannerImageUrl) && (
+                    <div className="rounded-md border border-gray-200 bg-gray-50 p-3">
+                      <img
+                        src={bannerPreview || form.bannerImageUrl}
+                        alt={form.rightPanelImageAlt || "Right-hand preview"}
+                        className="max-h-40 w-auto object-contain mx-auto"
+                        onError={(e) => {
+                          e.target.style.display = "none";
+                        }}
+                      />
+                      {!bannerFile && form.bannerImageUrl ? (
+                        <p className="text-xs text-gray-600 break-all mt-2">
+                          <span className="font-medium text-gray-700">
+                            Current image URL:{" "}
+                          </span>
+                          {form.bannerImageUrl}
+                        </p>
+                      ) : null}
+                      {bannerFile ? (
+                        <p className="text-xs text-gray-600 mt-2">
+                          New file selected: {bannerFile.name} (saved on Save)
+                        </p>
+                      ) : null}
+                    </div>
                   )}
+
                   <div>
-                    <label
-                      htmlFor="deals-banner-file"
-                      className="block text-sm font-medium text-gray-700 mb-1"
-                    >
-                      Upload new banner
-                    </label>
+                    <p className="block text-sm font-medium text-gray-700 mb-1">
+                      Banner image
+                    </p>
+                    <p className="text-xs text-gray-500 mb-2">
+                      Upload from PC or choose from Media Library. JPG, PNG, or
+                      WebP. Max 8 MB. Changes apply on Save.
+                    </p>
                     <input
+                      ref={bannerInputRef}
                       id="deals-banner-file"
                       type="file"
                       accept="image/*"
-                      onChange={(e) =>
-                        setBannerFile(e.target.files?.[0] || null)
-                      }
-                      className="text-sm w-full"
+                      onChange={handleBannerFileChange}
+                      className="hidden"
                     />
-                    <p className="text-xs text-gray-500 mt-1">
-                      JPG, PNG, or WebP. Max 8 MB. Replaces the image on save.
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => bannerInputRef.current?.click()}
+                        className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                      >
+                        <FaUpload size={11} />
+                        Upload from PC
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsMediaPickerOpen(true)}
+                        className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-secondary"
+                      >
+                        <FaFolder size={11} />
+                        Media Library
+                      </button>
+                      {(bannerFile || form.bannerImageUrl) && (
+                        <button
+                          type="button"
+                          onClick={handleClearBanner}
+                          className="text-xs text-red-600 hover:text-red-800"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </fieldset>
 
@@ -621,6 +711,12 @@ export default function DealsModalSettings() {
           </div>
         </main>
       </div>
+
+      <MediaLibraryPicker
+        isOpen={isMediaPickerOpen}
+        onClose={() => setIsMediaPickerOpen(false)}
+        onSelect={handleMediaLibrarySelect}
+      />
     </>
   );
 }

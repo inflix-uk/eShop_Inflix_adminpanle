@@ -1,8 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Helmet } from "react-helmet-async";
+import { FaUpload, FaFolder } from "react-icons/fa";
 import Side from "../nav/Side";
 import Top from "../nav/Top";
 import BlockEditor from "../blog-new/components/createblog/BlockEditor/BlockEditor";
+import MediaLibraryPicker from "../media/components/media/MediaLibraryPicker";
 import {
   getStoredAuthors,
   setStoredAuthors,
@@ -36,6 +38,8 @@ export default function Author() {
     normalizeAuthors(getStoredAuthors())
   );
   const [editingAuthorId, setEditingAuthorId] = useState(null);
+  const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false);
+  const profileImageInputRef = useRef(null);
 
   useEffect(() => {
     setStoredAuthors(authors);
@@ -60,6 +64,7 @@ export default function Author() {
 
   const handleImageUpload = (event) => {
     const file = event.target.files?.[0];
+    event.target.value = "";
     if (!file) return;
 
     const reader = new FileReader();
@@ -70,6 +75,14 @@ export default function Author() {
       }));
     };
     reader.readAsDataURL(file);
+  };
+
+  const handleMediaLibrarySelect = (url) => {
+    setAuthorForm((prev) => ({
+      ...prev,
+      image: url || "",
+    }));
+    setIsMediaPickerOpen(false);
   };
 
   const handleSubmit = async (event) => {
@@ -237,14 +250,47 @@ export default function Author() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Profile Image
                   </label>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Upload from PC or choose from Media Library.
+                  </p>
                   <input
+                    ref={profileImageInputRef}
                     type="file"
                     accept="image/*"
                     onChange={handleImageUpload}
-                    className="w-full border border-gray-300 rounded-md py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary"
+                    className="hidden"
                   />
+                  <div className="flex flex-wrap items-center gap-2 mb-3">
+                    <button
+                      type="button"
+                      onClick={() => profileImageInputRef.current?.click()}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                    >
+                      <FaUpload size={11} />
+                      Upload from PC
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsMediaPickerOpen(true)}
+                      className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-secondary"
+                    >
+                      <FaFolder size={11} />
+                      Media Library
+                    </button>
+                    {authorForm.image ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setAuthorForm((prev) => ({ ...prev, image: "" }))
+                        }
+                        className="text-xs text-red-600 hover:text-red-800"
+                      >
+                        Remove
+                      </button>
+                    ) : null}
+                  </div>
                   {authorForm.image ? (
-                    <div className="mt-3">
+                    <div className="mt-1">
                       <img
                         src={authorForm.image}
                         alt="Author preview"
@@ -426,6 +472,12 @@ export default function Author() {
           </div>
         </main>
       </div>
+
+      <MediaLibraryPicker
+        isOpen={isMediaPickerOpen}
+        onClose={() => setIsMediaPickerOpen(false)}
+        onSelect={handleMediaLibrarySelect}
+      />
     </>
   );
 }

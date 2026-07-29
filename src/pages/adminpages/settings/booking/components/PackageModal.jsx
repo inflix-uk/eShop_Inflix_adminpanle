@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Editor } from '@tinymce/tinymce-react';
 import ImageUploader from '../../../banners/components/ImageUploader';
+import MediaLibraryPicker from '../../../media/components/media/MediaLibraryPicker';
 import { uploadPackageImage } from '../service/bookingService';
 import { tinymcePackageDescriptionInit } from './tinymcePackageConfig';
 import {
@@ -44,6 +45,8 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
     price: 0,
     description: '',
     detailPage: '',
+    detailPageHtml: '',
+    detailPageCss: '',
     features: [''],
     extras: [],
     image: '',
@@ -58,6 +61,8 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
   const [uploadingExtraIndex, setUploadingExtraIndex] = useState(null);
   const [extraImagePreviews, setExtraImagePreviews] = useState({});
   const [saving, setSaving] = useState(false);
+  /** null | 'package' | number (extra index) */
+  const [mediaPickerTarget, setMediaPickerTarget] = useState(null);
   const editorRef = useRef(null);
 
   useEffect(() => {
@@ -74,6 +79,8 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
         price: editPackage.price || 0,
         description: editPackage.description || '',
         detailPage: editPackage.detailPage || '',
+        detailPageHtml: editPackage.detailPageHtml || '',
+        detailPageCss: editPackage.detailPageCss || '',
         features:
           Array.isArray(editPackage.features) && editPackage.features.length > 0
             ? editPackage.features
@@ -109,6 +116,8 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
         price: 0,
         description: '',
         detailPage: '',
+        detailPageHtml: '',
+        detailPageCss: '',
         features: [''],
         extras: [],
         image: '',
@@ -121,6 +130,7 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
       setImagePreview('');
       setExtraImagePreviews({});
     }
+    setMediaPickerTarget(null);
   }, [editPackage, isOpen]);
 
   const handleChange = (field, value) => {
@@ -209,6 +219,24 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
       URL.revokeObjectURL(localPreview);
       setUploadingExtraIndex(null);
     }
+  };
+
+  const handleMediaLibrarySelect = (imageUrl) => {
+    if (mediaPickerTarget === null) return;
+
+    if (mediaPickerTarget === 'package') {
+      handleChange('image', imageUrl);
+      setImagePreview(resolveImagePreview(imageUrl));
+    } else if (typeof mediaPickerTarget === 'number') {
+      const index = mediaPickerTarget;
+      handleExtraChange(index, 'image', imageUrl);
+      setExtraImagePreviews((prev) => ({
+        ...prev,
+        [index]: resolveImagePreview(imageUrl),
+      }));
+    }
+
+    setMediaPickerTarget(null);
   };
 
   const handleImageChange = async (file) => {
@@ -468,9 +496,10 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
             <div>
               <ImageUploader
                 label="Package Image"
-                helperText="Upload an image for this service. Stored on S3/Spaces (max 5MB)."
+                helperText="Upload from PC or select from Media Library (max 5MB for local upload)."
                 value={imagePreview}
                 onChange={handleImageChange}
+                onSelectFromLibrary={() => setMediaPickerTarget('package')}
                 maxSizeMB={5}
               />
               {uploadingImage && (
@@ -589,9 +618,10 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
 
                       <ImageUploader
                         label="Extra Image"
-                        helperText="Optional image for this extra (max 5MB)."
+                        helperText="Optional. Upload from PC or select from Media Library (max 5MB for local upload)."
                         value={extraImagePreviews[index] || (extra.image ? resolveImagePreview(extra.image) : '')}
                         onChange={(file) => handleExtraImageChange(index, file)}
+                        onSelectFromLibrary={() => setMediaPickerTarget(index)}
                         maxSizeMB={5}
                       />
                       {uploadingExtraIndex === index && (
@@ -643,22 +673,57 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
               )}
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Detail Page
-              </label>
-              <p className="text-xs text-gray-500 mb-2">
-                Full content shown when a customer opens the package detail page.
-              </p>
-              <div className="border border-gray-300 rounded-md overflow-hidden">
-                <Editor
-                  key={`${editPackage?._id || 'new-package'}-detail`}
-                  tinymceScriptSrc="/tinymce/tinymce.min.js"
-                  licenseKey="gpl"
-                  value={formData.detailPage}
-                  init={tinymcePackageDescriptionInit}
-                  onEditorChange={(content) => handleChange('detailPage', content)}
+            {/* HTML/CSS Widget Section */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Detail Page - HTML/CSS Widget
+                </label>
+                <p className="text-xs text-gray-500 mb-3">
+                  Custom HTML and CSS content shown on the package detail page. The sidebar card details remain unaffected.
+                </p>
+              </div>
+
+              {/* HTML Editor */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded bg-orange-100 text-[10px] font-bold text-orange-600">
+                    HTML
+                  </span>
+                  HTML Content
+                </label>
+                <textarea
+                  value={formData.detailPageHtml}
+                  onChange={(e) => handleChange('detailPageHtml', e.target.value)}
+                  rows={10}
+                  className="w-full font-mono text-sm border border-gray-300 rounded-md shadow-sm p-3"
+                  placeholder={`<div class="my-widget">\n  <h2>Welcome</h2>\n  <p>Your custom content here...</p>\n</div>`}
+                  spellCheck={false}
                 />
+                <p className="mt-1 text-xs text-gray-500">
+                  Write your HTML structure. Use class names for styling.
+                </p>
+              </div>
+
+              {/* CSS Editor */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-2">
+                  <span className="flex h-5 w-5 items-center justify-center rounded bg-blue-100 text-[10px] font-bold text-blue-600">
+                    CSS
+                  </span>
+                  CSS Styles
+                </label>
+                <textarea
+                  value={formData.detailPageCss}
+                  onChange={(e) => handleChange('detailPageCss', e.target.value)}
+                  rows={8}
+                  className="w-full font-mono text-sm border border-gray-300 rounded-md shadow-sm p-3 "
+                  placeholder={`.my-widget {\n  padding: 20px;\n  background: #f5f5f5;\n}\n\n.my-widget h2 {\n  color: #333;\n  margin-bottom: 10px;\n}`}
+                  spellCheck={false}
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  CSS styles are scoped to the widget container and won't affect other page elements.
+                </p>
               </div>
             </div>
 
@@ -681,6 +746,12 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
           </form>
         </div>
       </div>
+
+      <MediaLibraryPicker
+        isOpen={mediaPickerTarget !== null}
+        onClose={() => setMediaPickerTarget(null)}
+        onSelect={handleMediaLibrarySelect}
+      />
     </div>
   );
 }

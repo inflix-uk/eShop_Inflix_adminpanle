@@ -1,6 +1,25 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "react-toastify";
-import { FaPlus, FaTrash, FaEdit, FaArrowUp, FaArrowDown } from "react-icons/fa";
+import { FaPlus, FaTrash, FaArrowUp, FaArrowDown, FaUpload, FaFolder } from "react-icons/fa";
+import MediaLibraryPicker from "../../media/components/media/MediaLibraryPicker";
+
+function resolveFooterImageUrl(imagePath, backendUrl) {
+  if (!imagePath) return "";
+  if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
+    return imagePath;
+  }
+  const cleanBackendUrl = (backendUrl || "").replace(/\/$/, "");
+  if (imagePath.startsWith("/uploads/")) {
+    return `${cleanBackendUrl}${imagePath}`;
+  }
+  if (imagePath.startsWith("/footer/")) {
+    return `${cleanBackendUrl}/uploads${imagePath}`;
+  }
+  if (imagePath.startsWith("/")) {
+    return `${cleanBackendUrl}/uploads${imagePath}`;
+  }
+  return `${cleanBackendUrl}/uploads/${imagePath}`;
+}
 
 const Section1Editor = ({ data, onSave, onUploadImage, backendUrl, isSaving }) => {
   const [formData, setFormData] = useState({
@@ -12,6 +31,10 @@ const Section1Editor = ({ data, onSave, onUploadImage, backendUrl, isSaving }) =
     description: "",
     socialMedia: [],
   });
+  /** null | 'logo' | number (social icon index) */
+  const [mediaPickerTarget, setMediaPickerTarget] = useState(null);
+  const logoInputRef = useRef(null);
+  const socialIconInputRefs = useRef({});
 
   useEffect(() => {
     if (data) {
@@ -24,7 +47,8 @@ const Section1Editor = ({ data, onSave, onUploadImage, backendUrl, isSaving }) =
   }, [data]);
 
   const handleLogoImageChange = async (e) => {
-    const file = e.target.files[0];
+    const file = e.target.files?.[0];
+    e.target.value = "";
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
@@ -37,20 +61,13 @@ const Section1Editor = ({ data, onSave, onUploadImage, backendUrl, isSaving }) =
       const result = await onUploadImage(file, "logo", backendUrl);
       if (result.success) {
         const imagePath = result.imagePath || result.data?.path || result.data?.imagePath;
-        console.log("Upload result:", result); // Debug log
-        console.log("Uploaded image path:", imagePath); // Debug log
-        console.log("Full result data:", result.data); // Debug log
-        setFormData((prev) => {
-          const newData = {
-            ...prev,
-            logo: {
-              ...prev.logo,
-              image: imagePath,
-            },
-          };
-          console.log("Updated formData:", newData); // Debug log
-          return newData;
-        });
+        setFormData((prev) => ({
+          ...prev,
+          logo: {
+            ...prev.logo,
+            image: imagePath,
+          },
+        }));
         toast.success("Logo uploaded successfully!");
       } else {
         toast.error(result.message || "Failed to upload logo");
@@ -119,7 +136,7 @@ const Section1Editor = ({ data, onSave, onUploadImage, backendUrl, isSaving }) =
   };
 
   const handleSocialIconUpload = async (index, file) => {
-    if (!file.type.startsWith("image/")) {
+    if (!file?.type?.startsWith("image/")) {
       toast.error("Please select an image file");
       return;
     }
@@ -143,6 +160,23 @@ const Section1Editor = ({ data, onSave, onUploadImage, backendUrl, isSaving }) =
     }
   };
 
+  const handleMediaLibrarySelect = (url) => {
+    if (mediaPickerTarget === "logo") {
+      setFormData((prev) => ({
+        ...prev,
+        logo: {
+          ...prev.logo,
+          image: url,
+        },
+      }));
+      toast.success("Logo selected from Media Library");
+    } else if (typeof mediaPickerTarget === "number") {
+      handleSocialMediaChange(mediaPickerTarget, "icon", url);
+      toast.success("Icon selected from Media Library");
+    }
+    setMediaPickerTarget(null);
+  };
+
   const handleMoveSocialMedia = (index, direction) => {
     const newIndex = direction === "up" ? index - 1 : index + 1;
     if (newIndex < 0 || newIndex >= formData.socialMedia.length) return;
@@ -152,7 +186,6 @@ const Section1Editor = ({ data, onSave, onUploadImage, backendUrl, isSaving }) =
       newSocialMedia[newIndex],
       newSocialMedia[index],
     ];
-    // Update order
     newSocialMedia.forEach((item, i) => {
       item.order = i;
     });
@@ -181,54 +214,60 @@ const Section1Editor = ({ data, onSave, onUploadImage, backendUrl, isSaving }) =
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Logo Image
             </label>
-            <div className="flex items-center gap-4">
+            <p className="text-xs text-gray-500 mb-2">
+              Upload from PC or choose from Media Library.
+            </p>
+            <div className="flex flex-wrap items-center gap-4">
               {formData.logo.image && (
                 <img
-                  key={formData.logo.image} // Force re-render when image changes
-                  src={(() => {
-                    const imagePath = formData.logo.image;
-                    // If it's already a full URL, use it as-is
-                    if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
-                      return imagePath;
-                    }
-                    // Clean backend URL (remove trailing slash)
-                    const cleanBackendUrl = backendUrl.replace(/\/$/, "");
-                    // If path starts with /uploads/, use it directly
-                    if (imagePath.startsWith("/uploads/")) {
-                      return `${cleanBackendUrl}${imagePath}`;
-                    }
-                    // If path starts with /footer/, convert to /uploads/footer/
-                    if (imagePath.startsWith("/footer/")) {
-                      return `${cleanBackendUrl}/uploads${imagePath}`;
-                    }
-                    // If path starts with /, prepend /uploads
-                    if (imagePath.startsWith("/")) {
-                      return `${cleanBackendUrl}/uploads${imagePath}`;
-                    }
-                    // Otherwise, add /uploads/ prefix
-                    return `${cleanBackendUrl}/uploads/${imagePath}`;
-                  })()}
+                  key={formData.logo.image}
+                  src={resolveFooterImageUrl(formData.logo.image, backendUrl)}
                   alt="Logo preview"
                   className="h-20 w-auto object-contain border border-gray-300 rounded"
                   onError={(e) => {
                     console.error("Image load error:", e.target.src);
-                    console.error("Image path from state:", formData.logo.image);
-                    console.error("Backend URL:", backendUrl);
-                  }}
-                  onLoad={() => {
-                    console.log("Image loaded successfully:", formData.logo.image);
                   }}
                 />
               )}
-              <label className="cursor-pointer inline-flex items-center justify-center rounded-md border border-transparent bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-secondary focus-within:outline-none focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <input
+                  ref={logoInputRef}
                   type="file"
                   accept="image/*"
                   onChange={handleLogoImageChange}
                   className="hidden"
                 />
-                {formData.logo.image ? "Change Logo" : "Upload Logo"}
-              </label>
+                <button
+                  type="button"
+                  onClick={() => logoInputRef.current?.click()}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                >
+                  <FaUpload size={12} />
+                  {formData.logo.image ? "Upload from PC" : "Upload from PC"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMediaPickerTarget("logo")}
+                  className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-secondary"
+                >
+                  <FaFolder size={12} />
+                  Media Library
+                </button>
+                {formData.logo.image ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        logo: { ...prev.logo, image: "" },
+                      }))
+                    }
+                    className="text-sm text-red-600 hover:text-red-800"
+                  >
+                    Remove
+                  </button>
+                ) : null}
+              </div>
             </div>
           </div>
           <div>
@@ -286,6 +325,7 @@ const Section1Editor = ({ data, onSave, onUploadImage, backendUrl, isSaving }) =
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-gray-700">Social Media</h3>
           <button
+            type="button"
             onClick={handleAddSocialMedia}
             className="inline-flex items-center gap-2 rounded-md border border-transparent bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
           >
@@ -305,6 +345,7 @@ const Section1Editor = ({ data, onSave, onUploadImage, backendUrl, isSaving }) =
                 </h4>
                 <div className="flex gap-2">
                   <button
+                    type="button"
                     onClick={() => handleMoveSocialMedia(index, "up")}
                     disabled={index === 0}
                     className="text-gray-600 hover:text-gray-800 disabled:opacity-50"
@@ -313,6 +354,7 @@ const Section1Editor = ({ data, onSave, onUploadImage, backendUrl, isSaving }) =
                     <FaArrowUp />
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleMoveSocialMedia(index, "down")}
                     disabled={index === formData.socialMedia.length - 1}
                     className="text-gray-600 hover:text-gray-800 disabled:opacity-50"
@@ -321,6 +363,7 @@ const Section1Editor = ({ data, onSave, onUploadImage, backendUrl, isSaving }) =
                     <FaArrowDown />
                   </button>
                   <button
+                    type="button"
                     onClick={() => handleRemoveSocialMedia(index)}
                     className="text-red-600 hover:text-red-800"
                     title="Delete"
@@ -363,27 +406,14 @@ const Section1Editor = ({ data, onSave, onUploadImage, backendUrl, isSaving }) =
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Icon Image
                   </label>
-                  <div className="flex items-center gap-4">
+                  <p className="text-xs text-gray-500 mb-2">
+                    Upload from PC or Media Library.
+                  </p>
+                  <div className="flex flex-wrap items-center gap-3">
                     {social.icon && (
                       <img
                         key={social.icon}
-                        src={(() => {
-                          const imagePath = social.icon;
-                          if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
-                            return imagePath;
-                          }
-                          const cleanBackendUrl = backendUrl.replace(/\/$/, "");
-                          if (imagePath.startsWith("/uploads/")) {
-                            return `${cleanBackendUrl}${imagePath}`;
-                          }
-                          if (imagePath.startsWith("/footer/")) {
-                            return `${cleanBackendUrl}/uploads${imagePath}`;
-                          }
-                          if (imagePath.startsWith("/")) {
-                            return `${cleanBackendUrl}/uploads${imagePath}`;
-                          }
-                          return `${cleanBackendUrl}/uploads/${imagePath}`;
-                        })()}
+                        src={resolveFooterImageUrl(social.icon, backendUrl)}
                         alt={`${social.name} icon`}
                         className="h-10 w-10 object-contain border border-gray-300 rounded"
                         onError={(e) => {
@@ -391,19 +421,46 @@ const Section1Editor = ({ data, onSave, onUploadImage, backendUrl, isSaving }) =
                         }}
                       />
                     )}
-                    <label className="cursor-pointer inline-flex items-center justify-center rounded-md border border-transparent bg-primary px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-secondary focus-within:outline-none focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <input
+                        ref={(el) => {
+                          socialIconInputRefs.current[index] = el;
+                        }}
                         type="file"
                         accept="image/*"
                         onChange={(e) => {
-                          if (e.target.files[0]) {
-                            handleSocialIconUpload(index, e.target.files[0]);
-                          }
+                          const file = e.target.files?.[0];
+                          e.target.value = "";
+                          if (file) handleSocialIconUpload(index, file);
                         }}
                         className="hidden"
                       />
-                      {social.icon ? "Change Icon" : "Upload Icon"}
-                    </label>
+                      <button
+                        type="button"
+                        onClick={() => socialIconInputRefs.current[index]?.click()}
+                        className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                      >
+                        <FaUpload size={11} />
+                        Upload from PC
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setMediaPickerTarget(index)}
+                        className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:bg-secondary"
+                      >
+                        <FaFolder size={11} />
+                        Media Library
+                      </button>
+                      {social.icon ? (
+                        <button
+                          type="button"
+                          onClick={() => handleSocialMediaChange(index, "icon", "")}
+                          className="text-xs text-red-600 hover:text-red-800"
+                        >
+                          Remove
+                        </button>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
                 <div>
@@ -435,6 +492,7 @@ const Section1Editor = ({ data, onSave, onUploadImage, backendUrl, isSaving }) =
       {/* Save Button */}
       <div className="flex justify-end">
         <button
+          type="button"
           onClick={handleSave}
           disabled={isSaving}
           className="inline-flex items-center justify-center rounded-md border border-transparent bg-primary px-6 py-2 text-sm font-medium text-white shadow-sm hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -442,6 +500,12 @@ const Section1Editor = ({ data, onSave, onUploadImage, backendUrl, isSaving }) =
           {isSaving ? "Saving..." : "Save Section 1"}
         </button>
       </div>
+
+      <MediaLibraryPicker
+        isOpen={mediaPickerTarget !== null}
+        onClose={() => setMediaPickerTarget(null)}
+        onSelect={handleMediaLibrarySelect}
+      />
     </div>
   );
 };

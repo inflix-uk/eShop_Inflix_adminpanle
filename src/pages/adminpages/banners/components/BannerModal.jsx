@@ -5,6 +5,7 @@ import VideoUploader from "./VideoUploader";
 import WarrantyList from "./WarrantyList";
 import ColorSelector from "./ColorSelector";
 import FontSizeSelector from "./FontSizeSelector";
+import MediaLibraryPicker from "../../media/components/media/MediaLibraryPicker";
 import { resolveBackendAssetUrl } from "../../../../utils/backendAssetUrl";
 
 const DEFAULT_HERO_LARGE_WIDTH = 1200;
@@ -60,6 +61,20 @@ function readImageFileDimensions(file) {
   });
 }
 
+function readImageUrlDimensions(url) {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    img.onload = () => {
+      resolve({
+        width: img.naturalWidth,
+        height: img.naturalHeight,
+      });
+    };
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+}
+
 const VIDEO_LAYOUT_OPTIONS = [
   {
     value: "hero",
@@ -90,6 +105,8 @@ const BannerModal = ({
   asPage = false,
 }) => {
   const [errors, setErrors] = useState({});
+  /** null | 'imageLarge' | 'imageSmall' | 'extraImage' */
+  const [mediaPickerField, setMediaPickerField] = useState(null);
   const mediaTab =
     formData.backgroundMedia === "video" ? "video" : "images";
 
@@ -296,6 +313,60 @@ const BannerModal = ({
         [`${field}Preview`]: null,
       }));
     }
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: "" }));
+    }
+  };
+
+  const handleMediaLibrarySelect = async (url) => {
+    const field = mediaPickerField;
+    setMediaPickerField(null);
+    if (!field || !url) return;
+
+    if (field === "extraImage") {
+      const dims = await readImageUrlDimensions(url);
+      if (
+        !dims ||
+        dims.width !== HERO_EXTRA_WIDTH ||
+        dims.height !== HERO_EXTRA_HEIGHT
+      ) {
+        alert(
+          `Extra image must be exactly ${HERO_EXTRA_WIDTH}×${HERO_EXTRA_HEIGHT} pixels` +
+            (dims ? ` (this image is ${dims.width}×${dims.height})` : "")
+        );
+        return;
+      }
+    }
+
+    setFormData((prev) => ({
+      ...prev,
+      [field]: null,
+      [`${field}Preview`]: url,
+    }));
+
+    if (field === "imageLarge" || field === "imageSmall") {
+      const dims = await readImageUrlDimensions(url);
+      if (dims?.width > 0 && dims?.height > 0) {
+        setFormData((prev) => {
+          if (field === "imageLarge") {
+            return {
+              ...prev,
+              imageLargeWidthPx: dims.width,
+              imageLargeHeightPx: dims.height,
+            };
+          }
+          return {
+            ...prev,
+            imageSmallWidthPx: dims.width,
+            imageSmallHeightPx: dims.height,
+          };
+        });
+      }
+    }
+
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: "" }));
+    }
   };
 
   // Handle warranty list change
@@ -362,14 +433,28 @@ const BannerModal = ({
         newErrors.buttonLink = "Button link is required";
       }
     } else if (formData.type === "full") {
-      if (!formData.content?.title?.trim()) {
-        newErrors["content.title"] = "Title is required";
-      }
-      if (!formData.content?.subtitle?.trim()) {
-        newErrors["content.subtitle"] = "Subtitle is required";
-      }
-      if (!formData.content?.buynow?.trim()) {
-        newErrors["content.buynow"] = "Buy Now link is required";
+      const layoutStyle = formData.content?.layoutStyle || "default";
+      
+      if (layoutStyle === "default") {
+        if (!formData.content?.title?.trim()) {
+          newErrors["content.title"] = "Title is required";
+        }
+        if (!formData.content?.subtitle?.trim()) {
+          newErrors["content.subtitle"] = "Subtitle is required";
+        }
+        if (!formData.content?.buynow?.trim()) {
+          newErrors["content.buynow"] = "Buy Now link is required";
+        }
+      } else if (layoutStyle === "podcast") {
+        if (!formData.content?.heading?.trim()) {
+          newErrors["content.heading"] = "Heading is required";
+        }
+        if (!formData.content?.ctaText?.trim()) {
+          newErrors["content.ctaText"] = "Button text is required";
+        }
+        if (!formData.content?.ctaLink?.trim()) {
+          newErrors["content.ctaLink"] = "Button link is required";
+        }
       }
     }
 
@@ -618,18 +703,20 @@ const BannerModal = ({
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <ImageUploader
                       label={`Large Image (Desktop)`}
-                      helperText="Upload JPG/PNG/WEBP — custom size fields update automatically from your file."
+                      helperText="Upload from PC or Media Library — size fields update from the image."
                       value={resolveMediaPreviewUrl(formData.imageLargePreview)}
                       onChange={(file) => handleImageChange("imageLarge", file)}
+                      onSelectFromLibrary={() => setMediaPickerField("imageLarge")}
                       error={errors.imageLarge}
                       required={formData.backgroundMedia !== "video"}
                       maxSizeMB={20}
                     />
                     <ImageUploader
                       label={`Small Image (Mobile)`}
-                      helperText="Upload JPG/PNG/WEBP — custom size fields update automatically from your file."
+                      helperText="Upload from PC or Media Library — size fields update from the image."
                       value={resolveMediaPreviewUrl(formData.imageSmallPreview)}
                       onChange={(file) => handleImageChange("imageSmall", file)}
+                      onSelectFromLibrary={() => setMediaPickerField("imageSmall")}
                       error={errors.imageSmall}
                       required={formData.backgroundMedia !== "video"}
                       maxSizeMB={20}
@@ -938,267 +1025,661 @@ const BannerModal = ({
               {/* Full Banner Fields */}
               {formData.type === "full" && (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <div>
-                      <span className="block text-sm font-medium text-gray-700 mb-2">
-                        Text position on banner
-                      </span>
-                      <p className="text-xs text-gray-500 mb-3">
-                        Where the text block sits horizontally over the image (desktop &amp; mobile).
-                      </p>
-                      <div className="flex flex-wrap gap-4">
-                        {[
-                          { value: "left", label: "Left" },
-                          { value: "center", label: "Center" },
-                          { value: "right", label: "Right" },
-                        ].map(({ value, label }) => (
-                          <label key={value} className="inline-flex items-center">
+                  {/* Layout Style Selector */}
+                  <div className="rounded-lg border border-gray-200 bg-gray-50/80 p-4">
+                    <span className="block text-sm font-medium text-gray-800 mb-2">
+                      Content Layout Style
+                    </span>
+                    <p className="text-xs text-gray-500 mb-3">
+                      Choose how text content appears over the banner image.
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            content: { ...prev.content, layoutStyle: "default" },
+                          }))
+                        }
+                        className={`relative rounded-lg border-2 p-4 text-left transition-all ${
+                          (formData.content?.layoutStyle || "default") === "default"
+                            ? "border-primary bg-primary/5 ring-1 ring-primary"
+                            : "border-gray-200 bg-white hover:border-gray-300"
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-lg">
+                            📦
+                          </div>
+                          <div>
+                            <span className="block text-sm font-semibold text-gray-900">
+                              Default Layout
+                            </span>
+                            <span className="block text-xs text-gray-500 mt-0.5">
+                              Title, subtitle, price, warranty badges
+                            </span>
+                          </div>
+                        </div>
+                        {(formData.content?.layoutStyle || "default") === "default" && (
+                          <div className="absolute top-2 right-2 h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                            <svg className="h-3 w-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFormData((prev) => ({
+                            ...prev,
+                            content: { ...prev.content, layoutStyle: "podcast" },
+                          }))
+                        }
+                        className={`relative rounded-lg border-2 p-4 text-left transition-all ${
+                          formData.content?.layoutStyle === "podcast"
+                            ? "border-primary bg-primary/5 ring-1 ring-primary"
+                            : "border-gray-200 bg-white hover:border-gray-300"
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-lg">
+                            🎙️
+                          </div>
+                          <div>
+                            <span className="block text-sm font-semibold text-gray-900">
+                              Podcast / Studio
+                            </span>
+                            <span className="block text-xs text-gray-500 mt-0.5">
+                              Large heading, tagline, feature cards
+                            </span>
+                          </div>
+                        </div>
+                        {formData.content?.layoutStyle === "podcast" && (
+                          <div className="absolute top-2 right-2 h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                            <svg className="h-3 w-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          </div>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* === DEFAULT LAYOUT FIELDS === */}
+                  {(formData.content?.layoutStyle || "default") === "default" && (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div>
+                          <span className="block text-sm font-medium text-gray-700 mb-2">
+                            Text position on banner
+                          </span>
+                          <p className="text-xs text-gray-500 mb-3">
+                            Where the text block sits horizontally over the image (desktop &amp; mobile).
+                          </p>
+                          <div className="flex flex-wrap gap-4">
+                            {[
+                              { value: "left", label: "Left" },
+                              { value: "center", label: "Center" },
+                              { value: "right", label: "Right" },
+                            ].map(({ value, label }) => (
+                              <label key={value} className="inline-flex items-center">
+                                <input
+                                  type="radio"
+                                  name="content.textPosition"
+                                  value={value}
+                                  checked={
+                                    (formData.content?.textPosition || "right") ===
+                                    value
+                                  }
+                                  onChange={handleChange}
+                                  className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
+                                />
+                                <span className="ml-2 text-sm text-gray-700">{label}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="block text-sm font-medium text-gray-700 mb-2">
+                            Text alignment
+                          </span>
+                          <p className="text-xs text-gray-500 mb-3">
+                            How lines align inside the text block (left, centered, or right).
+                          </p>
+                          <div className="flex flex-wrap gap-4">
+                            {[
+                              { value: "left", label: "Left" },
+                              { value: "center", label: "Center" },
+                              { value: "right", label: "Right" },
+                            ].map(({ value, label }) => (
+                              <label key={value} className="inline-flex items-center">
+                                <input
+                                  type="radio"
+                                  name="content.textAlign"
+                                  value={value}
+                                  checked={
+                                    (formData.content?.textAlign || "left") === value
+                                  }
+                                  onChange={handleChange}
+                                  className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
+                                />
+                                <span className="ml-2 text-sm text-gray-700">{label}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor="content.title"
+                          className="block text-sm font-medium text-gray-700"
+                        >
+                          Title *
+                        </label>
+                        <input
+                          type="text"
+                          name="content.title"
+                          id="content.title"
+                          value={formData.content?.title || ""}
+                          onChange={handleChange}
+                          className={`mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm ${
+                            errors["content.title"]
+                              ? "border-red-300"
+                              : "border-gray-300"
+                          }`}
+                          placeholder="e.g., BRAND NEW"
+                        />
+                        {errors["content.title"] && (
+                          <p className="mt-1 text-sm text-red-600">
+                            {errors["content.title"]}
+                          </p>
+                        )}
+                        <ColorSelector
+                          label="Title Color"
+                          value={formData.content?.titleColor}
+                          onChange={(color) => handleColorChange("titleColor", color)}
+                          defaultColor="#FFFFFF"
+                        />
+                        <FontSizeSelector
+                          label="Title Font Size"
+                          value={formData.content?.titleSize}
+                          onChange={(size) => handleSizeChange("titleSize", size)}
+                          defaultSize="24px"
+                        />
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor="content.subtitle"
+                          className="block text-sm font-medium text-gray-700"
+                        >
+                          Subtitle *
+                        </label>
+                        <input
+                          type="text"
+                          name="content.subtitle"
+                          id="content.subtitle"
+                          value={formData.content?.subtitle || ""}
+                          onChange={handleChange}
+                          className={`mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm ${
+                            errors["content.subtitle"]
+                              ? "border-red-300"
+                              : "border-gray-300"
+                          }`}
+                          placeholder="e.g., SAMSUNG GALAXY S25 ULTRA"
+                        />
+                        {errors["content.subtitle"] && (
+                          <p className="mt-1 text-sm text-red-600">
+                            {errors["content.subtitle"]}
+                          </p>
+                        )}
+                        <ColorSelector
+                          label="Subtitle Color"
+                          value={formData.content?.subtitleColor}
+                          onChange={(color) => handleColorChange("subtitleColor", color)}
+                          defaultColor="#FFFFFF"
+                        />
+                        <FontSizeSelector
+                          label="Subtitle Font Size"
+                          value={formData.content?.subtitleSize}
+                          onChange={(size) => handleSizeChange("subtitleSize", size)}
+                          defaultSize="32px"
+                        />
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor="content.paragraph"
+                          className="block text-sm font-medium text-gray-700"
+                        >
+                          Paragraph
+                        </label>
+                        <input
+                          type="text"
+                          name="content.paragraph"
+                          id="content.paragraph"
+                          value={formData.content?.paragraph || ""}
+                          onChange={handleChange}
+                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm"
+                          placeholder="e.g., £739.99"
+                        />
+                        <ColorSelector
+                          label="Paragraph Color"
+                          value={formData.content?.paragraphColor}
+                          onChange={(color) => handleColorChange("paragraphColor", color)}
+                          defaultColor="#FFFFFF"
+                        />
+                        <FontSizeSelector
+                          label="Paragraph Font Size"
+                          value={formData.content?.paragraphSize}
+                          onChange={(size) => handleSizeChange("paragraphSize", size)}
+                          defaultSize="18px"
+                        />
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor="content.price"
+                          className="block text-sm font-medium text-gray-700"
+                        >
+                          Price
+                        </label>
+                        <input
+                          type="text"
+                          name="content.price"
+                          id="content.price"
+                          value={formData.content?.price || ""}
+                          onChange={handleChange}
+                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm"
+                          placeholder="Optional price field"
+                        />
+                        <ColorSelector
+                          label="Price Color"
+                          value={formData.content?.priceColor}
+                          onChange={(color) => handleColorChange("priceColor", color)}
+                          defaultColor="#FF0000"
+                        />
+                        <FontSizeSelector
+                          label="Price Font Size"
+                          value={formData.content?.priceSize}
+                          onChange={(size) => handleSizeChange("priceSize", size)}
+                          defaultSize="20px"
+                        />
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor="content.buynow"
+                          className="block text-sm font-medium text-gray-700"
+                        >
+                          Buy Now Link *
+                        </label>
+                        <input
+                          type="url"
+                          name="content.buynow"
+                          id="content.buynow"
+                          value={formData.content?.buynow || ""}
+                          onChange={handleChange}
+                          className={`mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm ${
+                            errors["content.buynow"]
+                              ? "border-red-300"
+                              : "border-gray-300"
+                          }`}
+                          placeholder=""
+                        />
+                        {errors["content.buynow"] && (
+                          <p className="mt-1 text-sm text-red-600">
+                            {errors["content.buynow"]}
+                          </p>
+                        )}
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor="content.sellnow"
+                          className="block text-sm font-medium text-gray-700"
+                        >
+                          Sell Now Link
+                        </label>
+                        <input
+                          type="url"
+                          name="content.sellnow"
+                          id="content.sellnow"
+                          value={formData.content?.sellnow || ""}
+                          onChange={handleChange}
+                          className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm"
+                          placeholder="Optional sell now link"
+                        />
+                      </div>
+
+                      <WarrantyList
+                        value={formData.content?.warranty || []}
+                        onChange={handleWarrantyChange}
+                      />
+
+                      <ImageUploader
+                        label={`Extra Image (Product Overlay ${HERO_EXTRA_WIDTH}×${HERO_EXTRA_HEIGHT})`}
+                        helperText="Optional. Upload from PC or Media Library. Recommended transparent PNG at 600×600."
+                        value={resolveMediaPreviewUrl(
+                          formData.extraImagePreview || formData.extraImage
+                        )}
+                        onChange={(file) => handleImageChange("extraImage", file)}
+                        onSelectFromLibrary={() => setMediaPickerField("extraImage")}
+                        error={errors.extraImage}
+                        dimensionCheck={{
+                          width: HERO_EXTRA_WIDTH,
+                          height: HERO_EXTRA_HEIGHT,
+                        }}
+                      />
+                    </>
+                  )}
+
+                  {/* === PODCAST LAYOUT FIELDS === */}
+                  {formData.content?.layoutStyle === "podcast" && (
+                    <div className="space-y-4">
+                      {/* Heading Section */}
+                      <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-4">
+                        <h4 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                          <span className="flex h-6 w-6 items-center justify-center rounded bg-gray-100 text-xs">1</span>
+                          Main Heading
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">
+                              Heading Text *
+                            </label>
                             <input
-                              type="radio"
-                              name="content.textPosition"
-                              value={value}
-                              checked={
-                                (formData.content?.textPosition || "right") ===
-                                value
-                              }
+                              type="text"
+                              name="content.heading"
+                              value={formData.content?.heading || ""}
                               onChange={handleChange}
-                              className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
+                              className={`mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm ${
+                                errors["content.heading"] ? "border-red-300" : "border-gray-300"
+                              }`}
+                              placeholder="e.g., Podcast Studio"
                             />
-                            <span className="ml-2 text-sm text-gray-700">{label}</span>
+                            {errors["content.heading"] && (
+                              <p className="mt-1 text-sm text-red-600">{errors["content.heading"]}</p>
+                            )}
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">
+                              Accent Word (highlighted)
+                            </label>
+                            <input
+                              type="text"
+                              name="content.headingAccent"
+                              value={formData.content?.headingAccent || ""}
+                              onChange={handleChange}
+                              className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm"
+                              placeholder="e.g., Manchester"
+                            />
+                            <p className="mt-1 text-xs text-gray-500">
+                              This word appears below the heading in accent color
+                            </p>
+                          </div>
+                        </div>
+                        <ColorSelector
+                          label="Accent Color"
+                          value={formData.content?.headingAccentColor}
+                          onChange={(color) => handleColorChange("headingAccentColor", color)}
+                          defaultColor="#C2FC12"
+                        />
+                      </div>
+
+                      {/* Tagline & Description */}
+                      <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-4">
+                        <h4 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                          <span className="flex h-6 w-6 items-center justify-center rounded bg-gray-100 text-xs">2</span>
+                          Tagline & Description
+                        </h4>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">
+                            Tagline
                           </label>
-                        ))}
+                          <input
+                            type="text"
+                            name="content.tagline"
+                            value={formData.content?.tagline || ""}
+                            onChange={handleChange}
+                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm"
+                            placeholder="e.g., A premium content creation space by Two Minds Studio."
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700">
+                            Description
+                          </label>
+                          <textarea
+                            name="content.description"
+                            value={formData.content?.description || ""}
+                            onChange={handleChange}
+                            rows={3}
+                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm"
+                            placeholder="e.g., Create podcasts, interviews, video content, and branded media in a professional studio..."
+                          />
+                        </div>
+                      </div>
+
+                      {/* CTA Button */}
+                      <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-4">
+                        <h4 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                          <span className="flex h-6 w-6 items-center justify-center rounded bg-gray-100 text-xs">3</span>
+                          Call to Action Button
+                        </h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">
+                              Button Text *
+                            </label>
+                            <input
+                              type="text"
+                              name="content.ctaText"
+                              value={formData.content?.ctaText || ""}
+                              onChange={handleChange}
+                              className={`mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm ${
+                                errors["content.ctaText"] ? "border-red-300" : "border-gray-300"
+                              }`}
+                              placeholder="e.g., Book Your Session"
+                            />
+                            {errors["content.ctaText"] && (
+                              <p className="mt-1 text-sm text-red-600">{errors["content.ctaText"]}</p>
+                            )}
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700">
+                              Button Link *
+                            </label>
+                            <input
+                              type="text"
+                              name="content.ctaLink"
+                              value={formData.content?.ctaLink || ""}
+                              onChange={handleChange}
+                              className={`mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm ${
+                                errors["content.ctaLink"] ? "border-red-300" : "border-gray-300"
+                              }`}
+                              placeholder="e.g., /booking"
+                            />
+                            {errors["content.ctaLink"] && (
+                              <p className="mt-1 text-sm text-red-600">{errors["content.ctaLink"]}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="flex items-center justify-between">
+                            <label className="block text-sm font-medium text-gray-700">
+                              Button Icon (Flaticon class)
+                            </label>
+                            <a
+                              href="https://www.flaticon.com/uicons/interface-icons"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs text-primary hover:text-primary/80 hover:underline flex items-center gap-1"
+                            >
+                              Browse Icons
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                              </svg>
+                            </a>
+                          </div>
+                          <input
+                            type="text"
+                            name="content.ctaIcon"
+                            value={formData.content?.ctaIcon || ""}
+                            onChange={handleChange}
+                            className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm"
+                            placeholder="e.g., fi-rr-calendar"
+                          />
+                          <p className="mt-1 text-xs text-gray-500">
+                            Optional. Use Flaticon class like fi-rr-calendar, fi-rr-play, etc.
+                          </p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <ColorSelector
+                            label="Button Background"
+                            value={formData.content?.ctaButtonColor}
+                            onChange={(color) => handleColorChange("ctaButtonColor", color)}
+                            defaultColor="#C2FC12"
+                          />
+                          <ColorSelector
+                            label="Button Text Color"
+                            value={formData.content?.ctaButtonTextColor}
+                            onChange={(color) => handleColorChange("ctaButtonTextColor", color)}
+                            defaultColor="#000000"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Feature Cards */}
+                      <div className="rounded-lg border border-gray-200 bg-white p-4 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+                            <span className="flex h-6 w-6 items-center justify-center rounded bg-gray-100 text-xs">4</span>
+                            Feature Cards
+                          </h4>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const cards = formData.content?.featureCards || [];
+                              setFormData((prev) => ({
+                                ...prev,
+                                content: {
+                                  ...prev.content,
+                                  featureCards: [
+                                    ...cards,
+                                    { icon: "", title: "", text: "" },
+                                  ],
+                                },
+                              }));
+                            }}
+                            className="inline-flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white hover:bg-primary/90 transition"
+                          >
+                            <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add Card
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          Feature cards appear at the bottom of the banner. Recommended: 4 cards.
+                        </p>
+                        {(formData.content?.featureCards || []).length === 0 ? (
+                          <div className="text-center py-6 text-sm text-gray-400 border-2 border-dashed border-gray-200 rounded-lg">
+                            No feature cards yet. Click &quot;Add Card&quot; to create one.
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {(formData.content?.featureCards || []).map((card, idx) => (
+                              <div
+                                key={idx}
+                                className="relative rounded-lg border border-gray-200 bg-gray-50 p-3"
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const cards = [...(formData.content?.featureCards || [])];
+                                    cards.splice(idx, 1);
+                                    setFormData((prev) => ({
+                                      ...prev,
+                                      content: { ...prev.content, featureCards: cards },
+                                    }));
+                                  }}
+                                  className="absolute top-2 right-2 text-gray-400 hover:text-red-500 transition"
+                                  title="Remove card"
+                                >
+                                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pr-6">
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                                      Icon (Flaticon)
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={card.icon || ""}
+                                      onChange={(e) => {
+                                        const cards = [...(formData.content?.featureCards || [])];
+                                        cards[idx] = { ...cards[idx], icon: e.target.value };
+                                        setFormData((prev) => ({
+                                          ...prev,
+                                          content: { ...prev.content, featureCards: cards },
+                                        }));
+                                      }}
+                                      className="block w-full border border-gray-300 rounded-md shadow-sm py-1.5 px-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                                      placeholder="fi-rr-microphone"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                                      Title
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={card.title || ""}
+                                      onChange={(e) => {
+                                        const cards = [...(formData.content?.featureCards || [])];
+                                        cards[idx] = { ...cards[idx], title: e.target.value };
+                                        setFormData((prev) => ({
+                                          ...prev,
+                                          content: { ...prev.content, featureCards: cards },
+                                        }));
+                                      }}
+                                      className="block w-full border border-gray-300 rounded-md shadow-sm py-1.5 px-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                                      placeholder="Premium Studios"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">
+                                      Description
+                                    </label>
+                                    <input
+                                      type="text"
+                                      value={card.text || ""}
+                                      onChange={(e) => {
+                                        const cards = [...(formData.content?.featureCards || [])];
+                                        cards[idx] = { ...cards[idx], text: e.target.value };
+                                        setFormData((prev) => ({
+                                          ...prev,
+                                          content: { ...prev.content, featureCards: cards },
+                                        }));
+                                      }}
+                                      className="block w-full border border-gray-300 rounded-md shadow-sm py-1.5 px-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary"
+                                      placeholder="Professional-grade equipment"
+                                    />
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </div>
-                    <div>
-                      <span className="block text-sm font-medium text-gray-700 mb-2">
-                        Text alignment
-                      </span>
-                      <p className="text-xs text-gray-500 mb-3">
-                        How lines align inside the text block (left, centered, or right).
-                      </p>
-                      <div className="flex flex-wrap gap-4">
-                        {[
-                          { value: "left", label: "Left" },
-                          { value: "center", label: "Center" },
-                          { value: "right", label: "Right" },
-                        ].map(({ value, label }) => (
-                          <label key={value} className="inline-flex items-center">
-                            <input
-                              type="radio"
-                              name="content.textAlign"
-                              value={value}
-                              checked={
-                                (formData.content?.textAlign || "left") === value
-                              }
-                              onChange={handleChange}
-                              className="h-4 w-4 text-primary focus:ring-primary border-gray-300"
-                            />
-                            <span className="ml-2 text-sm text-gray-700">{label}</span>
-                          </label>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="content.title"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Title *
-                    </label>
-                    <input
-                      type="text"
-                      name="content.title"
-                      id="content.title"
-                      value={formData.content?.title || ""}
-                      onChange={handleChange}
-                      className={`mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm ${
-                        errors["content.title"]
-                          ? "border-red-300"
-                          : "border-gray-300"
-                      }`}
-                      placeholder="e.g., BRAND NEW"
-                    />
-                    {errors["content.title"] && (
-                      <p className="mt-1 text-sm text-red-600">
-                        {errors["content.title"]}
-                      </p>
-                    )}
-                    <ColorSelector
-                      label="Title Color"
-                      value={formData.content?.titleColor}
-                      onChange={(color) => handleColorChange("titleColor", color)}
-                      defaultColor="#FFFFFF"
-                    />
-                    <FontSizeSelector
-                      label="Title Font Size"
-                      value={formData.content?.titleSize}
-                      onChange={(size) => handleSizeChange("titleSize", size)}
-                      defaultSize="24px"
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="content.subtitle"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Subtitle *
-                    </label>
-                    <input
-                      type="text"
-                      name="content.subtitle"
-                      id="content.subtitle"
-                      value={formData.content?.subtitle || ""}
-                      onChange={handleChange}
-                      className={`mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm ${
-                        errors["content.subtitle"]
-                          ? "border-red-300"
-                          : "border-gray-300"
-                      }`}
-                      placeholder="e.g., SAMSUNG GALAXY S25 ULTRA"
-                    />
-                    {errors["content.subtitle"] && (
-                      <p className="mt-1 text-sm text-red-600">
-                        {errors["content.subtitle"]}
-                      </p>
-                    )}
-                    <ColorSelector
-                      label="Subtitle Color"
-                      value={formData.content?.subtitleColor}
-                      onChange={(color) => handleColorChange("subtitleColor", color)}
-                      defaultColor="#FFFFFF"
-                    />
-                    <FontSizeSelector
-                      label="Subtitle Font Size"
-                      value={formData.content?.subtitleSize}
-                      onChange={(size) => handleSizeChange("subtitleSize", size)}
-                      defaultSize="32px"
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="content.paragraph"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Paragraph
-                    </label>
-                    <input
-                      type="text"
-                      name="content.paragraph"
-                      id="content.paragraph"
-                      value={formData.content?.paragraph || ""}
-                      onChange={handleChange}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm"
-                      placeholder="e.g., £739.99"
-                    />
-                    <ColorSelector
-                      label="Paragraph Color"
-                      value={formData.content?.paragraphColor}
-                      onChange={(color) => handleColorChange("paragraphColor", color)}
-                      defaultColor="#FFFFFF"
-                    />
-                    <FontSizeSelector
-                      label="Paragraph Font Size"
-                      value={formData.content?.paragraphSize}
-                      onChange={(size) => handleSizeChange("paragraphSize", size)}
-                      defaultSize="18px"
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="content.price"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Price
-                    </label>
-                    <input
-                      type="text"
-                      name="content.price"
-                      id="content.price"
-                      value={formData.content?.price || ""}
-                      onChange={handleChange}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm"
-                      placeholder="Optional price field"
-                    />
-                    <ColorSelector
-                      label="Price Color"
-                      value={formData.content?.priceColor}
-                      onChange={(color) => handleColorChange("priceColor", color)}
-                      defaultColor="#FF0000"
-                    />
-                    <FontSizeSelector
-                      label="Price Font Size"
-                      value={formData.content?.priceSize}
-                      onChange={(size) => handleSizeChange("priceSize", size)}
-                      defaultSize="20px"
-                    />
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="content.buynow"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Buy Now Link *
-                    </label>
-                    <input
-                      type="url"
-                      name="content.buynow"
-                      id="content.buynow"
-                      value={formData.content?.buynow || ""}
-                      onChange={handleChange}
-                      className={`mt-1 block w-full border rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm ${
-                        errors["content.buynow"]
-                          ? "border-red-300"
-                          : "border-gray-300"
-                      }`}
-                      placeholder=""
-                    />
-                    {errors["content.buynow"] && (
-                      <p className="mt-1 text-sm text-red-600">
-                        {errors["content.buynow"]}
-                      </p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label
-                      htmlFor="content.sellnow"
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Sell Now Link
-                    </label>
-                    <input
-                      type="url"
-                      name="content.sellnow"
-                      id="content.sellnow"
-                      value={formData.content?.sellnow || ""}
-                      onChange={handleChange}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary sm:text-sm"
-                      placeholder="Optional sell now link"
-                    />
-                  </div>
-
-                  <WarrantyList
-                    value={formData.content?.warranty || []}
-                    onChange={handleWarrantyChange}
-                  />
-
-                  <ImageUploader
-                    label={`Extra Image (Product Overlay ${HERO_EXTRA_WIDTH}×${HERO_EXTRA_HEIGHT})`}
-                    helperText="Optional overlay image shown on full banners. Recommended transparent PNG at 600×600 for best fit."
-                    value={formData.extraImagePreview || formData.extraImage}
-                    onChange={(file) => handleImageChange("extraImage", file)}
-                    error={errors.extraImage}
-                    dimensionCheck={{
-                      width: HERO_EXTRA_WIDTH,
-                      height: HERO_EXTRA_HEIGHT,
-                    }}
-                  />
+                  )}
                 </>
               )}
 
@@ -1249,24 +1730,42 @@ const BannerModal = ({
   );
 
   if (asPage) {
-    return <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">{formBody}</div>;
+    return (
+      <>
+        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm">
+          {formBody}
+        </div>
+        <MediaLibraryPicker
+          isOpen={mediaPickerField !== null}
+          onClose={() => setMediaPickerField(null)}
+          onSelect={handleMediaLibrarySelect}
+        />
+      </>
+    );
   }
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-        {/* Background overlay */}
-        <div
-          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
-          onClick={onClose}
-        ></div>
+    <>
+      <div className="fixed inset-0 z-50 overflow-y-auto">
+        <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+          {/* Background overlay */}
+          <div
+            className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+            onClick={onClose}
+          ></div>
 
-        {/* Modal panel */}
-        <div className="inline-block align-bottom rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full max-h-[90vh] overflow-y-auto">
-          {formBody}
+          {/* Modal panel */}
+          <div className="inline-block align-bottom rounded-lg text-left shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full max-h-[90vh] overflow-y-auto">
+            {formBody}
+          </div>
         </div>
       </div>
-    </div>
+      <MediaLibraryPicker
+        isOpen={mediaPickerField !== null}
+        onClose={() => setMediaPickerField(null)}
+        onSelect={handleMediaLibrarySelect}
+      />
+    </>
   );
 };
 

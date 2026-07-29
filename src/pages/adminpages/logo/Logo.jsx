@@ -12,11 +12,23 @@ import {
   deleteFavicon,
 } from "./service/logoService";
 import ImageUploader from "../banners/components/ImageUploader";
+import MediaLibraryPicker from "../media/components/media/MediaLibraryPicker";
 import {
   resolveBackendAssetUrl,
   withCacheBust,
 } from "../../../utils/backendAssetUrl";
 import { setFavicon, clearFavicon } from "../../../utils/faviconManager";
+
+function verifyImageDimensionsFromUrl(url, width, height) {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    img.onload = () => {
+      resolve(img.naturalWidth === width && img.naturalHeight === height);
+    };
+    img.onerror = () => resolve(false);
+    img.src = url;
+  });
+}
 
 export default function Logo() {
   const [selectedPage, setSelectedPage] = useState("logo");
@@ -25,10 +37,12 @@ export default function Logo() {
 
   // Form state
   const [logoFile, setLogoFile] = useState(null);
+  const [logoLibraryUrl, setLogoLibraryUrl] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
   const [altText, setAltText] = useState("Logo");
   const [currentLogoUrl, setCurrentLogoUrl] = useState("");
   const [faviconFile, setFaviconFile] = useState(null);
+  const [faviconLibraryUrl, setFaviconLibraryUrl] = useState(null);
   const [faviconPreview, setFaviconPreview] = useState(null);
   const [currentFaviconUrl, setCurrentFaviconUrl] = useState("");
   const [loading, setLoading] = useState(true);
@@ -36,6 +50,7 @@ export default function Logo() {
   const [isFaviconSubmitting, setIsFaviconSubmitting] = useState(false);
   /** API `faviconVersion` (ms) or fallback for preview cache-bust */
   const [assetUpdatedAt, setAssetUpdatedAt] = useState(null);
+  const [mediaPickerTarget, setMediaPickerTarget] = useState(null); // null | 'logo' | 'favicon'
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -80,6 +95,7 @@ export default function Logo() {
         clearFavicon();
       }
       setFaviconFile(null);
+      setFaviconLibraryUrl(null);
     } catch (error) {
       console.error("Error loading logo:", error);
     } finally {
@@ -90,6 +106,7 @@ export default function Logo() {
 
   const handleFileChange = (file) => {
     setLogoFile(file);
+    setLogoLibraryUrl(null);
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -110,6 +127,7 @@ export default function Logo() {
 
   const handleFaviconFileChange = (file) => {
     setFaviconFile(file);
+    setFaviconLibraryUrl(null);
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -128,19 +146,39 @@ export default function Logo() {
     }
   };
 
+  const handleMediaLibrarySelect = async (url) => {
+    if (mediaPickerTarget === "logo") {
+      setLogoFile(null);
+      setLogoLibraryUrl(url);
+      setLogoPreview(url);
+    } else if (mediaPickerTarget === "favicon") {
+      const ok = await verifyImageDimensionsFromUrl(url, 512, 512);
+      if (!ok) {
+        toast.error("Favicon must be exactly 512×512 pixels");
+        setMediaPickerTarget(null);
+        return;
+      }
+      setFaviconFile(null);
+      setFaviconLibraryUrl(url);
+      setFaviconPreview(url);
+    }
+    setMediaPickerTarget(null);
+  };
+
   const handleFaviconSubmit = async (e) => {
     e.preventDefault();
-    if (!faviconFile) {
-      toast.error("Please choose a favicon file (PNG or ICO, 512×512)");
+    if (!faviconFile && !faviconLibraryUrl) {
+      toast.error("Please choose a favicon from PC or Media Library (PNG or ICO, 512×512)");
       return;
     }
     setIsFaviconSubmitting(true);
     setProgress(50);
     try {
-      const payload = await updateFavicon(faviconFile);
+      const payload = await updateFavicon(faviconFile, faviconLibraryUrl);
       if (payload?.faviconUrl) {
         setFavicon(payload.faviconUrl);
         setFaviconFile(null);
+        setFaviconLibraryUrl(null);
         await loadLogo();
       }
     } finally {
@@ -165,6 +203,7 @@ export default function Logo() {
         setCurrentFaviconUrl("");
         setFaviconPreview(null);
         setFaviconFile(null);
+        setFaviconLibraryUrl(null);
         setAssetUpdatedAt(null);
         await loadLogo();
       }
@@ -180,18 +219,19 @@ export default function Logo() {
     setProgress(50);
 
     try {
-      if (!logoFile && !currentLogoUrl) {
-        toast.error("Please upload a logo image");
+      if (!logoFile && !logoLibraryUrl && !currentLogoUrl) {
+        toast.error("Please upload a logo image or select from Media Library");
         setIsSubmitting(false);
         setProgress(100);
         return;
       }
 
-      const result = await updateLogo(logoFile, altText.trim());
+      const result = await updateLogo(logoFile, altText.trim(), logoLibraryUrl);
 
       if (result) {
         // Clear the file preview and reload from API
         setLogoFile(null);
+        setLogoLibraryUrl(null);
         setLogoPreview(null);
         await loadLogo();
       }
@@ -220,6 +260,7 @@ export default function Logo() {
         setCurrentLogoUrl("");
         setLogoPreview(null);
         setLogoFile(null);
+        setLogoLibraryUrl(null);
         await loadLogo();
       }
     } catch (error) {
@@ -330,8 +371,10 @@ export default function Logo() {
                     <div>
                       <ImageUploader
                         label="Upload Logo *"
+                        helperText="Upload from PC or choose from Media Library (max 5MB)."
                         value={logoPreview}
                         onChange={handleFileChange}
+                        onSelectFromLibrary={() => setMediaPickerTarget("logo")}
                         required={!currentLogoUrl}
                         accept="image/*"
                         maxSizeMB={5}
@@ -377,7 +420,10 @@ export default function Logo() {
                       </div>
                       <button
                         type="submit"
-                        disabled={isSubmitting || (!logoFile && !currentLogoUrl)}
+                        disabled={
+                          isSubmitting ||
+                          (!logoFile && !logoLibraryUrl && !currentLogoUrl)
+                        }
                         className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {isSubmitting ? "Saving..." : "Save Changes"}
@@ -433,8 +479,10 @@ export default function Logo() {
                     <div>
                       <ImageUploader
                         label="Upload favicon"
+                        helperText="Upload from PC or choose from Media Library. Must be exactly 512×512."
                         value={faviconPreview}
                         onChange={handleFaviconFileChange}
+                        onSelectFromLibrary={() => setMediaPickerTarget("favicon")}
                         required={false}
                         accept=".png,.ico,image/png,image/x-icon,image/vnd.microsoft.icon"
                         maxSizeMB={2}
@@ -464,7 +512,7 @@ export default function Logo() {
                         type="submit"
                         disabled={
                           isFaviconSubmitting ||
-                          !faviconFile
+                          (!faviconFile && !faviconLibraryUrl)
                         }
                         className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed"
                       >
@@ -505,6 +553,12 @@ export default function Logo() {
           </div>
         </main>
       </div>
+
+      <MediaLibraryPicker
+        isOpen={mediaPickerTarget !== null}
+        onClose={() => setMediaPickerTarget(null)}
+        onSelect={handleMediaLibrarySelect}
+      />
     </>
   );
 }

@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import PropTypes from 'prop-types';
-import { FiX, FiUpload, FiImage } from 'react-icons/fi';
+import { FiX, FiUpload, FiFolder } from 'react-icons/fi';
 
 async function verifyImageDimensions(file, width, height) {
   return new Promise((resolve) => {
@@ -51,6 +51,8 @@ const ImageUploader = ({
   /** e.g. ['.ico'] — skip client-side dimension check; server may still validate */
   dimensionCheckSkipExtensions = [],
   fileTypeHint = null,
+  /** When provided, shows a Media Library button alongside local upload */
+  onSelectFromLibrary = null,
 }) => {
   const fileInputRef = useRef(null);
 
@@ -154,6 +156,15 @@ const ImageUploader = ({
             >
               Change
             </button>
+            {onSelectFromLibrary ? (
+              <button
+                type="button"
+                onClick={onSelectFromLibrary}
+                className="rounded-md bg-white px-2 py-1 text-xs font-medium text-gray-700 shadow-md hover:bg-gray-100 transition-colors"
+              >
+                Library
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={handleRemove}
@@ -162,6 +173,53 @@ const ImageUploader = ({
             >
               <FiX size={16} className="text-gray-700" />
             </button>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={accept}
+            onChange={handleFileInputChange}
+            className="hidden"
+          />
+        </div>
+      ) : onSelectFromLibrary ? (
+        <div
+          className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
+            error
+              ? 'border-red-300 bg-red-50'
+              : 'border-gray-300 hover:border-primary'
+          }`}
+          onDragEnter={handleDrag}
+          onDragLeave={handleDrag}
+          onDragOver={handleDrag}
+          onDrop={handleDrop}
+        >
+          <div className="flex flex-col items-center justify-center">
+            <FiUpload className="h-8 w-8 text-gray-400 mb-2" />
+            <p className="text-sm text-gray-600">
+              Upload from PC or choose from Media Library
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              {fileTypeHint || `PNG, JPG, WEBP up to ${maxSizeMB}MB`}
+            </p>
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={handleClick}
+                className="inline-flex items-center gap-1.5 rounded-md bg-white border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+              >
+                <FiUpload size={14} />
+                Upload from PC
+              </button>
+              <button
+                type="button"
+                onClick={onSelectFromLibrary}
+                className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white hover:opacity-90"
+              >
+                <FiFolder size={14} />
+                Media Library
+              </button>
+            </div>
           </div>
           <input
             ref={fileInputRef}
@@ -225,6 +283,7 @@ ImageUploader.propTypes = {
   }),
   dimensionCheckSkipExtensions: PropTypes.arrayOf(PropTypes.string),
   fileTypeHint: PropTypes.string,
+  onSelectFromLibrary: PropTypes.func,
 };
 
 export default ImageUploader;

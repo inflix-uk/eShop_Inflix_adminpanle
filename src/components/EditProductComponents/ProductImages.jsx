@@ -1,10 +1,23 @@
 import PropTypes from "prop-types";
 import { useState, useRef } from "react";
 import { toast } from "react-toastify";
+import { FaUpload, FaFolder } from "react-icons/fa";
 import ProductApi from "../../pages/adminpages/productsNew/api/productApi";
+import MediaLibraryPicker from "../../pages/adminpages/media/components/media/MediaLibraryPicker";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 const productApi = new ProductApi();
+
+function mediaUrlToImageObject(url) {
+  const filename = String(url).split("/").pop()?.split("?")[0] || "media-image";
+  return {
+    filename,
+    path: null,
+    url: String(url),
+    altText: "",
+    description: "",
+  };
+}
 
 export default function ProductImages({
   product,
@@ -20,7 +33,12 @@ export default function ProductImages({
   const [expandedGalleryIndex, setExpandedGalleryIndex] = useState(null);
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
+  /** null | 'thumbnail' | 'gallery' */
+  const [mediaPickerTarget, setMediaPickerTarget] = useState(null);
   const dragCounter = useRef(0);
+  const thumbnailInputRef = useRef(null);
+  const galleryInputRef = useRef(null);
+  const galleryAddMoreInputRef = useRef(null);
 
   const handleThumbnailMetaChange = (field, value) => {
     setProduct({
@@ -180,6 +198,40 @@ export default function ProductImages({
     return '';
   };
 
+  const handleMediaLibrarySelect = (url) => {
+    if (!url) {
+      setMediaPickerTarget(null);
+      return;
+    }
+
+    if (mediaPickerTarget === "thumbnail") {
+      const imageObj = mediaUrlToImageObject(url);
+      setProductThumbnailImage(url);
+      setProduct({
+        ...product,
+        thumbnail_image: {
+          ...(product.thumbnail_image && !(product.thumbnail_image instanceof File)
+            ? product.thumbnail_image
+            : {}),
+          ...imageObj,
+        },
+      });
+      toast.success("Thumbnail selected from Media Library");
+    } else if (mediaPickerTarget === "gallery") {
+      const imageObj = mediaUrlToImageObject(url);
+      const existingImages = product.Gallery_Images || [];
+      const updatedGalleryImages = [...existingImages, imageObj];
+      setProductGalleryImages(updatedGalleryImages);
+      setProduct({
+        ...product,
+        Gallery_Images: updatedGalleryImages,
+      });
+      toast.success("Gallery image selected from Media Library");
+    }
+
+    setMediaPickerTarget(null);
+  };
+
   const hasThumbnail = ProductThumbnailImage || product?.thumbnail_image?.path || product?.thumbnail_image?.url;
   const galleryCount = product.Gallery_Images?.length || 0;
 
@@ -233,10 +285,31 @@ export default function ProductImages({
                 </svg>
               )}
             </div>
-            <label className="block text-center mt-1 text-[9px] text-primary font-medium cursor-pointer hover:underline">
-              {hasThumbnail ? "Change" : "Upload"}
-              <input type="file" className="sr-only" accept="image/*" onChange={handleProductThumbnailImage} />
-            </label>
+            <div className="mt-1.5 flex flex-col gap-1">
+              <input
+                ref={thumbnailInputRef}
+                type="file"
+                className="sr-only"
+                accept="image/*"
+                onChange={handleProductThumbnailImage}
+              />
+              <button
+                type="button"
+                onClick={() => thumbnailInputRef.current?.click()}
+                className="inline-flex items-center justify-center gap-1 text-[9px] text-primary font-medium hover:underline"
+              >
+                <FaUpload size={9} />
+                {hasThumbnail ? "Upload from PC" : "Upload from PC"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setMediaPickerTarget("thumbnail")}
+                className="inline-flex items-center justify-center gap-1 text-[9px] font-medium text-white bg-primary rounded px-1.5 py-0.5 hover:opacity-90"
+              >
+                <FaFolder size={9} />
+                Media Library
+              </button>
+            </div>
           </div>
           
           {/* Thumbnail Alt Text & Description */}
@@ -336,14 +409,35 @@ export default function ProductImages({
                       </div>
                     </div>
                   ))}
-                  {/* Add Multiple Images Button */}
-                  <label className="w-16 h-16 flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-md cursor-pointer hover:border-primary hover:bg-primary/5 transition-colors group">
-                    <svg className="w-4 h-4 text-gray-400 group-hover:text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                    </svg>
-                    <span className="text-[7px] text-gray-400 group-hover:text-primary mt-0.5">Add More</span>
-                    <input type="file" className="sr-only" multiple accept="image/*" onChange={handleProductGalleryImages} />
-                  </label>
+                  {/* Add More — PC or Media Library */}
+                  <div className="w-16 h-16 flex flex-col items-center justify-center gap-0.5 border-2 border-dashed border-gray-300 rounded-md">
+                    <input
+                      ref={galleryAddMoreInputRef}
+                      type="file"
+                      className="sr-only"
+                      multiple
+                      accept="image/*"
+                      onChange={handleProductGalleryImages}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => galleryAddMoreInputRef.current?.click()}
+                      className="text-[7px] text-primary font-medium hover:underline leading-tight"
+                      title="Upload from PC"
+                    >
+                      <FaUpload className="mx-auto mb-0.5" size={10} />
+                      PC
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setMediaPickerTarget("gallery")}
+                      className="text-[7px] text-white bg-primary rounded px-1 py-0.5 font-medium hover:opacity-90 leading-tight"
+                      title="Media Library"
+                    >
+                      <FaFolder className="mx-auto mb-0.5" size={10} />
+                      Library
+                    </button>
+                  </div>
                 </div>
 
                 {/* Expanded Gallery Image Meta Fields */}
@@ -383,19 +477,50 @@ export default function ProductImages({
                 )}
               </div>
             ) : (
-              <label className="h-full flex flex-col items-center justify-center py-4 cursor-pointer hover:bg-blue-50/50 transition-colors rounded-md">
+              <div className="h-full flex flex-col items-center justify-center py-4 rounded-md">
                 <svg className="w-8 h-8 text-gray-300 mb-2" viewBox="0 0 24 24" fill="currentColor">
                   <path fillRule="evenodd" d="M1.5 6a2.25 2.25 0 012.25-2.25h16.5A2.25 2.25 0 0122.5 6v12a2.25 2.25 0 01-2.25 2.25H3.75A2.25 2.25 0 011.5 18V6zM3 16.06V18c0 .414.336.75.75.75h16.5A.75.75 0 0021 18v-1.94l-2.69-2.689a1.5 1.5 0 00-2.12 0l-.88.879.97.97a.75.75 0 11-1.06 1.06l-5.16-5.159a1.5 1.5 0 00-2.12 0L3 16.061zm10.125-7.81a1.125 1.125 0 112.25 0 1.125 1.125 0 01-2.25 0z" clipRule="evenodd" />
                 </svg>
-                <span className="text-[11px] text-primary font-medium">+ Add Gallery Images</span>
-                <span className="text-[9px] text-gray-400 mt-1">Select multiple images at once</span>
-                <input type="file" className="sr-only" multiple accept="image/*" onChange={handleProductGalleryImages} />
-              </label>
+                <span className="text-[11px] text-gray-700 font-medium mb-2">Add Gallery Images</span>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  <input
+                    ref={galleryInputRef}
+                    type="file"
+                    className="sr-only"
+                    multiple
+                    accept="image/*"
+                    onChange={handleProductGalleryImages}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => galleryInputRef.current?.click()}
+                    className="inline-flex items-center gap-1 rounded-md border border-gray-300 bg-white px-2.5 py-1 text-[10px] font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    <FaUpload size={10} />
+                    Upload from PC
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMediaPickerTarget("gallery")}
+                    className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 text-[10px] font-medium text-white hover:opacity-90"
+                  >
+                    <FaFolder size={10} />
+                    Media Library
+                  </button>
+                </div>
+                <span className="text-[9px] text-gray-400 mt-2">Select multiple from PC, or one at a time from library</span>
+              </div>
             )}
           </div>
-          <p className="text-[9px] text-gray-400 mt-1">Select multiple images at once • Click image to edit details • Drag to reorder</p>
+          <p className="text-[9px] text-gray-400 mt-1">PC upload or Media Library • Click image to edit details • Drag to reorder</p>
         </div>
       </div>
+
+      <MediaLibraryPicker
+        isOpen={mediaPickerTarget !== null}
+        onClose={() => setMediaPickerTarget(null)}
+        onSelect={handleMediaLibrarySelect}
+      />
     </div>
   );
 }

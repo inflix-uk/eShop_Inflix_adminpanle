@@ -66,16 +66,19 @@ export const getLogo = async () => {
 
 /**
  * Update logo
- * @param {File} logoFile - The logo image file
+ * @param {File|null} logoFile - The logo image file (optional if logoUrl provided)
  * @param {string} altText - Alt text for the logo
+ * @param {string|null} logoUrl - Media library URL (optional if logoFile provided)
  * @returns {Promise<boolean>} True if successful
  */
-export const updateLogo = async (logoFile, altText = 'Logo') => {
+export const updateLogo = async (logoFile, altText = 'Logo', logoUrl = null) => {
   try {
     const formData = new FormData();
     
     if (logoFile && logoFile instanceof File) {
       formData.append('logo', logoFile);
+    } else if (logoUrl && typeof logoUrl === 'string') {
+      formData.append('logoUrl', logoUrl);
     }
     
     formData.append('altText', altText.trim() || 'Logo');
@@ -130,18 +133,18 @@ export const deleteLogo = async () => {
 };
 
 /**
- * Update favicon (PNG or ICO, 512×512)
- * @param {File} faviconFile
- * @returns {Promise<boolean>}
- */
-/**
+ * Update favicon (PNG or ICO, 512×512) from file or media library URL
+ * @param {File|null} faviconFile
+ * @param {string|null} faviconUrl
  * @returns {Promise<{ faviconUrl: string; updatedAt: number; faviconVersion?: number } | null>}
  */
-export const updateFavicon = async (faviconFile) => {
+export const updateFavicon = async (faviconFile, faviconUrl = null) => {
   try {
     const formData = new FormData();
     if (faviconFile && faviconFile instanceof File) {
       formData.append('favicon', faviconFile);
+    } else if (faviconUrl && typeof faviconUrl === 'string') {
+      formData.append('faviconUrl', faviconUrl);
     }
 
     const response = await axios.post(

@@ -258,6 +258,8 @@ export default function FooterSettings() {
                     onSave={(data) =>
                       handleSaveSection("sectionNewsletter", data)
                     }
+                    onUploadImage={uploadFooterImage}
+                    backendUrl={auth.ip}
                     isSaving={isSaving}
                   />
                 </Tab.Panel>

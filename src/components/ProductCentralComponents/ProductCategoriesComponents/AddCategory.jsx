@@ -1,9 +1,11 @@
 import React, { useState, useRef } from 'react'
 import LoadingBar from 'react-top-loading-bar'
 import { Editor } from "@tinymce/tinymce-react";
+import { FaUpload, FaFolder } from "react-icons/fa";
 import ProductCentralTabs from '../../../pages/adminpages/ProductCentral/ProductCentralTabs'
 import Top from '../../../pages/adminpages/nav/Top'
 import Side from '../../../pages/adminpages/nav/Side'
+import MediaLibraryPicker from '../../../pages/adminpages/media/components/media/MediaLibraryPicker'
 import axios from 'axios'
 import { toast } from 'react-toastify'
 import { useAuth } from '../../../context/Auth';
@@ -71,7 +73,9 @@ export default function AddCategory() {
     const [metaSchemas, setMetaSchemas] = useState([""]);
     const [metaKeywords, setMetaKeywords] = useState("");
     const [googleCategorySelection, setGoogleCategorySelection] = useState(null);
+    const [isBannerMediaPickerOpen, setIsBannerMediaPickerOpen] = useState(false);
     const editorRef = useRef(null);
+    const bannerInputRef = useRef(null);
     // Function to add new schema input
     const handleAddSchema = () => {
         setMetaSchemas([...metaSchemas, ""]);
@@ -199,52 +203,108 @@ export default function AddCategory() {
             toast.error("Enter a product name");
             setErrState(true);
             setProgress(100);
-        } else {
-            const formData = new FormData();
-            const formattedName = formatCategoryName(productName);
-            formData.append("name", formattedName);
-            formData.append("Logo", productIcon);
-            formData.append("banner", productImage);
-            formData.append("metaTitle", productMetaTitle);
-            formData.append("metaImage", productMetaImage);
-            formData.append("metaDescription", productMetaDesc);
-            formData.append("metaKeywords", productMetaKeywords);
-            formData.append("metaSchemas", JSON.stringify(metaSchemas));
-            const editorContent = editorRef.current ? editorRef.current.getContent() : productContent;
-            formData.append("content", editorContent);
-            if (googleCategorySelection?.googleCategoryId) {
-                formData.append("googleCategoryId", String(googleCategorySelection.googleCategoryId));
-                formData.append("googleCategoryName", googleCategorySelection.googleCategoryName || "");
-                formData.append("googleCategoryFullPath", googleCategorySelection.googleCategoryFullPath || "");
-            }
-            formData.append("isFeatured", true);
-            formData.append("isPublish", true);
-            
-            axios.post(`${auth.ip}create/product/category`, formData)
-                .then((response) => {
-                    if (response.data.status === 201) {
-                        toast.success(response.data.message);
-                        setErrState(false);
-                        set_productName("");
-                        set_productDesc("");
-                        set_productMetaTitle("");
-                        set_productMetaImage("");
-                        set_productImage("");
-                        setProductIcon("");
-                        set_productMetaDesc("");
-                        set_productMetaKeywords("");
-                        setMetaSchemas([""]);
-                        set_productContent("");
-                        setGoogleCategorySelection(null);
-                        setProgress(100);
-                        navigate('/admin/product-central')
-                    } else {
-                        toast.error(response.data.message);
-                        setErrState(true);
-                        setProgress(100);
-                    }
-                });
+            return;
         }
+
+        const hasBannerFile = productImage instanceof File;
+        const hasBannerUrl =
+            productImage &&
+            typeof productImage === "object" &&
+            !(productImage instanceof File) &&
+            (productImage.url || productImage.path);
+
+        if (!hasBannerFile && !hasBannerUrl) {
+            toast.error("Category Banner is required");
+            setErrState(true);
+            setProgress(100);
+            return;
+        }
+
+        const formData = new FormData();
+        const formattedName = formatCategoryName(productName);
+        formData.append("name", formattedName);
+        if (productIcon instanceof File) {
+            formData.append("Logo", productIcon);
+        }
+        if (hasBannerFile) {
+            formData.append("banner", productImage);
+        } else if (productImage?.url) {
+            formData.append("bannerUrl", productImage.url);
+        } else if (productImage?.path) {
+            formData.append(
+                "bannerUrl",
+                productImage.path.startsWith("http")
+                    ? productImage.path
+                    : `${auth.ip}${productImage.path.replace(/^\//, "")}`
+            );
+        }
+        formData.append("metaTitle", productMetaTitle);
+        if (productMetaImage instanceof File) {
+            formData.append("metaImage", productMetaImage);
+        }
+        formData.append("metaDescription", productMetaDesc);
+        formData.append("metaKeywords", productMetaKeywords);
+        formData.append("metaSchemas", JSON.stringify(metaSchemas));
+        const editorContent = editorRef.current ? editorRef.current.getContent() : productContent;
+        formData.append("content", editorContent);
+        if (googleCategorySelection?.googleCategoryId) {
+            formData.append("googleCategoryId", String(googleCategorySelection.googleCategoryId));
+            formData.append("googleCategoryName", googleCategorySelection.googleCategoryName || "");
+            formData.append("googleCategoryFullPath", googleCategorySelection.googleCategoryFullPath || "");
+        }
+        formData.append("isFeatured", true);
+        formData.append("isPublish", true);
+        
+        axios.post(`${auth.ip}create/product/category`, formData)
+            .then((response) => {
+                if (response.data.status === 201) {
+                    toast.success(response.data.message);
+                    setErrState(false);
+                    set_productName("");
+                    set_productDesc("");
+                    set_productMetaTitle("");
+                    set_productMetaImage("");
+                    set_productImage(null);
+                    setProductIcon(null);
+                    set_productMetaDesc("");
+                    set_productMetaKeywords("");
+                    setMetaSchemas([""]);
+                    set_productContent("");
+                    setGoogleCategorySelection(null);
+                    setProgress(100);
+                    navigate('/admin/product-central')
+                } else {
+                    toast.error(response.data.message);
+                    setErrState(true);
+                    setProgress(100);
+                }
+            });
+    };
+
+    const handleBannerMediaSelect = (url) => {
+        if (!url) {
+            setIsBannerMediaPickerOpen(false);
+            return;
+        }
+        const filename = String(url).split("/").pop()?.split("?")[0] || "banner";
+        set_productImage({
+            filename,
+            path: null,
+            url: String(url),
+        });
+        setIsBannerMediaPickerOpen(false);
+        toast.success("Banner selected from Media Library");
+    };
+
+    const getBannerPreviewSrc = () => {
+        if (!productImage) return "";
+        if (productImage instanceof File) return URL.createObjectURL(productImage);
+        if (productImage.url) return productImage.url;
+        if (productImage.path) {
+            if (String(productImage.path).startsWith("http")) return productImage.path;
+            return `${auth.ip}${productImage.path}`;
+        }
+        return "";
     };
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const toggleSidebar = () => {
@@ -380,37 +440,22 @@ export default function AddCategory() {
                                                     >
                                                         Category Banner <span className="text-red-600">*</span>
                                                     </label>
-                                                    <div className="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 w-full">
+                                                    <p className="text-xs text-gray-500 mb-2">
+                                                        Upload from PC or choose from Media Library.
+                                                    </p>
+                                                    <div className="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 w-full p-4">
                                                         <div className="text-center">
                                                             {productImage ? (
                                                                 <>
-                                                                    {productImage.path ? (
-                                                                        <>
-                                                                            <img
-                                                                                src={`${auth.ip}${productImage.path}`}
-                                                                                alt="path"
-                                                                                className="h-12 rounded-md mx-auto cursor-pointer"
-                                                                                onClick={() => {
-                                                                                    set_productImage(null);
-                                                                                }}
-                                                                            />
-                                                                            <p className="text-xs  text-red-600">
-                                                                                Click Image to Delete
-                                                                            </p>
-                                                                        </>
-                                                                    ) : (
-                                                                        <>
-                                                                            <img
-                                                                                src={URL.createObjectURL(productImage)}
-                                                                                alt="obj"
-                                                                                className="h-12 rounded-md mx-auto cursor-pointer"
-                                                                                onClick={() => set_productImage(null)}
-                                                                            />
-                                                                            <p className="text-xs  text-red-600">
-                                                                                Click Image to Delete
-                                                                            </p>
-                                                                        </>
-                                                                    )}
+                                                                    <img
+                                                                        src={getBannerPreviewSrc()}
+                                                                        alt="Category banner preview"
+                                                                        className="h-12 rounded-md mx-auto cursor-pointer"
+                                                                        onClick={() => set_productImage(null)}
+                                                                    />
+                                                                    <p className="text-xs text-red-600">
+                                                                        Click Image to Delete
+                                                                    </p>
                                                                 </>
                                                             ) : (
                                                                 <svg
@@ -426,22 +471,35 @@ export default function AddCategory() {
                                                                     />
                                                                 </svg>
                                                             )}
-                                                            <div className="mt-2  text-sm leading-6 text-gray-600">
-                                                                <label
-                                                                    htmlFor="categoryBanner"
-                                                                    className="relative cursor-pointer rounded-md bg-white font-semibold text-primary focus-within:outline-none focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 hover:text-primary px-2">
-                                                                    <span>Banner</span>
-                                                                    <input
-                                                                        id="categoryBanner"
-                                                                        name="categoryBanner"
-                                                                        type="file"
-                                                                        className="sr-only"
-                                                                        onChange={(event) => {
-                                                                            handleCategoryImage(event);
-                                                                        }}
-                                                                        accept="image/*"
-                                                                    />
-                                                                </label>
+                                                            <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                                                                <input
+                                                                    ref={bannerInputRef}
+                                                                    id="categoryBanner"
+                                                                    name="categoryBanner"
+                                                                    type="file"
+                                                                    className="sr-only"
+                                                                    onChange={(event) => {
+                                                                        handleCategoryImage(event);
+                                                                        event.target.value = "";
+                                                                    }}
+                                                                    accept="image/*"
+                                                                />
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => bannerInputRef.current?.click()}
+                                                                    className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                                                                >
+                                                                    <FaUpload size={11} />
+                                                                    Upload from PC
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => setIsBannerMediaPickerOpen(true)}
+                                                                    className="inline-flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-white shadow-sm hover:opacity-90"
+                                                                >
+                                                                    <FaFolder size={11} />
+                                                                    Media Library
+                                                                </button>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -641,6 +699,12 @@ export default function AddCategory() {
                     </div>
                 </main>
             </div>
+
+            <MediaLibraryPicker
+                isOpen={isBannerMediaPickerOpen}
+                onClose={() => setIsBannerMediaPickerOpen(false)}
+                onSelect={handleBannerMediaSelect}
+            />
         </>
     )
 }
