@@ -30,7 +30,7 @@ export default function BlogCategories() {
   const handleDelete = (id) => {
     setProgress(50);
     axios
-      .delete(` ${auth.ip}delete/blog/category/${id}`)
+      .delete(`${auth.ip}delete/blog/category/${id}`)
       .then((response) => {
         if (response.data.status === 201) {
           toast.error(response.data.message);
@@ -53,7 +53,7 @@ export default function BlogCategories() {
     setProgress(50);
     axios
       .patch(
-        ` ${auth.ip}feature/blog/category/${categories[index]._id}`,
+        `${auth.ip}feature/blog/category/${categories[index]._id}`,
         { isFeatured: updatedCategories[index].isFeatured }
       )
       .then((response) => {
@@ -78,7 +78,7 @@ export default function BlogCategories() {
     setProgress(50);
     axios
       .patch(
-        ` ${auth.ip}status/blog/category/${categories[index]._id}`,
+        `${auth.ip}status/blog/category/${categories[index]._id}`,
         { isPublish: updatedCategories[index].isPublish }
       )
       .then((response) => {
@@ -196,7 +196,7 @@ export default function BlogCategories() {
 
   const refreshCategories = useCallback(() => {
     setProgress(50);
-    axios.get(` ${auth.ip}get/blog/category/all`).then((response) => {
+    axios.get(`${auth.ip}get/blog/category/all`).then((response) => {
       if (response.data.status === 201) {
         setCategories(response.data.categories);
         setProgress(100);

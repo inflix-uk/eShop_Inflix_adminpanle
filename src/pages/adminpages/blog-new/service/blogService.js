@@ -20,6 +20,9 @@ function blogApiUrl(resourcePath) {
   return `${API_BASE_URL}/${path}`;
 }
 
+/** Cookie-based admin auth — must match axios `withCredentials` used elsewhere. */
+const AUTH_FETCH = { credentials: "include" };
+
 /** HTTPS admin pages cannot call `http://` APIs (browser mixed-content block → Failed to fetch). */
 function assertBrowserCanReachApi() {
   if (typeof window === "undefined") return;
@@ -135,6 +138,7 @@ export const createBlogPost = async (blogData) => {
     
     const response = await fetch(url, {
       method: 'POST',
+      ...AUTH_FETCH,
       // Don't set Content-Type header, browser will set it with boundary for FormData
       body: formData
     });
@@ -204,6 +208,7 @@ export const updateBlogPost = async (id, blogData) => {
     
     const response = await fetch(url, {
       method: 'PUT',
+      ...AUTH_FETCH,
       // Don't set Content-Type header, browser will set it with boundary for FormData
       body: formData
     });
@@ -223,7 +228,7 @@ export const updateBlogPost = async (id, blogData) => {
  */
 export const getBlogPostById = async (id) => {
   try {
-    const response = await fetch(blogApiUrl(`newblog/blog/posts/${id}`));
+    const response = await fetch(blogApiUrl(`newblog/blog/posts/${id}`), AUTH_FETCH);
     const data = await handleResponse(response);
     return data.data;
   } catch (error) {
@@ -295,7 +300,8 @@ export const getAllBlogPosts = async (filters = {}) => {
 export const deleteBlogPost = async (id) => {
   try {
     const response = await fetch(blogApiUrl(`newblog/blog/posts/${id}`), {
-      method: 'DELETE'
+      method: 'DELETE',
+      ...AUTH_FETCH,
     });
     
     const data = await handleResponse(response);
@@ -337,7 +343,7 @@ export const getAllCategories = async () => {
  */
 export const getCategoryStats = async () => {
   try {
-    const response = await fetch(blogApiUrl("newblog/blog/category-stats"));
+    const response = await fetch(blogApiUrl("newblog/blog/category-stats"), AUTH_FETCH);
     const data = await handleResponse(response);
     return data.data;
   } catch (error) {
@@ -353,7 +359,7 @@ export const getCategoryStats = async () => {
  */
 export const getCategoryById = async (id) => {
   try {
-    const response = await fetch(blogApiUrl(`newblog/blog/categories/${id}`));
+    const response = await fetch(blogApiUrl(`newblog/blog/categories/${id}`), AUTH_FETCH);
     const data = await handleResponse(response);
     return data.data;
   } catch (error) {
@@ -371,6 +377,7 @@ export const createCategory = async (categoryData) => {
   try {
     const response = await fetch(blogApiUrl("newblog/blog/categories"), {
       method: 'POST',
+      ...AUTH_FETCH,
       headers: {
         'Content-Type': 'application/json'
       },
@@ -395,6 +402,7 @@ export const updateCategory = async (id, categoryData) => {
   try {
     const response = await fetch(blogApiUrl(`newblog/blog/categories/${id}`), {
       method: 'PUT',
+      ...AUTH_FETCH,
       headers: {
         'Content-Type': 'application/json'
       },
@@ -417,7 +425,8 @@ export const updateCategory = async (id, categoryData) => {
 export const deleteCategory = async (id) => {
   try {
     const response = await fetch(blogApiUrl(`newblog/blog/categories/${id}`), {
-      method: 'DELETE'
+      method: 'DELETE',
+      ...AUTH_FETCH,
     });
     
     const data = await handleResponse(response);

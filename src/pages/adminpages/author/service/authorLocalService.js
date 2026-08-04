@@ -28,6 +28,7 @@ export async function syncAuthorToBlogs(profile, previousName) {
     const base = String(BACKEND_URL).replace(/\/$/, "");
     await fetch(`${base}/newblog/blog/profile-sync`, {
       method: "POST",
+      credentials: "include",
       headers: {
         "Content-Type": "application/json",
       },
