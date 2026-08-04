@@ -35,7 +35,7 @@ export default function BlogTags() {
     console.log(updatedtags[index].isPublish);
     setProgress(50);
     axios
-      .patch(` ${auth.ip}publish/blog/tag/${tags[index]._id}`, {
+      .patch(`${auth.ip}publish/blog/tag/${tags[index]._id}`, {
         isPublish: updatedtags[index].isPublish,
       })
       .then((response) => {
@@ -54,7 +54,7 @@ export default function BlogTags() {
   const handleDelete = (id) => {
     setProgress(50);
     axios
-      .delete(` ${auth.ip}delete/blog/tag/${id}`)
+      .delete(`${auth.ip}delete/blog/tag/${id}`)
       .then((response) => {
         if (response.data.status === 201) {
           toast.success(response.data.message);
@@ -194,7 +194,7 @@ export default function BlogTags() {
 
   function getTags() {
     setProgress(50);
-    axios.get(` ${auth.ip}get/blog/tag/all`).then((response) => {
+    axios.get(`${auth.ip}get/blog/tag/all`).then((response) => {
       if (response.data.status === 201) {
         // toast.success(response.data.message);
         setErrState(false);
@@ -436,7 +436,7 @@ export default function BlogTags() {
                             <>
                               <img
                                 // src={` localhost:4000/${tagMetaImage.path}`}
-                                src={` ${auth.ip}${tagMetaImage.path}`}
+                                src={`${auth.ip}${tagMetaImage.path}`}
                                 alt="path"
                                 className="h-12 rounded-md mx-auto cursor-pointer"
                                 onClick={() => {
