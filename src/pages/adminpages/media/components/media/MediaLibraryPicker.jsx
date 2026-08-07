@@ -1,8 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import PropTypes from 'prop-types';
-import { FiX, FiImage } from 'react-icons/fi';
+import { FiX, FiImage, FiFilm } from 'react-icons/fi';
 import { useAuth } from '../../../../../context/Auth';
 import { getSpacesFiles } from '../../service/mediaService';
+import {
+  filterDirectoriesByMediaType,
+  getDirectoryDisplayName,
+  isVideoFileName,
+} from '../../utils/mediaUtils';
 
 function resolveMediaUrl(file, backendUrl) {
   if (file?.url && (file.url.startsWith('http://') || file.url.startsWith('https://'))) {
@@ -22,16 +27,37 @@ function resolveMediaUrl(file, backendUrl) {
 }
 
 /**
- * Modal to browse Media Library (Spaces) and select an image URL.
+ * Modal to browse Media Library (Spaces) and select an image or video URL.
+ * @param {'images'|'videos'|'all'} mediaType
  */
-const MediaLibraryPicker = ({ isOpen, onClose, onSelect }) => {
+const MediaLibraryPicker = ({
+  isOpen,
+  onClose,
+  onSelect,
+  mediaType = 'images',
+}) => {
   const auth = useAuth();
-  const [directories, setDirectories] = useState([]);
+  const [allDirectories, setAllDirectories] = useState([]);
   const [selectedTab, setSelectedTab] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [spacesConfigured, setSpacesConfigured] = useState(true);
+  const [activeType, setActiveType] = useState(
+    mediaType === 'all' ? 'images' : mediaType
+  );
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setActiveType(mediaType === 'all' ? 'images' : mediaType);
+  }, [isOpen, mediaType]);
+
+  const directories = useMemo(() => {
+    if (mediaType === 'all') {
+      return filterDirectoriesByMediaType(allDirectories, activeType);
+    }
+    return filterDirectoriesByMediaType(allDirectories, mediaType);
+  }, [allDirectories, mediaType, activeType]);
 
   useEffect(() => {
     if (!isOpen || !auth?.ip) return;
@@ -48,20 +74,23 @@ const MediaLibraryPicker = ({ isOpen, onClose, onSelect }) => {
         setSpacesConfigured(Boolean(result.spacesConfigured));
 
         if (!result.success) {
-          setDirectories([]);
+          setAllDirectories([]);
           setError(result.error || 'Failed to load media library');
           return;
         }
 
         const filtered = (result.contents || []).filter(
-          (directory) => directory.name !== 'images' && directory.name !== 'feed'
+          (directory) =>
+            directory.name !== 'images' &&
+            directory.name !== 'feed' &&
+            !String(directory.name).startsWith('images/') &&
+            !String(directory.name).startsWith('feed/')
         );
-        setDirectories(filtered);
-        setSelectedTab((prev) => prev || filtered[0]?.name || null);
+        setAllDirectories(filtered);
       } catch (err) {
         if (!cancelled) {
           setError(err.message || 'Failed to load media library');
-          setDirectories([]);
+          setAllDirectories([]);
         }
       } finally {
         if (!cancelled) setLoading(false);
@@ -79,6 +108,17 @@ const MediaLibraryPicker = ({ isOpen, onClose, onSelect }) => {
       setSearchTerm('');
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!directories.length) {
+      setSelectedTab(null);
+      return;
+    }
+    const stillValid = directories.some((d) => d.name === selectedTab);
+    if (!stillValid) {
+      setSelectedTab(directories[0].name);
+    }
+  }, [directories, selectedTab]);
 
   const filteredFiles = useMemo(() => {
     const selectedDirectory = directories.find((dir) => dir.name === selectedTab);
@@ -100,6 +140,10 @@ const MediaLibraryPicker = ({ isOpen, onClose, onSelect }) => {
     onClose();
   };
 
+  const showingVideos =
+    mediaType === 'videos' ||
+    (mediaType === 'all' && activeType === 'videos');
+
   if (!isOpen) return null;
 
   return (
@@ -111,7 +155,9 @@ const MediaLibraryPicker = ({ isOpen, onClose, onSelect }) => {
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Media Library</h3>
               <p className="text-xs text-gray-500 mt-0.5">
-                Select an existing image, or close and upload from your PC.
+                {showingVideos
+                  ? 'Select an existing video, or close and upload from Media → Videos.'
+                  : 'Select an existing image, or close and upload from your PC.'}
               </p>
             </div>
             <button
@@ -125,11 +171,42 @@ const MediaLibraryPicker = ({ isOpen, onClose, onSelect }) => {
           </div>
 
           <div className="px-5 pt-4 pb-2 space-y-3 border-b border-gray-100">
+            {mediaType === 'all' && (
+              <div className="inline-flex rounded-lg border border-gray-200 p-1 bg-gray-50">
+                <button
+                  type="button"
+                  onClick={() => setActiveType('images')}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md ${
+                    activeType === 'images'
+                      ? 'bg-white shadow-sm text-gray-900'
+                      : 'text-gray-600'
+                  }`}
+                >
+                  Images
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveType('videos')}
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md ${
+                    activeType === 'videos'
+                      ? 'bg-white shadow-sm text-gray-900'
+                      : 'text-gray-600'
+                  }`}
+                >
+                  Videos
+                </button>
+              </div>
+            )}
+
             <input
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search images by name..."
+              placeholder={
+                showingVideos
+                  ? 'Search videos by name...'
+                  : 'Search images by name...'
+              }
               className="block w-full rounded-md border-gray-300 text-sm focus:border-primary focus:ring-primary"
             />
 
@@ -145,8 +222,9 @@ const MediaLibraryPicker = ({ isOpen, onClose, onSelect }) => {
                         ? 'bg-primary text-white'
                         : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
+                    title={directory.name}
                   >
-                    {directory.name}
+                    {getDirectoryDisplayName(directory.name)}
                   </button>
                 ))}
               </div>
@@ -168,14 +246,23 @@ const MediaLibraryPicker = ({ isOpen, onClose, onSelect }) => {
               </div>
             ) : filteredFiles.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-gray-500">
-                <FiImage className="h-10 w-10 mb-2 text-gray-300" />
-                <p className="text-sm">No images found in this folder.</p>
+                {showingVideos ? (
+                  <FiFilm className="h-10 w-10 mb-2 text-gray-300" />
+                ) : (
+                  <FiImage className="h-10 w-10 mb-2 text-gray-300" />
+                )}
+                <p className="text-sm">
+                  {showingVideos
+                    ? 'No videos found in this folder.'
+                    : 'No images found in this folder.'}
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                 {filteredFiles.map((file) => {
-                  const imageUrl = resolveMediaUrl(file, auth.ip);
+                  const mediaUrl = resolveMediaUrl(file, auth.ip);
                   const key = file.spacesKey || file.path || file._id || file.name;
+                  const isVideo = isVideoFileName(file.name || file.path || '');
                   return (
                     <button
                       key={key}
@@ -185,13 +272,25 @@ const MediaLibraryPicker = ({ isOpen, onClose, onSelect }) => {
                       title={file.title || file.name}
                     >
                       <div className="aspect-square bg-gray-50 flex items-center justify-center overflow-hidden">
-                        {imageUrl ? (
-                          <img
-                            src={imageUrl}
-                            alt={file.altText || file.title || file.name || 'Media'}
-                            className="h-full w-full object-contain"
-                            loading="lazy"
-                          />
+                        {mediaUrl ? (
+                          isVideo ? (
+                            <video
+                              src={mediaUrl}
+                              className="h-full w-full object-contain bg-black"
+                              muted
+                              playsInline
+                              preload="metadata"
+                            />
+                          ) : (
+                            <img
+                              src={mediaUrl}
+                              alt={file.altText || file.title || file.name || 'Media'}
+                              className="h-full w-full object-contain"
+                              loading="lazy"
+                            />
+                          )
+                        ) : isVideo ? (
+                          <FiFilm className="h-8 w-8 text-gray-300" />
                         ) : (
                           <FiImage className="h-8 w-8 text-gray-300" />
                         )}
@@ -227,6 +326,11 @@ MediaLibraryPicker.propTypes = {
   isOpen: PropTypes.bool.isRequired,
   onClose: PropTypes.func.isRequired,
   onSelect: PropTypes.func.isRequired,
+  mediaType: PropTypes.oneOf(['images', 'videos', 'all']),
+};
+
+MediaLibraryPicker.defaultProps = {
+  mediaType: 'images',
 };
 
 export default MediaLibraryPicker;
