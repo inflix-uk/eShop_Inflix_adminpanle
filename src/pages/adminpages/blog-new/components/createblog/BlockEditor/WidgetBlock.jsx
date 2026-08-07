@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { nanoid } from "nanoid";
 import {
@@ -42,6 +42,14 @@ import {
 } from "./categoryCardWidgetDefaults";
 import ContactWidgetEditor from "../../../../homepage-widgets/components/ContactWidgetEditor";
 import { createDefaultContactUsWidgetContent } from "./contactUsWidgetBlockDefaults";
+import {
+  applySegmentUpdates,
+  attachPreviewEditTargets,
+  buildHtmlCssPreviewSrcDoc,
+  extractTextDocumentModel,
+  getPreviewEditModel,
+  syncTextDocumentToHtml,
+} from "../../../utils/htmlCssContentEdit";
 
 const MAX_SLIDES = 10;
 const MAX_SITE_BANNER_ITEMS = 8;
@@ -219,6 +227,484 @@ function IconBoxLucidePreview({ code }) {
   );
 }
 
+const HTML_CSS_TAB_CLASS = (active) =>
+  `min-w-[4.5rem] rounded-md px-3 py-2 text-center text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-1 ${
+    active
+      ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200/90"
+      : "bg-transparent text-gray-600 hover:bg-gray-200/60 hover:text-gray-900"
+  }`;
+
+function HtmlCssWidgetEditor({ id, content, onChange, onDelete, onMoveUp, onMoveDown }) {
+  const [htmlCssTab, setHtmlCssTab] = useState("html");
+  const [textDraft, setTextDraft] = useState("");
+  const [textSyncError, setTextSyncError] = useState("");
+  const [previewSyncError, setPreviewSyncError] = useState("");
+  const iframeRef = useRef(null);
+  const htmlRef = useRef("");
+  const textModelRef = useRef(null);
+  const textDraftRef = useRef("");
+  const textCommitTimerRef = useRef(null);
+  const previewSegmentsRef = useRef([]);
+  const previewBaseHtmlRef = useRef("");
+  const skipNextPreviewReloadRef = useRef(false);
+  const previewSrcDocRef = useRef("");
+
+  const html = content?.html ?? "";
+  const css = content?.css ?? "";
+  htmlRef.current = html;
+
+  const patchHtmlCss = useCallback(
+    (partial) =>
+      onChange(id, {
+        widgetType: "htmlCss",
+        html: htmlRef.current,
+        css,
+        ...partial,
+      }),
+    [id, onChange, css]
+  );
+
+  const textModel = useMemo(() => extractTextDocumentModel(html), [html]);
+  textModelRef.current = textModel;
+
+  const previewEditModel = useMemo(() => getPreviewEditModel(html), [html]);
+
+  useEffect(() => {
+    setTextDraft(textModel.documentText);
+    textDraftRef.current = textModel.documentText;
+    setTextSyncError("");
+  }, [textModel]);
+
+  const srcDoc = useMemo(() => {
+    if (htmlCssTab !== "preview") return "";
+
+    if (skipNextPreviewReloadRef.current) {
+      skipNextPreviewReloadRef.current = false;
+      previewSegmentsRef.current = previewEditModel.segments;
+      previewBaseHtmlRef.current = previewEditModel.safeHtml;
+      return previewSrcDocRef.current;
+    }
+
+    const next = buildHtmlCssPreviewSrcDoc({
+      html: previewEditModel.safeHtml,
+      css,
+      editable: true,
+    });
+    previewSrcDocRef.current = next;
+    previewSegmentsRef.current = previewEditModel.segments;
+    previewBaseHtmlRef.current = previewEditModel.safeHtml;
+    return next;
+  }, [css, htmlCssTab, previewEditModel]);
+
+  useEffect(() => {
+    if (htmlCssTab !== "preview") return undefined;
+    const iframe = iframeRef.current;
+    if (!iframe || !srcDoc) return undefined;
+
+    const cleanupFns = [];
+
+    const resize = () => {
+      try {
+        const doc = iframe.contentDocument;
+        if (!doc) return;
+        const h = Math.max(
+          doc.documentElement?.scrollHeight || 0,
+          doc.body?.scrollHeight || 0,
+          160
+        );
+        iframe.style.height = `${Math.min(Math.max(h + 8, 160), 900)}px`;
+      } catch {
+        /* ignore */
+      }
+    };
+
+    const commitSegmentEdit = (el) => {
+      const segId = el?.getAttribute?.("data-cms-edit-id");
+      if (segId == null) return;
+      const segments = previewSegmentsRef.current || [];
+      const mapping = segments.find((s) => String(s.id) === String(segId));
+      if (!mapping) return;
+
+      const nextText = String(el.textContent ?? "");
+      if (nextText === mapping.text) {
+        setPreviewSyncError("");
+        return;
+      }
+
+      const baseHtml = previewBaseHtmlRef.current || getPreviewEditModel(htmlRef.current).safeHtml;
+      const updated = applySegmentUpdates(baseHtml, [
+        {
+          start: mapping.start,
+          end: mapping.end,
+          raw: mapping.raw,
+          nextText,
+        },
+      ]);
+
+      if (updated == null) {
+        setPreviewSyncError(
+          "Could not save that text edit into HTML. Try again, or edit via Main Content / HTML tabs."
+        );
+        el.textContent = mapping.text;
+        return;
+      }
+
+      setPreviewSyncError("");
+      if (updated !== htmlRef.current) {
+        // Keep current iframe DOM; only refresh segment maps on next render.
+        skipNextPreviewReloadRef.current = true;
+        const nextModel = getPreviewEditModel(updated);
+        previewBaseHtmlRef.current = nextModel.safeHtml;
+        previewSegmentsRef.current = nextModel.segments;
+        // Remap edit ids in-place to new segment ids (same document order).
+        try {
+          const doc = iframe.contentDocument;
+          const nodes = doc ? Array.from(doc.querySelectorAll("[data-cms-edit-id]")) : [];
+          nodes.forEach((node, index) => {
+            const seg = nextModel.segments[index];
+            if (seg) node.setAttribute("data-cms-edit-id", String(seg.id));
+          });
+        } catch {
+          /* ignore */
+        }
+        patchHtmlCss({ html: updated });
+      }
+    };
+
+    const bindEditable = () => {
+      const doc = iframe.contentDocument;
+      if (!doc?.body) return;
+
+      // Avoid stacking duplicate listeners/wrappers on the same document instance
+      if (doc.body.getAttribute("data-cms-preview-bound") === "1") {
+        resize();
+        return;
+      }
+
+      attachPreviewEditTargets(doc, previewSegmentsRef.current);
+      doc.body.setAttribute("data-cms-preview-bound", "1");
+      resize();
+
+      const onDocClick = (e) => {
+        const anchor = e.target?.closest?.("a");
+        if (anchor) e.preventDefault();
+      };
+      doc.addEventListener("click", onDocClick);
+      cleanupFns.push(() => doc.removeEventListener("click", onDocClick));
+
+      const nodes = doc.querySelectorAll("[data-cms-edit-id]");
+      nodes.forEach((el) => {
+        const onPaste = (e) => {
+          e.preventDefault();
+          const text = (e.clipboardData || window.clipboardData)?.getData("text/plain") || "";
+          try {
+            doc.execCommand("insertText", false, text);
+          } catch {
+            el.textContent = `${el.textContent || ""}${text}`;
+          }
+        };
+        const onBlur = () => commitSegmentEdit(el);
+        const onKeyDown = (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            el.blur();
+          }
+        };
+        el.addEventListener("paste", onPaste);
+        el.addEventListener("blur", onBlur);
+        el.addEventListener("keydown", onKeyDown);
+        cleanupFns.push(() => {
+          el.removeEventListener("paste", onPaste);
+          el.removeEventListener("blur", onBlur);
+          el.removeEventListener("keydown", onKeyDown);
+        });
+      });
+    };
+
+    const onLoad = () => {
+      try {
+        iframe.contentDocument?.body?.removeAttribute("data-cms-preview-bound");
+      } catch {
+        /* ignore */
+      }
+      bindEditable();
+    };
+    iframe.addEventListener("load", onLoad);
+
+    // srcDoc updates do not always fire load reliably — bind when document is ready.
+    const readyTimer = window.setTimeout(() => {
+      try {
+        if (iframe.contentDocument?.body) bindEditable();
+      } catch {
+        /* ignore */
+      }
+    }, 0);
+
+    return () => {
+      window.clearTimeout(readyTimer);
+      iframe.removeEventListener("load", onLoad);
+      cleanupFns.forEach((fn) => fn());
+      try {
+        // Allow re-bind after React replaces srcDoc / remounts document
+        iframe.contentDocument?.body?.removeAttribute("data-cms-preview-bound");
+      } catch {
+        /* ignore */
+      }
+    };
+  }, [htmlCssTab, srcDoc, patchHtmlCss]);
+
+  const commitTextDocument = useCallback(
+    (options = {}) => {
+      const { revertOnFail = false } = options;
+      const model = textModelRef.current;
+      if (!model) return false;
+      const draft = textDraftRef.current;
+
+      if (draft === model.documentText) {
+        setTextSyncError("");
+        return true;
+      }
+
+      const result = syncTextDocumentToHtml(htmlRef.current, model, draft);
+      if (result.html == null) {
+        if (revertOnFail) {
+          setTextDraft(model.documentText);
+          textDraftRef.current = model.documentText;
+        }
+        setTextSyncError(
+          "Text could not be mapped back to HTML. Keep the same number of text blocks (separate pieces with a blank line), then leave the field or wait a moment so HTML can update before Save."
+        );
+        return false;
+      }
+
+      setTextSyncError("");
+      if (result.html !== htmlRef.current) {
+        patchHtmlCss({ html: result.html });
+      }
+      return true;
+    },
+    [patchHtmlCss]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (textCommitTimerRef.current) {
+        clearTimeout(textCommitTimerRef.current);
+        textCommitTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  const scheduleTextCommit = useCallback(() => {
+    if (textCommitTimerRef.current) {
+      clearTimeout(textCommitTimerRef.current);
+    }
+    textCommitTimerRef.current = setTimeout(() => {
+      textCommitTimerRef.current = null;
+      commitTextDocument({ revertOnFail: false });
+    }, 400);
+  }, [commitTextDocument]);
+
+  const changeHtmlCssTab = (nextTab) => {
+    if (htmlCssTab === "content" && nextTab !== "content") {
+      if (textCommitTimerRef.current) {
+        clearTimeout(textCommitTimerRef.current);
+        textCommitTimerRef.current = null;
+      }
+      commitTextDocument({ revertOnFail: false });
+    }
+    // Force a fresh clean preview render when entering Preview.
+    if (nextTab === "preview") {
+      skipNextPreviewReloadRef.current = false;
+      previewSrcDocRef.current = "";
+    }
+    setHtmlCssTab(nextTab);
+  };
+
+  return (
+    <div className="border-2 border-violet-200 rounded-lg p-3 mb-4 bg-violet-50/40">
+      <div className="flex justify-between items-center mb-3 pb-2 border-b border-violet-200">
+        <div className="flex items-center gap-2">
+          <Grip className="text-violet-600" size={18} />
+          <Code2 className="text-violet-700" size={18} />
+          <span className="text-sm font-semibold text-violet-900">Custom HTML / CSS</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={onMoveUp}
+            className="p-1.5 text-gray-600 hover:bg-white rounded-full"
+            title="Move up"
+          >
+            <ChevronUp size={18} />
+          </button>
+          <button
+            type="button"
+            onClick={onMoveDown}
+            className="p-1.5 text-gray-600 hover:bg-white rounded-full"
+            title="Move down"
+          >
+            <ChevronDown size={18} />
+          </button>
+          <button
+            type="button"
+            onClick={() => onDelete(id)}
+            className="p-1.5 text-red-500 hover:bg-red-50 rounded-full"
+            title="Remove widget"
+          >
+            <Trash2 size={18} />
+          </button>
+        </div>
+      </div>
+
+      <p className="mb-3 text-xs text-gray-600">
+        <strong>HTML</strong> / <strong>CSS</strong> for structure and styles.{" "}
+        <strong>Preview</strong> — click purple-outlined text to edit in place (syncs into HTML).{" "}
+        <strong>Main Content</strong> — plain-text editor for bulk wording changes. Then page Save.
+      </p>
+
+      <div
+        className="mb-2 inline-flex flex-wrap rounded-lg border border-gray-200 bg-gray-100 p-1 gap-0.5"
+        role="tablist"
+        aria-label="Editor mode"
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={htmlCssTab === "html"}
+          onClick={() => changeHtmlCssTab("html")}
+          className={HTML_CSS_TAB_CLASS(htmlCssTab === "html")}
+        >
+          HTML
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={htmlCssTab === "css"}
+          onClick={() => changeHtmlCssTab("css")}
+          className={HTML_CSS_TAB_CLASS(htmlCssTab === "css")}
+        >
+          CSS
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={htmlCssTab === "preview"}
+          onClick={() => changeHtmlCssTab("preview")}
+          className={HTML_CSS_TAB_CLASS(htmlCssTab === "preview")}
+        >
+          Preview
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={htmlCssTab === "content"}
+          onClick={() => changeHtmlCssTab("content")}
+          className={HTML_CSS_TAB_CLASS(htmlCssTab === "content")}
+        >
+          Main Content
+        </button>
+      </div>
+
+      {htmlCssTab === "html" ? (
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">HTML fragment</label>
+          <textarea
+            value={html}
+            onChange={(e) => patchHtmlCss({ html: e.target.value })}
+            rows={12}
+            className="w-full rounded border border-gray-300 px-2 py-1.5 text-xs font-mono"
+            placeholder={'e.g. <section class="my-block"><h2 class="title">Hello</h2></section>'}
+          />
+        </div>
+      ) : null}
+
+      {htmlCssTab === "css" ? (
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">
+            CSS (scoped to this widget on the live site)
+          </label>
+          <textarea
+            value={css}
+            onChange={(e) => patchHtmlCss({ css: e.target.value })}
+            rows={12}
+            className="w-full rounded border border-gray-300 px-2 py-1.5 text-xs font-mono"
+            placeholder={".my-block { padding: 1rem; }\n.my-block .title { color: #1e293b; }"}
+          />
+        </div>
+      ) : null}
+
+      {htmlCssTab === "preview" ? (
+        <div>
+          <p className="mb-2 text-xs text-gray-500">
+            Click any text (hover shows a purple outline). Edit, then click outside or press Enter —
+            HTML updates without changing layout/classes.
+          </p>
+          {!String(html).trim() && !String(css).trim() ? (
+            <p className="rounded border border-dashed border-gray-300 bg-white px-3 py-6 text-center text-xs text-gray-500">
+              Add HTML or CSS in the code tabs to see a preview.
+            </p>
+          ) : (
+            <iframe
+              ref={iframeRef}
+              title="HTML/CSS preview editor"
+              sandbox="allow-same-origin"
+              srcDoc={srcDoc}
+              className="w-full rounded border border-gray-300 bg-white"
+              style={{ minHeight: 160, height: 280 }}
+            />
+          )}
+          {previewSyncError ? (
+            <p className="mt-2 text-xs text-amber-700">{previewSyncError}</p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {htmlCssTab === "content" ? (
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">
+            Main content
+          </label>
+          <p className="mb-2 text-xs text-gray-500">
+            Edit readable text only. Prefer changing words inside existing blocks. HTML updates
+            automatically shortly after you type, when you leave this field, or when you switch tabs —
+            then use the page Save.
+          </p>
+          {!textModel.documentText ? (
+            <p className="rounded border border-dashed border-gray-300 bg-white px-3 py-6 text-center text-xs text-gray-500">
+              No editable text content found in this HTML.
+            </p>
+          ) : (
+            <textarea
+              value={textDraft}
+              onChange={(e) => {
+                const value = e.target.value;
+                setTextDraft(value);
+                textDraftRef.current = value;
+                if (textSyncError) setTextSyncError("");
+                scheduleTextCommit();
+              }}
+              onBlur={() => {
+                if (textCommitTimerRef.current) {
+                  clearTimeout(textCommitTimerRef.current);
+                  textCommitTimerRef.current = null;
+                }
+                commitTextDocument({ revertOnFail: false });
+              }}
+              rows={Math.min(22, Math.max(10, textDraft.split("\n").length + 2))}
+              className="w-full rounded border border-gray-300 bg-white px-3 py-2 text-sm leading-relaxed"
+              spellCheck
+            />
+          )}
+          {textSyncError ? (
+            <p className="mt-2 text-xs text-amber-700">{textSyncError}</p>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function WidgetBlock({
   id,
   content,
@@ -227,7 +713,6 @@ export default function WidgetBlock({
   onMoveUp,
   onMoveDown,
 }) {
-  const [htmlCssTab, setHtmlCssTab] = useState("html");
   const widgetType = content?.widgetType || "slider";
 
   if (widgetType === "navbar") {
@@ -2205,123 +2690,15 @@ export default function WidgetBlock({
   }
 
   if (widgetType === "htmlCss") {
-    const html = content?.html ?? "";
-    const css = content?.css ?? "";
-
-    const patchHtmlCss = (partial) =>
-      onChange(id, {
-        widgetType: "htmlCss",
-        html,
-        css,
-        ...partial,
-      });
-
     return (
-      <div className="border-2 border-violet-200 rounded-lg p-3 mb-4 bg-violet-50/40">
-        <div className="flex justify-between items-center mb-3 pb-2 border-b border-violet-200">
-          <div className="flex items-center gap-2">
-            <Grip className="text-violet-600" size={18} />
-            <Code2 className="text-violet-700" size={18} />
-            <span className="text-sm font-semibold text-violet-900">Custom HTML / CSS</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={onMoveUp}
-              className="p-1.5 text-gray-600 hover:bg-white rounded-full"
-              title="Move up"
-            >
-              <ChevronUp size={18} />
-            </button>
-            <button
-              type="button"
-              onClick={onMoveDown}
-              className="p-1.5 text-gray-600 hover:bg-white rounded-full"
-              title="Move down"
-            >
-              <ChevronDown size={18} />
-            </button>
-            <button
-              type="button"
-              onClick={() => onDelete(id)}
-              className="p-1.5 text-red-500 hover:bg-red-50 rounded-full"
-              title="Remove widget"
-            >
-              <Trash2 size={18} />
-            </button>
-          </div>
-        </div>
-
-        <p className="mb-3 text-xs text-gray-600">
-          Use <strong>HTML</strong> for tags only (sections, divs, headings, etc.). Do not paste{" "}
-          <code className="text-[11px]">&lt;!DOCTYPE&gt;</code>,{" "}
-          <code className="text-[11px]">&lt;html&gt;</code>,{" "}
-          <code className="text-[11px]">&lt;head&gt;</code>, or{" "}
-          <code className="text-[11px]">&lt;body&gt;</code>. Put all rules in the{" "}
-          <strong>CSS</strong> tab — on the public site they are wrapped with CSS{" "}
-          <strong>@scope</strong> so rules stay limited to this widget (same HTML is also server-rendered
-          for view-source / crawlers).
-        </p>
-
-        <div
-          className="mb-2 inline-flex rounded-lg border border-gray-200 bg-gray-100 p-1 gap-0.5"
-          role="tablist"
-          aria-label="Editor mode"
-        >
-          <button
-            type="button"
-            role="tab"
-            aria-selected={htmlCssTab === "html"}
-            onClick={() => setHtmlCssTab("html")}
-            className={`min-w-[4.5rem] rounded-md px-3 py-2 text-center text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-1 ${
-              htmlCssTab === "html"
-                ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200/90"
-                : "bg-transparent text-gray-600 hover:bg-gray-200/60 hover:text-gray-900"
-            }`}
-          >
-            HTML
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={htmlCssTab === "css"}
-            onClick={() => setHtmlCssTab("css")}
-            className={`min-w-[4.5rem] rounded-md px-3 py-2 text-center text-xs font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-1 ${
-              htmlCssTab === "css"
-                ? "bg-white text-gray-900 shadow-sm ring-1 ring-gray-200/90"
-                : "bg-transparent text-gray-600 hover:bg-gray-200/60 hover:text-gray-900"
-            }`}
-          >
-            CSS
-          </button>
-        </div>
-
-        {htmlCssTab === "html" ? (
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">HTML fragment</label>
-            <textarea
-              value={html}
-              onChange={(e) => patchHtmlCss({ html: e.target.value })}
-              rows={12}
-              className="w-full rounded border border-gray-300 px-2 py-1.5 text-xs font-mono"
-              placeholder={'e.g. <section class="my-block"><h2 class="title">Hello</h2></section>'}
-            />
-          </div>
-        ) : (
-          <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
-              CSS (scoped to this widget on the live site)
-            </label>
-            <textarea
-              value={css}
-              onChange={(e) => patchHtmlCss({ css: e.target.value })}
-              rows={12}
-              className="w-full rounded border border-gray-300 px-2 py-1.5 text-xs font-mono"
-              placeholder={".my-block { padding: 1rem; }\n.my-block .title { color: #1e293b; }"}
-            />
-          </div>
-        )}
-      </div>
+      <HtmlCssWidgetEditor
+        id={id}
+        content={content}
+        onChange={onChange}
+        onDelete={onDelete}
+        onMoveUp={onMoveUp}
+        onMoveDown={onMoveDown}
+      />
     );
   }
 

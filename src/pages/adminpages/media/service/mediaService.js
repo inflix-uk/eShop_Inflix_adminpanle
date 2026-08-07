@@ -69,6 +69,7 @@ export const uploadFileSpaces = async (backendUrl, directory, files, altText = '
       headers: {
         'Content-Type': 'multipart/form-data',
       },
+      timeout: 5 * 60 * 1000,
     });
 
     return {

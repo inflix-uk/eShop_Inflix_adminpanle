@@ -1,6 +1,10 @@
 import PropTypes from "prop-types";
 import { useState } from "react";
 import { FiCopy, FiEdit2, FiCheck, FiX, FiTrash2 } from "react-icons/fi";
+import {
+  formatFileSize,
+  isVideoFileName,
+} from "../../utils/mediaUtils";
 
 const MediaCard = ({
   file,
@@ -33,8 +37,8 @@ const MediaCard = ({
   getImagePathAfterUploads,
 }) => {
   const [imageResolution, setImageResolution] = useState(null);
+  const isVideo = isVideoFileName(file?.name || file?.path || "");
 
-  // Helper function to get file extension
   const getFileExtension = (filename) => {
     const lastDotIndex = filename.lastIndexOf(".");
     if (lastDotIndex === -1) return "";
@@ -53,25 +57,35 @@ const MediaCard = ({
 
   return (
     <div className="border rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow">
-      <div className="relative group">
-        <img
-          src={imageUrl}
-          alt={
-            file.altText ||
-            file.title ||
-            file.name?.replace(/\.[^/.]+$/, "") ||
-            ""
-          }
-          title={file.title || ""}
-          className="object-contain w-full h-48"
-          onLoad={handleImageLoad}
-        />
-        {/* Delete button overlay */}
+      <div className="relative group bg-gray-100">
+        {isVideo ? (
+          <video
+            src={imageUrl}
+            className="object-contain w-full h-48 bg-black"
+            controls
+            muted
+            playsInline
+            preload="metadata"
+          />
+        ) : (
+          <img
+            src={imageUrl}
+            alt={
+              file.altText ||
+              file.title ||
+              file.name?.replace(/\.[^/.]+$/, "") ||
+              ""
+            }
+            title={file.title || ""}
+            className="object-contain w-full h-48"
+            onLoad={handleImageLoad}
+          />
+        )}
         {onDelete && (
           <button
             onClick={() => onDelete(file, directoryName)}
             className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-            title="Delete image"
+            title={isVideo ? "Delete video" : "Delete image"}
             disabled={isUpdating}
           >
             <FiTrash2 className="w-4 h-4" />
@@ -79,7 +93,6 @@ const MediaCard = ({
         )}
       </div>
       <div className="p-4 space-y-2">
-        {/* Filename Section with Edit Option */}
         <div className="flex items-center gap-2">
           {editingFileId === uniqueFileId ? (
             <div className="flex-1 flex items-center gap-2">
@@ -119,33 +132,27 @@ const MediaCard = ({
               </button>
             </div>
           ) : (
-            <>
-              <p className="flex-1 text-sm font-medium truncate overflow-hidden text-ellipsis whitespace-nowrap">
-                {file.name}
-              </p>
-              {/* Filename edit icon - commented out as per requirement */}
-              {/* <button
-                onClick={() => onStartEdit(file, directoryName)}
-                className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                title="Edit filename"
-              >
-                <FiEdit2 className="w-4 h-4" />
-              </button> */}
-            </>
+            <p className="flex-1 text-sm font-medium truncate overflow-hidden text-ellipsis whitespace-nowrap">
+              {file.name}
+            </p>
           )}
         </div>
         <div className="space-y-1">
           <p className="text-xs text-gray-500">
-            Size: {(file.size / 1024).toFixed(2)} KB
+            Size: {formatFileSize(file.size)}
           </p>
-          {imageResolution && (
+          {!isVideo && imageResolution && (
             <p className="text-xs text-gray-500">
               Resolution: {imageResolution.width} × {imageResolution.height} px
             </p>
           )}
+          {isVideo && (
+            <p className="text-xs text-gray-500 uppercase tracking-wide">
+              Video
+            </p>
+          )}
         </div>
 
-        {/* Title (Meta Title) Section - 1st Field with Edit Option */}
         <div className="mt-3 pt-3 border-t border-gray-200">
           <div className="flex items-center gap-2">
             {editingTitleId === uniqueFileId ? (
@@ -214,7 +221,6 @@ const MediaCard = ({
           </div>
         </div>
 
-        {/* Alt Text Section - 2nd Field with Edit Option */}
         <div className="mt-3 pt-3 border-t border-gray-200">
           <div className="flex items-center gap-2">
             {editingAltTextId === uniqueFileId ? (
@@ -256,12 +262,12 @@ const MediaCard = ({
               <>
                 <div className="flex-1">
                   <label className="text-xs font-medium text-gray-700 block mb-1">
-                    Alt Text:
+                    {isVideo ? "Description:" : "Alt Text:"}
                   </label>
                   <p className="text-xs text-gray-600 break-words">
                     {file.altText || (
                       <span className="text-gray-400 italic">
-                        No alt text set
+                        {isVideo ? "No description set" : "No alt text set"}
                       </span>
                     )}
                   </p>
@@ -270,7 +276,7 @@ const MediaCard = ({
                   <button
                     onClick={() => onStartEditAltText(file, directoryName)}
                     className="p-1.5 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                    title="Edit alt text"
+                    title={isVideo ? "Edit description" : "Edit alt text"}
                   >
                     <FiEdit2 className="w-4 h-4" />
                   </button>
@@ -280,7 +286,6 @@ const MediaCard = ({
           </div>
         </div>
 
-        {/* URL Display and Copy Section */}
         <div className="mt-3 pt-3 border-t border-gray-200">
           <div className="flex items-center gap-2 mb-2">
             <label className="text-xs font-medium text-gray-700">URL:</label>

@@ -125,7 +125,7 @@ const WIDGET_OPTIONS = [
     id: "htmlCss",
     title: "Custom HTML / CSS",
     description:
-      "Fragment HTML and CSS in separate tabs; CSS is scoped with @scope on the live site. Markup is server-rendered (visible in page HTML).",
+      "HTML + CSS, live Preview with click-to-edit text, and Main Content plain-text sync back into HTML.",
     Icon: Code2,
   },
   {
