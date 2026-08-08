@@ -53,7 +53,7 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess }) {
     setLoading(true);
     const data = await getAvailableSlots(formData.packageId, formData.date);
     if (data?.slots) {
-      setSlots(data.slots);
+      setSlots(data.slots.filter((slot) => slot.available !== false));
     }
     setLoading(false);
   };

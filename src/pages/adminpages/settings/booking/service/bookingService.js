@@ -413,6 +413,22 @@ export const createAdminBooking = async (bookingData) => {
   }
 };
 
+export const updateBooking = async (id, bookingData) => {
+  try {
+    const response = await axios.patch(`${API_BASE_URL}update/booking/${id}`, bookingData, {
+      headers: getHeaders(),
+    });
+    if (response.data.status === 200) {
+      toast.success('Booking updated successfully');
+    }
+    return response.data;
+  } catch (error) {
+    console.error('Error updating booking:', error);
+    toast.error(error.response?.data?.error || 'Failed to update booking');
+    return null;
+  }
+};
+
 export const updateBookingStatus = async (id, status, cancelReason) => {
   try {
     const response = await axios.patch(`${API_BASE_URL}status/booking/${id}`, {
@@ -430,11 +446,10 @@ export const updateBookingStatus = async (id, status, cancelReason) => {
   }
 };
 
-export const cancelBooking = async (id, cancelReason, processRefund = false) => {
+export const cancelBooking = async (id, cancelReason) => {
   try {
     const response = await axios.post(`${API_BASE_URL}cancel/booking/${id}`, {
       cancelReason,
-      processRefund,
     }, { headers: getHeaders() });
     if (response.data.status === 200) {
       toast.success('Booking cancelled successfully');
@@ -443,6 +458,22 @@ export const cancelBooking = async (id, cancelReason, processRefund = false) => 
   } catch (error) {
     console.error('Error cancelling booking:', error);
     toast.error(error.response?.data?.error || 'Failed to cancel booking');
+    return null;
+  }
+};
+
+export const restoreBooking = async (id) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}restore/booking/${id}`, {}, {
+      headers: getHeaders(),
+    });
+    if (response.data.status === 200) {
+      toast.success('Booking restored successfully');
+    }
+    return response.data;
+  } catch (error) {
+    console.error('Error restoring booking:', error);
+    toast.error(error.response?.data?.error || 'Failed to restore booking');
     return null;
   }
 };
@@ -465,11 +496,13 @@ export const rescheduleBooking = async (id, newDate, newStartTime, rescheduleRea
   }
 };
 
-export const getAvailableSlots = async (packageId, date) => {
+export const getAvailableSlots = async (packageId, date, excludeBookingId) => {
   try {
+    const params = { packageId, date };
+    if (excludeBookingId) params.excludeBookingId = excludeBookingId;
     const response = await axios.get(`${API_BASE_URL}get/booking/admin/slots`, {
       headers: getHeaders(),
-      params: { packageId, date },
+      params,
     });
     return response.data;
   } catch (error) {

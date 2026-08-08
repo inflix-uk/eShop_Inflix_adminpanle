@@ -239,7 +239,7 @@ export default function SmtpSettings() {
                   SMTP Configuration
                 </h1>
                 <p className="mt-1.5 text-gray-600 text-sm sm:text-base leading-relaxed">
-                  Configure email server settings for sending transactional emails (orders, newsletter, messages).
+                  Configure email server settings for sending transactional emails (orders, bookings, newsletter, messages).
                 </p>
                 {updatedAt && !loading && (
                   <p className="mt-1 text-xs text-gray-500">
@@ -391,17 +391,20 @@ export default function SmtpSettings() {
                     <div>
                       <label htmlFor="orderNotifyEmail" className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1.5">
                         <IconEnvelope />
-                        New order notifications (admin)
+                        New order & booking notifications (admin)
                       </label>
                       <input
                         id="orderNotifyEmail"
                         type="email"
                         value={orderNotifyEmail}
                         onChange={(e) => setOrderNotifyEmail(e.target.value)}
-                        placeholder="you@example.com — receives “New order” emails (not the customer receipt)"
+                        placeholder="you@example.com — receives new order & booking emails (not the customer receipt)"
                         disabled={loading}
                         className="block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/30 disabled:bg-gray-50"
                       />
+                      <p className="mt-1.5 text-xs text-gray-500">
+                        Internal alert when a new order or booking is created.
+                      </p>
                     </div>
                     </div>
 
