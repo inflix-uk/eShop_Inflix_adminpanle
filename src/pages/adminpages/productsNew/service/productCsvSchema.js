@@ -58,6 +58,281 @@ export const VARIANT_COLUMNS = [
 export const ALL_COLUMNS = [...PRODUCT_COLUMNS, ...VARIANT_COLUMNS];
 
 /**
+ * Human documentation for every column, rendered on the workbook's
+ * Instructions sheet. `level` mirrors the PRODUCT/VARIANT split above;
+ * keep this list in the same order as ALL_COLUMNS.
+ */
+export const COLUMN_GUIDE = [
+  {
+    key: "producturl",
+    level: "product",
+    required: "REQUIRED — every row",
+    howToFill:
+      "Unique lowercase-with-hyphens slug; becomes the storefront URL. Rows sharing the same producturl belong to ONE product (one row per variant). If it matches an existing product, that product is UPDATED instead of created.",
+    example: "aroma-desire-hanging-diffuser",
+    formLocation: "Basic Information → Product URL",
+  },
+  {
+    key: "name",
+    level: "product",
+    required: "New products: REQUIRED",
+    howToFill:
+      "Display name shown on the storefront. Only read from the FIRST row of each producturl group. May stay blank when updating an existing product — the stored name is kept.",
+    example: "Aroma Desire Hanging Diffuser",
+    formLocation: "Basic Information → Product Name",
+  },
+  {
+    key: "product_type",
+    level: "product",
+    required: "Recommended",
+    howToFill: "single or variant. single = one price/stock, exactly one row. variant = one row per variant. Blank counts as single for new products.",
+    example: "variant",
+    formLocation: "Pricing & Inventory → Product Type",
+  },
+  {
+    key: "status",
+    level: "product",
+    required: "Optional",
+    howToFill: "true = live on the storefront, false = draft. Blank = draft for new products, unchanged for updates.",
+    example: "false",
+    formLocation: "Publish / Save as Draft buttons",
+  },
+  {
+    key: "category",
+    level: "product",
+    required: "Recommended",
+    howToFill: "Pick from the Reference sheet 'category' list (dropdown). The product's main storefront category.",
+    example: "Car-Fragrance",
+    formLocation: "Basic Information → Category",
+  },
+  {
+    key: "subcategory",
+    level: "product",
+    required: "Optional",
+    howToFill: "Category:Subcategory pairs joined by | . Pick ready-made pairs from the Reference sheet 'subcategory' list.",
+    example: "Car-Fragrance:Hanging|Car-Fragrance:Vent-Clip",
+    formLocation: "Basic Information → Subcategory",
+  },
+  {
+    key: "brand",
+    level: "product",
+    required: "Recommended",
+    howToFill: "Pick from the Reference sheet 'brand' list. Unknown brands fail the row. The form requires a brand before publishing.",
+    example: "Aroma Desire",
+    formLocation: "Basic Information → Brand",
+  },
+  {
+    key: "condition",
+    level: "product",
+    required: "Optional",
+    howToFill: "Pick from the Reference sheet 'condition' list, or type a custom condition (custom text is allowed here).",
+    example: "Brand New",
+    formLocation: "Basic Information → Condition",
+  },
+  {
+    key: "tags",
+    level: "product",
+    required: "Optional",
+    howToFill: "Tag names joined by | . Each tag must exist in the Reference sheet 'tags' list.",
+    example: "Hanging Car Fragrances|Aroma Desire",
+    formLocation: "Basic Information → Tag",
+  },
+  {
+    key: "main_category",
+    level: "product",
+    required: "Optional",
+    howToFill: "Central category used for Google Merchant feeds. Leave blank unless you manage feed taxonomy.",
+    example: "Vehicles & Parts",
+    formLocation: "Edit product → Basic Information",
+  },
+  {
+    key: "summary",
+    level: "product",
+    required: "Optional",
+    howToFill: "Short blurb shown near the price. HTML allowed.",
+    example: "<p>Long-lasting hanging car fragrance.</p>",
+    formLocation: "Basic Information → Product Summary",
+  },
+  {
+    key: "description",
+    level: "product",
+    required: "Optional",
+    howToFill: "Full product description for the detail page. HTML allowed.",
+    example: "<p>Osmanthus notes in a teardrop glass bottle…</p>",
+    formLocation: "Basic Information → Product Description",
+  },
+  {
+    key: "specs",
+    level: "product",
+    required: "Optional",
+    howToFill: "Key:Value pairs joined by | . Shown in the specifications table.",
+    example: "Volume:8ml|Bottle Shape:Teardrop Glass",
+    formLocation: "Product Details → Specifications",
+  },
+  {
+    key: "meta_title",
+    level: "product",
+    required: "Optional",
+    howToFill: "SEO page title. Blank = keep stored value on update.",
+    example: "Hanging Diffuser | Aroma Desire",
+    formLocation: "SEO & Meta → Meta Title",
+  },
+  {
+    key: "meta_description",
+    level: "product",
+    required: "Optional",
+    howToFill: "SEO description for search results.",
+    example: "Shop the Aroma Desire hanging diffuser…",
+    formLocation: "SEO & Meta → Meta Description",
+  },
+  {
+    key: "meta_keywords",
+    level: "product",
+    required: "Optional",
+    howToFill: "Comma-separated SEO keywords.",
+    example: "car fragrance, hanging diffuser",
+    formLocation: "SEO & Meta → Meta Keywords",
+  },
+  {
+    key: "thumbnail_url",
+    level: "product",
+    required: "Recommended",
+    howToFill: "Full https:// URL of the main image. The image is linked as-is (not re-uploaded), so the URL must stay publicly reachable.",
+    example: "https://cdn.example.com/img/thumb.png",
+    formLocation: "Images & Media → Thumbnail",
+  },
+  {
+    key: "gallery_urls",
+    level: "product",
+    required: "Optional",
+    howToFill: "Gallery image URLs joined by | .",
+    example: "https://…/1.png|https://…/2.png",
+    formLocation: "Images & Media → Gallery",
+  },
+  {
+    key: "is_featured",
+    level: "product",
+    required: "Optional",
+    howToFill: "true shows the product in featured sections; false/blank does not.",
+    example: "false",
+    formLocation: "Settings → Featured",
+  },
+  {
+    key: "is_authenticated",
+    level: "product",
+    required: "Optional",
+    howToFill: "true shows the authenticity-checked badge.",
+    example: "true",
+    formLocation: "Settings → Authenticated",
+  },
+  {
+    key: "low_stock_alert",
+    level: "product",
+    required: "Optional",
+    howToFill: "Number. Admin shows a low-stock warning when quantity falls to this level.",
+    example: "2",
+    formLocation: "Settings → Low Stock Quantity",
+  },
+  {
+    key: "comes_with",
+    level: "product",
+    required: "Optional",
+    howToFill: "Item slugs joined by | . Pick from the Reference sheet 'comes_with' list.",
+    example: "1x-car-vent-clip|2x-fragrance-tablet",
+    formLocation: "Settings → Comes With",
+  },
+  {
+    key: "top_section",
+    level: "product",
+    required: "Optional",
+    howToFill: "Highlight slugs joined by | . Pick from the Reference sheet 'top_section' list.",
+    example: "free_delivery|30_day_returns",
+    formLocation: "Settings → Top Section",
+  },
+  {
+    key: "variant_attributes",
+    level: "variant",
+    required: "Variant products: REQUIRED",
+    howToFill:
+      "What makes this variant different: slug=Value pairs joined by | . Pick pairs from the Reference sheet 'variant_attributes' list. LEAVE EMPTY for single products. Every variant row of a product should use the same attribute slugs.",
+    example: "scent=White Tea|size=S",
+    formLocation: "Pricing & Inventory → Variants",
+  },
+  {
+    key: "variant_name",
+    level: "variant",
+    required: "Optional",
+    howToFill: "Auto-built from the attribute values when blank. Single products use the reserved name 'single'.",
+    example: "white-tea-s",
+    formLocation: "Pricing & Inventory → Variants",
+  },
+  {
+    key: "sku",
+    level: "variant",
+    required: "Recommended",
+    howToFill: "Your stock-keeping code, unique per variant. Used to match variants when re-importing an update.",
+    example: "AD-WT-S-001",
+    formLocation: "Pricing & Inventory → SKU",
+  },
+  {
+    key: "ean",
+    level: "variant",
+    required: "Optional",
+    howToFill: "EAN / GTIN barcode number.",
+    example: "5012345678900",
+    formLocation: "Pricing & Inventory → EAN",
+  },
+  {
+    key: "mpn",
+    level: "variant",
+    required: "Optional",
+    howToFill: "Manufacturer part number.",
+    example: "AD-WT-S",
+    formLocation: "Pricing & Inventory → MPN",
+  },
+  {
+    key: "cost",
+    level: "variant",
+    required: "Optional",
+    howToFill: "What the item costs you. Never shown to customers.",
+    example: "4.00",
+    formLocation: "Pricing & Inventory → Cost",
+  },
+  {
+    key: "price",
+    level: "variant",
+    required: "New products: price or sale_price REQUIRED",
+    howToFill: "Regular price in GBP, numbers only. Shown struck-through when a sale_price exists.",
+    example: "19.99",
+    formLocation: "Pricing & Inventory → Price",
+  },
+  {
+    key: "sale_price",
+    level: "variant",
+    required: "Optional",
+    howToFill: "Current selling price when discounted. Customers pay this when set.",
+    example: "9.99",
+    formLocation: "Pricing & Inventory → Sale Price",
+  },
+  {
+    key: "quantity",
+    level: "variant",
+    required: "Recommended",
+    howToFill: "Stock on hand, whole number. 0 = shown as out of stock.",
+    example: "25",
+    formLocation: "Pricing & Inventory → Quantity",
+  },
+  {
+    key: "variant_image_urls",
+    level: "variant",
+    required: "Optional",
+    howToFill: "Image URLs for THIS variant joined by | .",
+    example: "https://…/white-tea.png",
+    formLocation: "Images & Media → Variant Images",
+  },
+];
+
+/**
  * Rows whose producturl starts with this are treated as documentation, not
  * data. The export ships template rows so the format is self-describing; the
  * importer skips them so round-tripping never creates junk products.
@@ -485,8 +760,9 @@ export function rowsToProducts(rows) {
     if (!groups.has(producturl)) {
       const name = String(row.name || "").trim();
       if (!name) {
-        errors.push({ line, message: `"${producturl}" has no name on its first row. A product without a name 404s on the storefront.` });
-        return;
+        // Not fatal: updates only need the producturl (the stored name is
+        // kept). The importer rejects a CREATE without a name server-side.
+        errors.push({ line, message: `"${producturl}" has no name on its first row — fine when updating an existing product, but a NEW product will be rejected.` });
       }
 
       // Blank cells stay null so the importer can tell "not provided" (keep
@@ -496,7 +772,7 @@ export function rowsToProducts(rows) {
 
       groups.set(producturl, {
         producturl,
-        name,
+        name: name || null,
         productType: { type: rawType ? (rawType === "variant" ? "variant" : "single") : null },
         status: toBool(row.status),
         category: String(row.category || "").trim() || null,
