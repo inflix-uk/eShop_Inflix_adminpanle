@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { getBookings, updateBookingStatus, cancelBooking } from '../service/bookingService';
+import { getBookings, updateBookingStatus, cancelBooking, restoreBooking } from '../service/bookingService';
 import BookingDetailsModal from './BookingDetailsModal';
 import CreateBookingModal from './CreateBookingModal';
+import EditBookingModal from './EditBookingModal';
 
 const STATUS_COLORS = {
   pending: 'bg-yellow-100 text-yellow-800',
@@ -24,6 +25,7 @@ export default function BookingsTab({ setProgress }) {
   const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, pages: 0 });
   const [filters, setFilters] = useState({ type: '', status: '', date: '' });
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [editingBooking, setEditingBooking] = useState(null);
   const [createModalOpen, setCreateModalOpen] = useState(false);
 
   useEffect(() => {
@@ -50,10 +52,16 @@ export default function BookingsTab({ setProgress }) {
   const handleStatusChange = async (bookingId, newStatus) => {
     if (newStatus === 'cancelled') {
       const reason = prompt('Cancellation reason (optional):');
-      await cancelBooking(bookingId, reason || '', false);
+      await cancelBooking(bookingId, reason || '');
     } else {
       await updateBookingStatus(bookingId, newStatus);
     }
+    loadBookings();
+  };
+
+  const handleRestore = async (bookingId) => {
+    if (!confirm('Restore this cancelled booking?')) return;
+    await restoreBooking(bookingId);
     loadBookings();
   };
 
@@ -194,6 +202,14 @@ export default function BookingsTab({ setProgress }) {
                       >
                         View
                       </button>
+                      {['pending', 'confirmed'].includes(booking.status) && (
+                        <button
+                          onClick={() => setEditingBooking(booking)}
+                          className="text-indigo-600 hover:text-indigo-800 mr-3"
+                        >
+                          Edit
+                        </button>
+                      )}
                       {booking.status === 'pending' && (
                         <button
                           onClick={() => handleStatusChange(booking._id, 'confirmed')}
@@ -208,6 +224,14 @@ export default function BookingsTab({ setProgress }) {
                           className="text-red-600 hover:text-red-800"
                         >
                           Cancel
+                        </button>
+                      )}
+                      {booking.status === 'cancelled' && (
+                        <button
+                          onClick={() => handleRestore(booking._id)}
+                          className="text-green-600 hover:text-green-800"
+                        >
+                          Restore
                         </button>
                       )}
                     </td>
@@ -251,8 +275,22 @@ export default function BookingsTab({ setProgress }) {
           booking={selectedBooking}
           onClose={() => setSelectedBooking(null)}
           onRefresh={loadBookings}
+          onEdit={() => {
+            setEditingBooking(selectedBooking);
+            setSelectedBooking(null);
+          }}
         />
       )}
+
+      <EditBookingModal
+        booking={editingBooking}
+        isOpen={!!editingBooking}
+        onClose={() => setEditingBooking(null)}
+        onSuccess={() => {
+          setEditingBooking(null);
+          loadBookings();
+        }}
+      />
 
       {/* Create Booking Modal */}
       <CreateBookingModal

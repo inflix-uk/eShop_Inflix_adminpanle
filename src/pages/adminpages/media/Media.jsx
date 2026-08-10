@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Side from "../nav/Side";
 import Top from "../nav/Top";
 import { useAuth } from "../../../context/Auth";
@@ -27,6 +27,10 @@ import {
   ConfirmTitleUpdateModal,
 } from "./components/media";
 import { CardGridSkeleton } from "../shared/Skeletons";
+import {
+  filterDirectoriesByMediaType,
+  getDirectoryDisplayName,
+} from "./utils/mediaUtils";
 
 export default function Media() {
   const [selectedPage, setSelectedPage] = useState("media");
@@ -34,6 +38,7 @@ export default function Media() {
   const storageModule = "spaces";
   const [spacesConfigured, setSpacesConfigured] = useState(true);
   const [directories, setDirectories] = useState([]); // State to store the directories with files
+  const [mediaType, setMediaType] = useState("images"); // images | videos
   const [loading, setLoading] = useState(true); // State for loading
   const [selectedTab, setSelectedTab] = useState(null); // State for currently selected tab
   const [searchTerm, setSearchTerm] = useState(""); // State for search term
@@ -53,6 +58,17 @@ export default function Media() {
   const [pendingTitleUpdate, setPendingTitleUpdate] = useState(null); // Store pending title update data
   const auth = useAuth();
 
+  const visibleDirectories = useMemo(
+    () => filterDirectoriesByMediaType(directories, mediaType),
+    [directories, mediaType]
+  );
+
+  const videoFolderNames = useMemo(
+    () =>
+      filterDirectoriesByMediaType(directories, "videos").map((d) => d.name),
+    [directories]
+  );
+
   const fetchFiles = async () => {
     setLoading(true);
     try {
@@ -68,17 +84,16 @@ export default function Media() {
       }
 
       if (result.success) {
-        // Filter out the 'images' and 'feed' directories
-        const filteredDirectories = result.contents.filter(
+        const filteredDirectories = (result.contents || []).filter(
           (directory) =>
-            directory.name !== "images" && directory.name !== "feed"
+            directory.name !== "images" &&
+            directory.name !== "feed" &&
+            !String(directory.name).startsWith("images/") &&
+            !String(directory.name).startsWith("feed/")
         );
 
-        setDirectories(filteredDirectories); // Update the state with filtered directories
-        if (!selectedTab) {
-          setSelectedTab(filteredDirectories[0]?.name || null); // Set default tab to the first available directory
-        }
-        setLoading(false); // Set loading to false when the data is fetched
+        setDirectories(filteredDirectories);
+        setLoading(false);
       } else {
         console.error("Error fetching files:", result.error);
         toast.error(result.error || "Failed to fetch files");
@@ -95,6 +110,27 @@ export default function Media() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auth.ip]);
 
+  // Keep selected tab within the active Images / Videos section
+  useEffect(() => {
+    if (!visibleDirectories.length) {
+      setSelectedTab(null);
+      return;
+    }
+    const stillValid = visibleDirectories.some((d) => d.name === selectedTab);
+    if (!stillValid) {
+      setSelectedTab(visibleDirectories[0].name);
+      setCurrentPage(1);
+    }
+  }, [visibleDirectories, selectedTab]);
+
+  const handleMediaTypeChange = (type) => {
+    if (type === mediaType) return;
+    setMediaType(type);
+    setSearchTerm("");
+    setCurrentPage(1);
+    const next = filterDirectoriesByMediaType(directories, type);
+    setSelectedTab(next[0]?.name || null);
+  };
   const getImagePathAfterUploads = (filePath) => {
     // Check if filePath exists and contains 'uploads/'
     if (filePath && filePath.includes("uploads/")) {
@@ -130,7 +166,7 @@ export default function Media() {
 
   // Get filtered and paginated images
   const getFilteredImages = () => {
-    const selectedDirectory = directories.find(
+    const selectedDirectory = visibleDirectories.find(
       (dir) => dir.name === selectedTab
     );
 
@@ -151,19 +187,18 @@ export default function Media() {
     return paginatedImages;
   };
 
-  // Get total number of pages
+  // Calculate total pages based on the filtered images
   const getTotalPages = () => {
-    const selectedDirectory = directories.find(
+    const selectedDirectory = visibleDirectories.find(
       (dir) => dir.name === selectedTab
     );
-
     if (!selectedDirectory) return 1;
 
     const filteredImages = selectedDirectory.contents.filter((file) =>
       file.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    return Math.ceil(filteredImages.length / itemsPerPage);
+    return Math.ceil(filteredImages.length / itemsPerPage) || 1;
   };
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -401,33 +436,51 @@ export default function Media() {
     }
   };
 
-  // Handle uploading images
-  const handleUploadImages = async (files, altText) => {
-    if (!selectedTab) {
-      toast.error("Please select a directory tab first");
+  // Handle uploading images / videos
+  const handleUploadImages = async (files, altText, uploadDirectory) => {
+    const targetDirectory = uploadDirectory || selectedTab;
+    if (!targetDirectory) {
+      toast.error(
+        mediaType === "videos"
+          ? "Please choose a video folder"
+          : "Please select a directory tab first"
+      );
       return;
     }
 
     setIsUploading(true);
     try {
-      // Title is automatically generated from filename (filename = title)
-      // Filenames are already sanitized (spaces replaced with hyphens) in UploadImageModal
       const result =
         storageModule === "spaces"
-          ? await uploadFileSpaces(auth.ip, selectedTab, files, altText)
-          : await uploadFile(auth.ip, selectedTab, files, altText);
+          ? await uploadFileSpaces(auth.ip, targetDirectory, files, altText)
+          : await uploadFile(auth.ip, targetDirectory, files, altText);
 
       if (result.success) {
-        toast.success(`Successfully uploaded ${files.length} image(s)!`);
+        toast.success(
+          mediaType === "videos"
+            ? `Successfully uploaded ${files.length} video(s)!`
+            : `Successfully uploaded ${files.length} image(s)!`
+        );
         setIsUploadModalOpen(false);
-        // Refresh the file list
         await fetchFiles();
+        if (mediaType === "videos") {
+          setSelectedTab(targetDirectory);
+        }
       } else {
-        toast.error(result.error || "Failed to upload images");
+        toast.error(
+          result.error ||
+            (mediaType === "videos"
+              ? "Failed to upload videos"
+              : "Failed to upload images")
+        );
       }
     } catch (error) {
-      console.error("Error uploading images:", error);
-      toast.error("Failed to upload images. Please try again.");
+      console.error("Error uploading media:", error);
+      toast.error(
+        mediaType === "videos"
+          ? "Failed to upload videos. Please try again."
+          : "Failed to upload images. Please try again."
+      );
     } finally {
       setIsUploading(false);
     }
@@ -567,8 +620,33 @@ export default function Media() {
                       Media library
                     </h1>
                     <p className="text-sm text-gray-500 mt-1">
-                      Browse and manage images in S3 / DigitalOcean Spaces.
+                      Browse and manage images and videos in S3 / DigitalOcean
+                      Spaces.
                     </p>
+                  </div>
+                  <div className="inline-flex rounded-lg border border-gray-200 p-1 bg-gray-50 self-start">
+                    <button
+                      type="button"
+                      onClick={() => handleMediaTypeChange("images")}
+                      className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                        mediaType === "images"
+                          ? "bg-white text-gray-900 shadow-sm"
+                          : "text-gray-600 hover:text-gray-900"
+                      }`}
+                    >
+                      Images
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleMediaTypeChange("videos")}
+                      className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                        mediaType === "videos"
+                          ? "bg-white text-gray-900 shadow-sm"
+                          : "text-gray-600 hover:text-gray-900"
+                      }`}
+                    >
+                      Videos
+                    </button>
                   </div>
                 </div>
 
@@ -586,8 +664,20 @@ export default function Media() {
 
                 {storageModule === "spaces" && spacesConfigured && (
                   <p className="text-sm text-gray-600 bg-slate-50 border border-slate-200 rounded-lg px-4 py-3">
-                    S3 / Spaces: upload, title, and alt text are stored in your
-                    bucket and Media library records.
+                    {mediaType === "videos" ? (
+                      <>
+                        Videos are stored under{" "}
+                        <code className="text-xs">videos/&#123;folder&#125;/</code>
+                        . Upload to a folder (homepage, blog, …) and it appears
+                        here as its own tab — same idea as banners / logo for
+                        images.
+                      </>
+                    ) : (
+                      <>
+                        S3 / Spaces: upload, title, and alt text are stored in
+                        your bucket and Media library records.
+                      </>
+                    )}
                   </p>
                 )}
 
@@ -599,100 +689,127 @@ export default function Media() {
 
                 {/* Navigation Tabs */}
                 <DirectoryTabs
-                  directories={directories}
+                  directories={visibleDirectories}
                   selectedTab={selectedTab}
                   onTabChange={handleTabChange}
                 />
 
                 {/* Display the contents of the selected tab */}
-                {directories.map((directory, index) =>
-                  directory.name === selectedTab ? (
-                    <div key={index}>
-                      {/* Section Title and Upload Button */}
-                      <div className="flex items-center justify-between mb-4">
-                        <h2 className="text-2xl font-bold capitalize">
-                          {directory.name}
-                        </h2>
-                        <button
-                          onClick={() => setIsUploadModalOpen(true)}
-                          disabled={storageModule === "spaces" && !spacesConfigured}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                {visibleDirectories.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-gray-300 bg-white px-6 py-12 text-center">
+                    <p className="text-sm text-gray-600 mb-4">
+                      {mediaType === "videos"
+                        ? "No video folders yet. Upload a video to create videos/{folder}."
+                        : "No image folders found."}
+                    </p>
+                    {storageModule === "spaces" && spacesConfigured && (
+                      <button
+                        onClick={() => setIsUploadModalOpen(true)}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                      >
+                        {mediaType === "videos"
+                          ? "Upload Videos"
+                          : "Upload Images"}
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  visibleDirectories.map((directory, index) =>
+                    directory.name === selectedTab ? (
+                      <div key={directory.name || index}>
+                        <div className="flex items-center justify-between mb-4">
+                          <h2 className="text-2xl font-bold capitalize">
+                            {mediaType === "videos"
+                              ? `videos / ${getDirectoryDisplayName(directory.name)}`
+                              : directory.name}
+                          </h2>
+                          <button
+                            onClick={() => setIsUploadModalOpen(true)}
+                            disabled={
+                              storageModule === "spaces" && !spacesConfigured
+                            }
+                            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 4v16m8-8H4"
-                            />
-                          </svg>
-                          Upload Images
-                        </button>
-                      </div>
-                      <MediaGrid
-                        files={getFilteredImages()}
-                        directoryName={directory.name}
-                        auth={auth}
-                        editingFileId={editingFileId}
-                        editingTitleId={editingTitleId}
-                        editingAltTextId={editingAltTextId}
-                        editedFileName={editedFileName}
-                        fileExtension={fileExtension}
-                        editedTitle={editedTitle}
-                        editedAltText={editedAltText}
-                        isUpdating={isUpdating}
-                        onStartEdit={handleStartEdit}
-                        onCancelEdit={handleCancelEdit}
-                        onSaveFileName={handleSaveFileName}
-                        onStartEditTitle={handleStartEditTitle}
-                        onCancelEditTitle={handleCancelEditTitle}
-                        onSaveTitle={handleSaveTitle}
-                        onStartEditAltText={handleStartEditAltText}
-                        onCancelEditAltText={handleCancelEditAltText}
-                        onSaveAltText={handleSaveAltText}
-                        onCopyUrl={handleCopyUrl}
-                        onFileNameChange={(e) =>
-                          setEditedFileName(e.target.value)
-                        }
-                        onTitleChange={(e) => setEditedTitle(e.target.value)}
-                        onAltTextChange={(e) =>
-                          setEditedAltText(e.target.value)
-                        }
-                        onDelete={handleDeleteImage}
-                        getImagePathAfterUploads={getImagePathAfterUploads}
-                        getFileUniqueId={getFileUniqueId}
-                      />
+                            <svg
+                              className="w-5 h-5"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 4v16m8-8H4"
+                              />
+                            </svg>
+                            {mediaType === "videos"
+                              ? "Upload Videos"
+                              : "Upload Images"}
+                          </button>
+                        </div>
+                        <MediaGrid
+                          files={getFilteredImages()}
+                          directoryName={directory.name}
+                          auth={auth}
+                          editingFileId={editingFileId}
+                          editingTitleId={editingTitleId}
+                          editingAltTextId={editingAltTextId}
+                          editedFileName={editedFileName}
+                          fileExtension={fileExtension}
+                          editedTitle={editedTitle}
+                          editedAltText={editedAltText}
+                          isUpdating={isUpdating}
+                          onStartEdit={handleStartEdit}
+                          onCancelEdit={handleCancelEdit}
+                          onSaveFileName={handleSaveFileName}
+                          onStartEditTitle={handleStartEditTitle}
+                          onCancelEditTitle={handleCancelEditTitle}
+                          onSaveTitle={handleSaveTitle}
+                          onStartEditAltText={handleStartEditAltText}
+                          onCancelEditAltText={handleCancelEditAltText}
+                          onSaveAltText={handleSaveAltText}
+                          onCopyUrl={handleCopyUrl}
+                          onFileNameChange={(e) =>
+                            setEditedFileName(e.target.value)
+                          }
+                          onTitleChange={(e) => setEditedTitle(e.target.value)}
+                          onAltTextChange={(e) =>
+                            setEditedAltText(e.target.value)
+                          }
+                          onDelete={handleDeleteImage}
+                          getImagePathAfterUploads={getImagePathAfterUploads}
+                          getFileUniqueId={getFileUniqueId}
+                        />
 
-                      {/* Pagination Controls */}
-                      <Pagination
-                        currentPage={currentPage}
-                        totalPages={getTotalPages()}
-                        itemsPerPage={itemsPerPage}
-                        onPageChange={handlePageChange}
-                        onItemsPerPageChange={handleItemsPerPageChange}
-                      />
-                    </div>
-                  ) : null
+                        <Pagination
+                          currentPage={currentPage}
+                          totalPages={getTotalPages()}
+                          itemsPerPage={itemsPerPage}
+                          onPageChange={handlePageChange}
+                          onItemsPerPageChange={handleItemsPerPageChange}
+                        />
+                      </div>
+                    ) : null
+                  )
                 )}
               </div>
             )}
 
-            {/* Upload Image Modal */}
-            {selectedTab && storageModule === "spaces" && spacesConfigured && (
+            {/* Upload modal — images need a tab; videos can create the first folder */}
+            {storageModule === "spaces" &&
+              spacesConfigured &&
+              (mediaType === "videos" || selectedTab) && (
               <UploadImageModal
                 isOpen={isUploadModalOpen}
                 onClose={() => setIsUploadModalOpen(false)}
-                directoryName={selectedTab}
+                directoryName={selectedTab || ""}
                 onUpload={handleUploadImages}
                 isUploading={isUploading}
+                mediaType={mediaType}
+                existingVideoFolders={videoFolderNames}
               />
             )}
-
             {/* Confirm Title Update Modal */}
             {pendingTitleUpdate && (
               <ConfirmTitleUpdateModal

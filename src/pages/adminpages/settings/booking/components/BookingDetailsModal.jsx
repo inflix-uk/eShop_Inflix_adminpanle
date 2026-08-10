@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { updateBookingStatus, cancelBooking, rescheduleBooking } from '../service/bookingService';
+import { updateBookingStatus, cancelBooking, restoreBooking, rescheduleBooking } from '../service/bookingService';
 import { formatDurationLabel } from '../utils/durationDisplay';
 
 const API_BASE_URL = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
@@ -43,7 +43,7 @@ const STATUS_COLORS = {
   no_show: 'bg-gray-100 text-gray-800',
 };
 
-export default function BookingDetailsModal({ booking, onClose, onRefresh }) {
+export default function BookingDetailsModal({ booking, onClose, onRefresh, onEdit }) {
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [rescheduleData, setRescheduleData] = useState({ newDate: '', newStartTime: '', reason: '' });
   const [processing, setProcessing] = useState(false);
@@ -62,14 +62,24 @@ export default function BookingDetailsModal({ booking, onClose, onRefresh }) {
     setProcessing(true);
     if (status === 'cancelled') {
       const reason = prompt('Cancellation reason (optional):');
-      const processRefund = booking.paymentStatus === 'paid' && confirm('Process refund?');
-      await cancelBooking(booking._id, reason || '', processRefund);
+      await cancelBooking(booking._id, reason || '');
     } else {
       await updateBookingStatus(booking._id, status);
     }
     setProcessing(false);
     onRefresh();
     onClose();
+  };
+
+  const handleRestore = async () => {
+    if (!confirm('Restore this cancelled booking?')) return;
+    setProcessing(true);
+    const result = await restoreBooking(booking._id);
+    setProcessing(false);
+    if (result) {
+      onRefresh();
+      onClose();
+    }
   };
 
   const handleReschedule = async () => {
@@ -287,8 +297,28 @@ export default function BookingDetailsModal({ booking, onClose, onRefresh }) {
             )}
 
             {/* Actions */}
-            {!rescheduleOpen && !['cancelled', 'completed'].includes(booking.status) && (
+            {!rescheduleOpen && booking.status === 'cancelled' && (
               <div className="flex flex-wrap gap-2 pt-4 border-t">
+                <button
+                  onClick={handleRestore}
+                  disabled={processing}
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+                >
+                  {processing ? 'Restoring...' : 'Restore Booking'}
+                </button>
+              </div>
+            )}
+            {!rescheduleOpen && !['cancelled', 'completed', 'no_show'].includes(booking.status) && (
+              <div className="flex flex-wrap gap-2 pt-4 border-t">
+                {onEdit && (
+                  <button
+                    onClick={onEdit}
+                    disabled={processing}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50"
+                  >
+                    Edit
+                  </button>
+                )}
                 {booking.status === 'pending' && (
                   <button
                     onClick={() => handleStatusUpdate('confirmed')}
