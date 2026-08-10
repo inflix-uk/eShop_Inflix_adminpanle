@@ -231,7 +231,7 @@ export default function ImportExportBar({ products, onImported, compact }) {
           type="button"
           onClick={handleExportExcel}
           disabled={busy}
-          title="Excel file with dropdowns for brand, category, condition, tags and variant attributes"
+          title="Excel file with an Instructions sheet plus dropdowns for brand, category, condition, tags and variant attributes"
           className="inline-flex items-center gap-2 rounded-md bg-white border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -264,8 +264,9 @@ export default function ImportExportBar({ products, onImported, compact }) {
 
         {!compact && (
           <span className="text-xs text-gray-500">
-            Excel export carries dropdowns for brand, category, condition, tags and variant
-            attributes. Both .xlsx and .csv import; template rows are skipped.
+            Excel export ships three sheets: Products (with dropdowns for brand, category,
+            condition, tags and variant attributes), Reference (the allowed values) and
+            Instructions (how to fill the file). Both .xlsx and .csv import; template rows are skipped.
           </span>
         )}
       </div>
