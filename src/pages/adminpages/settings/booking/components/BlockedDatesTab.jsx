@@ -5,6 +5,7 @@ const PACKAGE_TYPES = [
   { value: 'service', label: 'Service' },
   { value: 'consultation', label: 'Consultation' },
   { value: 'studio', label: 'Studio' },
+  { value: 'editing', label: 'Editing' },
 ];
 
 export default function BlockedDatesTab({ setProgress }) {

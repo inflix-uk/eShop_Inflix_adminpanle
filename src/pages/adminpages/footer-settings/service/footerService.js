@@ -159,6 +159,12 @@ export const getDefaultFooterSettings = () => {
       creditLabel: "",
       creditUrl: "",
     },
+    sectionCustom: {
+      isEnabled: false,
+      title: "",
+      placement: "after_useful_links",
+      links: [],
+    },
     section3: {
       title: "",
       links: []

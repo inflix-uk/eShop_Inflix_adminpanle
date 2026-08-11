@@ -15,6 +15,7 @@ const PACKAGE_TYPES = [
   { value: 'service', label: 'Service' },
   { value: 'consultation', label: 'Consultation' },
   { value: 'studio', label: 'Studio' },
+  { value: 'editing', label: 'Editing' },
 ];
 
 const TIME_OPTIONS = [];

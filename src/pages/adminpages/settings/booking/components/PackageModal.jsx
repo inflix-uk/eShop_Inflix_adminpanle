@@ -17,6 +17,7 @@ const PACKAGE_TYPES = [
   { value: 'service', label: 'Service' },
   { value: 'consultation', label: 'Consultation' },
   { value: 'studio', label: 'Studio' },
+  { value: 'editing', label: 'Editing' },
 ];
 
 function resolveImagePreview(url) {
@@ -33,7 +34,39 @@ function resolveImagePreview(url) {
   return `${API_BASE_URL}/uploads/${url}`;
 }
 
-const EMPTY_EXTRA = { image: '', title: '', price: 0, description: '' };
+const EMPTY_EXTRA = {
+  image: '',
+  title: '',
+  price: 0,
+  description: '',
+  quantityEnabled: false,
+};
+
+const DEFAULT_WHAT_HAPPENS_NEXT = {
+  heading: 'What happens next',
+  listStyle: 'numbered',
+  items: [
+    'Confirmation and calendar invite by email straight away.',
+    'Free parking at the back of the studio — no app, no permit.',
+    'Arrive 5 minutes early. The room is already rigged and tested.',
+    'Leave with your raw files. Free reschedule up to 72 hrs before.',
+  ],
+};
+
+function normalizeWhatHappensForm(raw) {
+  const src = raw && typeof raw === 'object' ? raw : {};
+  const items = Array.isArray(src.items)
+    ? src.items.map((item) => (typeof item === 'string' ? item : '')).slice(0, 20)
+    : [];
+  return {
+    heading:
+      typeof src.heading === 'string' && src.heading.trim()
+        ? src.heading
+        : DEFAULT_WHAT_HAPPENS_NEXT.heading,
+    listStyle: src.listStyle === 'bullets' ? 'bullets' : 'numbered',
+    items: items.length > 0 ? items : [...DEFAULT_WHAT_HAPPENS_NEXT.items],
+  };
+}
 
 export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
   const [formData, setFormData] = useState({
@@ -43,11 +76,15 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
     durationDisplayUnit: 'minutes',
     durationInput: 30,
     price: 0,
+    includedMics: 0,
+    subtitle: '',
+    maxGuests: 5,
     description: '',
     detailPage: '',
     detailPageHtml: '',
     detailPageCss: '',
     features: [''],
+    whatHappensNext: { ...DEFAULT_WHAT_HAPPENS_NEXT, items: [...DEFAULT_WHAT_HAPPENS_NEXT.items] },
     extras: [],
     image: '',
     isActive: true,
@@ -77,6 +114,9 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
         durationDisplayUnit,
         durationInput: minutesToDisplayValue(durationMinutes, durationDisplayUnit),
         price: editPackage.price || 0,
+        includedMics: Number(editPackage.includedMics) || 0,
+        subtitle: editPackage.subtitle || '',
+        maxGuests: Math.min(9, Math.max(1, Number(editPackage.maxGuests) || 5)),
         description: editPackage.description || '',
         detailPage: editPackage.detailPage || '',
         detailPageHtml: editPackage.detailPageHtml || '',
@@ -85,12 +125,14 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
           Array.isArray(editPackage.features) && editPackage.features.length > 0
             ? editPackage.features
             : [''],
+        whatHappensNext: normalizeWhatHappensForm(editPackage.whatHappensNext),
         extras: Array.isArray(editPackage.extras)
           ? editPackage.extras.map((extra) => ({
               image: extra.image || '',
               title: extra.title || '',
               price: extra.price ?? 0,
               description: extra.description || '',
+              quantityEnabled: Boolean(extra.quantityEnabled),
             }))
           : [],
         image,
@@ -114,11 +156,18 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
         durationDisplayUnit: 'minutes',
         durationInput: 30,
         price: 0,
+        includedMics: 0,
+        subtitle: '',
+        maxGuests: 5,
         description: '',
         detailPage: '',
         detailPageHtml: '',
         detailPageCss: '',
         features: [''],
+        whatHappensNext: {
+          ...DEFAULT_WHAT_HAPPENS_NEXT,
+          items: [...DEFAULT_WHAT_HAPPENS_NEXT.items],
+        },
         extras: [],
         image: '',
         isActive: true,
@@ -153,6 +202,51 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
     setFormData((prev) => {
       const features = prev.features.filter((_, i) => i !== index);
       return { ...prev, features: features.length > 0 ? features : [''] };
+    });
+  };
+
+  const setWhatHappensNext = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      whatHappensNext: { ...prev.whatHappensNext, [field]: value },
+    }));
+  };
+
+  const setWhatHappensItem = (index, value) => {
+    setFormData((prev) => {
+      const items = [...(prev.whatHappensNext?.items || [])];
+      items[index] = value;
+      return {
+        ...prev,
+        whatHappensNext: { ...prev.whatHappensNext, items },
+      };
+    });
+  };
+
+  const addWhatHappensItem = () => {
+    setFormData((prev) => {
+      const items = [...(prev.whatHappensNext?.items || [])];
+      if (items.length >= 20) return prev;
+      return {
+        ...prev,
+        whatHappensNext: {
+          ...prev.whatHappensNext,
+          items: [...items, ''],
+        },
+      };
+    });
+  };
+
+  const removeWhatHappensItem = (index) => {
+    setFormData((prev) => {
+      const items = (prev.whatHappensNext?.items || []).filter((_, i) => i !== index);
+      return {
+        ...prev,
+        whatHappensNext: {
+          ...prev.whatHappensNext,
+          items: items.length > 0 ? items : [''],
+        },
+      };
     });
   };
 
@@ -310,18 +404,31 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
       ...rest,
       durationMinutes,
       durationDisplayUnit: normalizeDurationUnit(formData.durationDisplayUnit),
+      includedMics: Math.max(0, Number(formData.includedMics) || 0),
+      subtitle: formData.subtitle?.trim() || '',
+      maxGuests: Math.min(9, Math.max(1, Number(formData.maxGuests) || 5)),
       highlightBadgeText: formData.highlightBadgeText?.trim() || 'Most Popular',
       highlightBadgeUrl: formData.highlightBadgeUrl?.trim() || '',
       bundleBenefits: formData.bundleBenefits?.trim() || '',
       features: formData.features
         .map((item) => item.trim())
         .filter((item) => item.length > 0),
+      whatHappensNext: {
+        heading: formData.whatHappensNext?.heading?.trim() || DEFAULT_WHAT_HAPPENS_NEXT.heading,
+        listStyle:
+          formData.whatHappensNext?.listStyle === 'bullets' ? 'bullets' : 'numbered',
+        items: (formData.whatHappensNext?.items || [])
+          .map((item) => String(item || '').trim())
+          .filter((item) => item.length > 0)
+          .slice(0, 20),
+      },
       extras: formData.extras
         .map((extra) => ({
           image: extra.image || '',
           title: extra.title.trim(),
           price: Number(extra.price) || 0,
           description: extra.description.trim(),
+          quantityEnabled: Boolean(extra.quantityEnabled),
         }))
         .filter((extra) => extra.title.length > 0),
     };
@@ -412,6 +519,67 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-primary focus:border-primary"
                 required
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Included microphones
+              </label>
+              <input
+                type="number"
+                min={0}
+                step={1}
+                value={formData.includedMics}
+                onChange={(e) =>
+                  handleChange(
+                    'includedMics',
+                    e.target.value === '' ? 0 : Math.max(0, Number(e.target.value) || 0)
+                  )
+                }
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-primary focus:border-primary"
+                placeholder="e.g. 2"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                How many mics this package includes. Used when guests need extra mics.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Sub title
+              </label>
+              <input
+                type="text"
+                value={formData.subtitle}
+                onChange={(e) => handleChange('subtitle', e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-primary focus:border-primary"
+                placeholder="e.g. 2 mics included, up to 5"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Shown under the price on booking package cards.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                No. of guests
+              </label>
+              <select
+                value={formData.maxGuests}
+                onChange={(e) =>
+                  handleChange('maxGuests', Math.min(9, Math.max(1, Number(e.target.value) || 5)))
+                }
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-primary focus:border-primary bg-white"
+              >
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-gray-500">
+                Guest number options shown on the booking flow for this package (1–9).
+              </p>
             </div>
 
             <div>
@@ -572,6 +740,99 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
               </label>
             </div>
 
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-4">
+              <div>
+                <h4 className="text-sm font-semibold text-gray-800">What happens next</h4>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Shown in the booking flow sidebar for this package.
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Heading
+                </label>
+                <input
+                  type="text"
+                  value={formData.whatHappensNext?.heading || ''}
+                  onChange={(e) => setWhatHappensNext('heading', e.target.value)}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-primary focus:border-primary bg-white"
+                  placeholder="What happens next"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  List style
+                </label>
+                <div className="inline-flex rounded-lg bg-white border border-gray-200 p-1" role="group">
+                  <button
+                    type="button"
+                    onClick={() => setWhatHappensNext('listStyle', 'numbered')}
+                    className={`min-w-[7rem] rounded-md px-3 py-1.5 text-sm font-semibold transition-colors ${
+                      formData.whatHappensNext?.listStyle !== 'bullets'
+                        ? 'bg-primary text-white'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Number list
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWhatHappensNext('listStyle', 'bullets')}
+                    className={`min-w-[7rem] rounded-md px-3 py-1.5 text-sm font-semibold transition-colors ${
+                      formData.whatHappensNext?.listStyle === 'bullets'
+                        ? 'bg-primary text-white'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    Bullet list
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">Steps</label>
+                  <button
+                    type="button"
+                    onClick={addWhatHappensItem}
+                    className="text-sm text-primary hover:text-secondary font-medium"
+                  >
+                    + Add step
+                  </button>
+                </div>
+                <div className="space-y-2">
+                  {(formData.whatHappensNext?.items || []).map((item, index) => (
+                    <div key={`pkg-what-next-${index}`} className="flex items-start gap-2">
+                      <span className="mt-2 w-7 shrink-0 text-xs font-mono text-gray-400 text-right">
+                        {formData.whatHappensNext?.listStyle === 'bullets'
+                          ? '•'
+                          : String(index + 1).padStart(2, '0')}
+                      </span>
+                      <textarea
+                        rows={2}
+                        value={item}
+                        onChange={(e) => setWhatHappensItem(index, e.target.value)}
+                        className="flex-1 border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-primary focus:border-primary bg-white"
+                        placeholder={`Step ${index + 1}`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeWhatHappensItem(index)}
+                        className="mt-1 p-1.5 text-gray-400 hover:text-red-600 rounded-md hover:bg-red-50"
+                        title="Remove step"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="block text-sm font-medium text-gray-700">
@@ -643,7 +904,7 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Price (£)
+                          Price (£ / hour)
                         </label>
                         <input
                           type="number"
@@ -667,6 +928,26 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
                           placeholder="Short description of this extra"
                         />
                       </div>
+
+                      <label className="flex items-start gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(extra.quantityEnabled)}
+                          onChange={(e) =>
+                            handleExtraChange(index, 'quantityEnabled', e.target.checked)
+                          }
+                          className="mt-1 rounded border-gray-300 text-primary focus:ring-primary"
+                        />
+                        <span>
+                          <span className="block text-sm font-medium text-gray-800">
+                            Enable quantity (+ / −)
+                          </span>
+                          <span className="block text-xs text-gray-500">
+                            Show increment/decrement on the booking page. Price is charged per
+                            quantity × hourly rate × booked hours.
+                          </span>
+                        </span>
+                      </label>
                     </div>
                   ))}
                 </div>

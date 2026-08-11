@@ -33,6 +33,8 @@ export default function SettingsTab({ setProgress }) {
     minAdvanceDisplayUnit: 'hours',
     minAdvanceInput: 1,
     maxAdvanceBookingDays: 30,
+    studioMicCapacity: 5,
+    extraMicPricePerHour: 15,
   });
 
   useEffect(() => {
@@ -65,6 +67,8 @@ export default function SettingsTab({ setProgress }) {
         minAdvanceDisplayUnit: advanceUnit,
         minAdvanceInput: hoursToDisplayValue(advanceHours, advanceUnit),
         maxAdvanceBookingDays: Number(s.maxAdvanceBookingDays) || 30,
+        studioMicCapacity: Number(s.studioMicCapacity) || 5,
+        extraMicPricePerHour: Number(s.extraMicPricePerHour) || 15,
       });
     }
     setLoading(false);
@@ -99,6 +103,8 @@ export default function SettingsTab({ setProgress }) {
       minAdvanceBookingHours: Math.max(0, advanceHours),
       minAdvanceDisplayUnit: settings.minAdvanceDisplayUnit,
       maxAdvanceBookingDays: Math.max(1, Number(settings.maxAdvanceBookingDays) || 30),
+      studioMicCapacity: Math.max(1, Number(settings.studioMicCapacity) || 5),
+      extraMicPricePerHour: Math.max(0, Number(settings.extraMicPricePerHour) || 0),
     });
 
     setSaving(false);
@@ -308,6 +314,55 @@ export default function SettingsTab({ setProgress }) {
             />
             <p className="mt-1 text-xs text-gray-500">
               Maximum days in advance a booking can be made
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Studio microphones */}
+      <div className="bg-white rounded-lg border border-gray-200 p-6">
+        <h3 className="text-lg font-medium text-gray-900 mb-4">Studio Microphones</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Studio mic capacity
+            </label>
+            <input
+              type="number"
+              min={1}
+              step={1}
+              value={settings.studioMicCapacity}
+              onChange={(e) =>
+                handleChange(
+                  'studioMicCapacity',
+                  e.target.value === '' ? '' : Math.max(1, Number(e.target.value) || 1)
+                )
+              }
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-primary focus:border-primary"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Total microphones in the studio (guest limit and &quot;up to N&quot; on cards).
+            </p>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Extra mic price (£ / hour)
+            </label>
+            <input
+              type="number"
+              min={0}
+              step={0.01}
+              value={settings.extraMicPricePerHour}
+              onChange={(e) =>
+                handleChange(
+                  'extraMicPricePerHour',
+                  e.target.value === '' ? '' : Math.max(0, Number(e.target.value) || 0)
+                )
+              }
+              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-primary focus:border-primary"
+            />
+            <p className="mt-1 text-xs text-gray-500">
+              Charged per extra microphone per booked hour when guests exceed included mics.
             </p>
           </div>
         </div>
