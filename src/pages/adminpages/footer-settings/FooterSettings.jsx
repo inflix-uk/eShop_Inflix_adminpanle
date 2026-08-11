@@ -18,6 +18,7 @@ import Section2Editor from "./components/Section2Editor";
 import Section3Editor from "./components/Section3Editor";
 import NewsletterSectionEditor from "./components/NewsletterSectionEditor";
 import BottomBarEditor from "./components/BottomBarEditor";
+import CustomSectionEditor from "./components/CustomSectionEditor";
 
 function mergeFooterPayload(data) {
   if (!data) return data;
@@ -31,6 +32,13 @@ function mergeFooterPayload(data) {
     bottomBar: {
       ...defaults.bottomBar,
       ...(data.bottomBar ?? {}),
+    },
+    sectionCustom: {
+      ...defaults.sectionCustom,
+      ...(data.sectionCustom ?? {}),
+      links: Array.isArray(data.sectionCustom?.links)
+        ? data.sectionCustom.links
+        : defaults.sectionCustom.links,
     },
   };
 }
@@ -144,6 +152,7 @@ export default function FooterSettings() {
     { name: "Section 3: Customer Care", section: "section3" },
     { name: "Newsletter", section: "sectionNewsletter" },
     { name: "Bottom bar", section: "bottomBar" },
+    { name: "Custom Section", section: "sectionCustom" },
   ];
 
   return (
@@ -268,6 +277,14 @@ export default function FooterSettings() {
                   <BottomBarEditor
                     data={footerData?.bottomBar}
                     onSave={(data) => handleSaveSection("bottomBar", data)}
+                    isSaving={isSaving}
+                  />
+                </Tab.Panel>
+
+                <Tab.Panel>
+                  <CustomSectionEditor
+                    data={footerData?.sectionCustom}
+                    onSave={(data) => handleSaveSection("sectionCustom", data)}
                     isSaving={isSaving}
                   />
                 </Tab.Panel>

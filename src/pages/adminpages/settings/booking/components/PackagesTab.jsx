@@ -17,6 +17,7 @@ const TYPE_COLORS = {
   service: "bg-blue-100 text-blue-800",
   consultation: "bg-purple-100 text-purple-800",
   studio: "bg-green-100 text-green-800",
+  editing: "bg-amber-100 text-amber-800",
 };
 
 function normalizeInlineWidgets(list) {
@@ -218,6 +219,7 @@ export default function PackagesTab({ setProgress }) {
             <option value="service">Service</option>
             <option value="consultation">Consultation</option>
             <option value="studio">Studio</option>
+            <option value="editing">Editing</option>
           </select>
         </div>
         <button

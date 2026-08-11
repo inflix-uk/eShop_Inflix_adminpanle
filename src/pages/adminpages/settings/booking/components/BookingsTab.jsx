@@ -87,6 +87,7 @@ export default function BookingsTab({ setProgress }) {
           <option value="service">Service</option>
           <option value="consultation">Consultation</option>
           <option value="studio">Studio</option>
+          <option value="editing">Editing</option>
         </select>
 
         <select
