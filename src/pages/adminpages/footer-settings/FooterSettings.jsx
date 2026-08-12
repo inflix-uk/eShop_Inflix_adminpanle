@@ -23,6 +23,17 @@ import CustomSectionEditor from "./components/CustomSectionEditor";
 function mergeFooterPayload(data) {
   if (!data) return data;
   const defaults = getDefaultFooterSettings();
+  const rawCustom = data.sectionCustom;
+  let sectionCustom = defaults.sectionCustom;
+  if (Array.isArray(rawCustom)) {
+    sectionCustom = rawCustom;
+  } else if (rawCustom && typeof rawCustom === "object") {
+    const hasContent =
+      rawCustom.isEnabled === true ||
+      Boolean(String(rawCustom.title || "").trim()) ||
+      (Array.isArray(rawCustom.links) && rawCustom.links.length > 0);
+    sectionCustom = hasContent ? [rawCustom] : [];
+  }
   return {
     ...data,
     section1: {
@@ -33,13 +44,7 @@ function mergeFooterPayload(data) {
       ...defaults.bottomBar,
       ...(data.bottomBar ?? {}),
     },
-    sectionCustom: {
-      ...defaults.sectionCustom,
-      ...(data.sectionCustom ?? {}),
-      links: Array.isArray(data.sectionCustom?.links)
-        ? data.sectionCustom.links
-        : defaults.sectionCustom.links,
-    },
+    sectionCustom,
   };
 }
 
@@ -82,10 +87,19 @@ export default function FooterSettings() {
     try {
       const result = await updateFooterSection(sectionName, sectionData, auth.ip);
       if (result.success) {
-        // Update local state
+        const nextValue =
+          sectionName === "sectionCustom"
+            ? Array.isArray(sectionData?.sections)
+              ? sectionData.sections
+              : Array.isArray(sectionData)
+                ? sectionData
+                : Array.isArray(result.data)
+                  ? result.data
+                  : []
+            : sectionData;
         setFooterData((prev) => ({
           ...prev,
-          [sectionName]: sectionData,
+          [sectionName]: nextValue,
         }));
         toast.success("Section saved successfully!");
       } else {
@@ -152,7 +166,7 @@ export default function FooterSettings() {
     { name: "Section 3: Customer Care", section: "section3" },
     { name: "Newsletter", section: "sectionNewsletter" },
     { name: "Bottom bar", section: "bottomBar" },
-    { name: "Custom Section", section: "sectionCustom" },
+    { name: "Custom Sections", section: "sectionCustom" },
   ];
 
   return (
