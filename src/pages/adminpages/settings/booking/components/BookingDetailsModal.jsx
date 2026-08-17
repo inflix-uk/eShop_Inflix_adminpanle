@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { updateBookingStatus, cancelBooking, restoreBooking, rescheduleBooking } from '../service/bookingService';
+import { updateBookingStatus, cancelBooking, restoreBooking, deleteBooking, rescheduleBooking } from '../service/bookingService';
 import { formatDurationLabel } from '../utils/durationDisplay';
 
 const API_BASE_URL = (import.meta.env.VITE_BACKEND_URL || '').replace(/\/$/, '');
@@ -75,6 +75,17 @@ export default function BookingDetailsModal({ booking, onClose, onRefresh, onEdi
     if (!confirm('Restore this cancelled booking?')) return;
     setProcessing(true);
     const result = await restoreBooking(booking._id);
+    setProcessing(false);
+    if (result) {
+      onRefresh();
+      onClose();
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm('Permanently delete this cancelled booking? This cannot be undone.')) return;
+    setProcessing(true);
+    const result = await deleteBooking(booking._id);
     setProcessing(false);
     if (result) {
       onRefresh();
@@ -305,6 +316,13 @@ export default function BookingDetailsModal({ booking, onClose, onRefresh, onEdi
                   className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
                 >
                   {processing ? 'Restoring...' : 'Restore Booking'}
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={processing}
+                  className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-50"
+                >
+                  {processing ? 'Deleting...' : 'Delete Booking'}
                 </button>
               </div>
             )}

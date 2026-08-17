@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getBookings, updateBookingStatus, cancelBooking, restoreBooking } from '../service/bookingService';
+import { getBookings, updateBookingStatus, cancelBooking, restoreBooking, deleteBooking } from '../service/bookingService';
 import BookingDetailsModal from './BookingDetailsModal';
 import CreateBookingModal from './CreateBookingModal';
 import EditBookingModal from './EditBookingModal';
@@ -63,6 +63,14 @@ export default function BookingsTab({ setProgress }) {
     if (!confirm('Restore this cancelled booking?')) return;
     await restoreBooking(bookingId);
     loadBookings();
+  };
+
+  const handleDelete = async (bookingId) => {
+    if (!confirm('Permanently delete this cancelled booking? This cannot be undone.')) return;
+    const result = await deleteBooking(bookingId);
+    if (result) {
+      loadBookings();
+    }
   };
 
   const formatDate = (dateStr) => {
@@ -228,12 +236,20 @@ export default function BookingsTab({ setProgress }) {
                         </button>
                       )}
                       {booking.status === 'cancelled' && (
-                        <button
-                          onClick={() => handleRestore(booking._id)}
-                          className="text-green-600 hover:text-green-800"
-                        >
-                          Restore
-                        </button>
+                        <>
+                          <button
+                            onClick={() => handleRestore(booking._id)}
+                            className="text-green-600 hover:text-green-800 mr-3"
+                          >
+                            Restore
+                          </button>
+                          <button
+                            onClick={() => handleDelete(booking._id)}
+                            className="text-red-600 hover:text-red-800"
+                          >
+                            Delete
+                          </button>
+                        </>
                       )}
                     </td>
                   </tr>
