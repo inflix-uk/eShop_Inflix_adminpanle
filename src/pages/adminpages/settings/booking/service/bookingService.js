@@ -462,6 +462,22 @@ export const cancelBooking = async (id, cancelReason) => {
   }
 };
 
+export const deleteBooking = async (id) => {
+  try {
+    const response = await axios.delete(`${API_BASE_URL}delete/booking/${id}`, {
+      headers: getHeaders(),
+    });
+    if (response.data.status === 200) {
+      toast.success('Booking deleted successfully');
+    }
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting booking:', error);
+    toast.error(error.response?.data?.error || 'Failed to delete booking');
+    return null;
+  }
+};
+
 export const restoreBooking = async (id) => {
   try {
     const response = await axios.post(`${API_BASE_URL}restore/booking/${id}`, {}, {
