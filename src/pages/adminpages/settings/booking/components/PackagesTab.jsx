@@ -373,6 +373,12 @@ export default function PackagesTab({ setProgress }) {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
                         £{pkg.price.toFixed(2)}
+                        <div className="text-xs font-normal text-gray-500">
+                          {pkg.pricingMode === 'fixed' ? 'static price' : 'per hour'}
+                          {Number(pkg.maxHours) > 0
+                            ? ` · max ${Number(pkg.maxHours)} hr${Number(pkg.maxHours) === 1 ? '' : 's'}`
+                            : ''}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
