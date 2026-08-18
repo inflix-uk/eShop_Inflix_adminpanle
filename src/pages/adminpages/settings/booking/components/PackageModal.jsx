@@ -40,7 +40,39 @@ const EMPTY_EXTRA = {
   price: 0,
   description: '',
   quantityEnabled: false,
+  discountEnabled: false,
+  discountPrice: 0,
 };
+
+function normalizeMoney(value) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount <= 0) return 0;
+  return Math.round(amount * 100) / 100;
+}
+
+/** A discount only counts when it actually undercuts the list price. */
+function resolveExtraDiscount(extra) {
+  const price = normalizeMoney(extra?.price);
+  const discountPrice = normalizeMoney(extra?.discountPrice);
+  const active = Boolean(extra?.discountEnabled) && price > 0 && discountPrice < price;
+
+  return {
+    active,
+    price,
+    discountPrice,
+    percent: active ? Math.round(((price - discountPrice) / price) * 100) : 0,
+  };
+}
+
+function normalizePricingMode(value) {
+  return value === 'fixed' ? 'fixed' : 'hourly';
+}
+
+/** 0 means no limit. */
+function normalizeMaxHours(value) {
+  const hours = Math.floor(Number(value) || 0);
+  return hours > 0 ? hours : 0;
+}
 
 const DEFAULT_WHAT_HAPPENS_NEXT = {
   heading: 'What happens next',
@@ -76,6 +108,8 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
     durationDisplayUnit: 'minutes',
     durationInput: 30,
     price: 0,
+    pricingMode: 'hourly',
+    maxHours: 0,
     includedMics: 0,
     subtitle: '',
     maxGuests: 5,
@@ -114,6 +148,8 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
         durationDisplayUnit,
         durationInput: minutesToDisplayValue(durationMinutes, durationDisplayUnit),
         price: editPackage.price || 0,
+        pricingMode: normalizePricingMode(editPackage.pricingMode),
+        maxHours: normalizeMaxHours(editPackage.maxHours),
         includedMics: Number(editPackage.includedMics) || 0,
         subtitle: editPackage.subtitle || '',
         maxGuests: Math.min(9, Math.max(1, Number(editPackage.maxGuests) || 5)),
@@ -133,6 +169,8 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
               price: extra.price ?? 0,
               description: extra.description || '',
               quantityEnabled: Boolean(extra.quantityEnabled),
+              discountEnabled: Boolean(extra.discountEnabled),
+              discountPrice: extra.discountPrice ?? 0,
             }))
           : [],
         image,
@@ -156,6 +194,8 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
         durationDisplayUnit: 'minutes',
         durationInput: 30,
         price: 0,
+        pricingMode: 'hourly',
+        maxHours: 0,
         includedMics: 0,
         subtitle: '',
         maxGuests: 5,
@@ -185,6 +225,9 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
   const handleChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
+
+  const isFixedPrice = formData.pricingMode === 'fixed';
+  const maxHoursValue = normalizeMaxHours(formData.maxHours);
 
   const handleFeatureChange = (index, value) => {
     setFormData((prev) => {
@@ -404,6 +447,8 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
       ...rest,
       durationMinutes,
       durationDisplayUnit: normalizeDurationUnit(formData.durationDisplayUnit),
+      pricingMode: normalizePricingMode(formData.pricingMode),
+      maxHours: normalizeMaxHours(formData.maxHours),
       includedMics: Math.max(0, Number(formData.includedMics) || 0),
       subtitle: formData.subtitle?.trim() || '',
       maxGuests: Math.min(9, Math.max(1, Number(formData.maxGuests) || 5)),
@@ -423,13 +468,18 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
           .slice(0, 20),
       },
       extras: formData.extras
-        .map((extra) => ({
-          image: extra.image || '',
-          title: extra.title.trim(),
-          price: Number(extra.price) || 0,
-          description: extra.description.trim(),
-          quantityEnabled: Boolean(extra.quantityEnabled),
-        }))
+        .map((extra) => {
+          const discount = resolveExtraDiscount(extra);
+          return {
+            image: extra.image || '',
+            title: extra.title.trim(),
+            price: discount.price,
+            description: extra.description.trim(),
+            quantityEnabled: Boolean(extra.quantityEnabled),
+            discountEnabled: discount.active,
+            discountPrice: discount.active ? discount.discountPrice : 0,
+          };
+        })
         .filter((extra) => extra.title.length > 0),
     };
     await onSave(payload);
@@ -519,6 +569,66 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-primary focus:border-primary"
                 required
               />
+              <p className="mt-1 text-xs text-gray-500">
+                {isFixedPrice
+                  ? 'Charged once per booking, no matter how many hours the customer picks.'
+                  : 'Charged for every hour the customer books (price × hours).'}
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-4">
+              <div className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  id="staticPricing"
+                  checked={isFixedPrice}
+                  onChange={(e) =>
+                    handleChange('pricingMode', e.target.checked ? 'fixed' : 'hourly')
+                  }
+                  className="mt-1 h-4 w-4 text-primary rounded border-gray-300"
+                />
+                <div className="flex-1">
+                  <label htmlFor="staticPricing" className="text-sm font-medium text-gray-900">
+                    Static price (do not multiply by hours)
+                  </label>
+                  <p className="text-xs text-gray-500 mt-1">
+                    On: the price above is the total for the whole booking — a customer who picks 5
+                    hours pays the same as one who picks 1. Off: the package is billed per hour, as
+                    normal.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pl-7">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Hours limit per booking
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={formData.maxHours}
+                  onChange={(e) =>
+                    handleChange(
+                      'maxHours',
+                      e.target.value === '' ? 0 : Math.max(0, Math.floor(Number(e.target.value) || 0))
+                    )
+                  }
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-primary focus:border-primary bg-white"
+                  placeholder="0"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  {maxHoursValue > 0 ? (
+                    <>
+                      Customers can book at most <b>{maxHoursValue}</b> hour
+                      {maxHoursValue === 1 ? '' : 's'} for this package. Going over shows a
+                      &quot;limit exceeded&quot; error and blocks checkout.
+                    </>
+                  ) : (
+                    <>Set to 0 for no limit.</>
+                  )}
+                </p>
+              </div>
             </div>
 
             <div>
@@ -856,7 +966,9 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {formData.extras.map((extra, index) => (
+                  {formData.extras.map((extra, index) => {
+                    const discount = resolveExtraDiscount(extra);
+                    return (
                     <div
                       key={index}
                       className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-3"
@@ -916,6 +1028,71 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
                         />
                       </div>
 
+                      <div className="rounded-md border border-gray-200 bg-white p-3 space-y-3">
+                        <label className="flex items-start gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(extra.discountEnabled)}
+                            onChange={(e) =>
+                              handleExtraChange(index, 'discountEnabled', e.target.checked)
+                            }
+                            className="mt-1 rounded border-gray-300 text-primary focus:ring-primary"
+                          />
+                          <span>
+                            <span className="block text-sm font-medium text-gray-800">
+                              Offer a discount on this extra
+                            </span>
+                            <span className="block text-xs text-gray-500">
+                              Customers are charged the discount price. The booking page shows the
+                              original price crossed out with a % off badge.
+                            </span>
+                          </span>
+                        </label>
+
+                        {extra.discountEnabled && (
+                          <>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Discount price (£ / hour)
+                              </label>
+                              <input
+                                type="number"
+                                min={0}
+                                step={0.01}
+                                value={extra.discountPrice}
+                                onChange={(e) =>
+                                  handleExtraChange(index, 'discountPrice', Number(e.target.value))
+                                }
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-primary focus:border-primary"
+                              />
+                            </div>
+
+                            {discount.active ? (
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">
+                                  {discount.percent}% OFF
+                                </span>
+                                <span className="text-sm font-semibold text-gray-900">
+                                  £{discount.discountPrice.toFixed(2)}
+                                </span>
+                                <span className="text-sm text-gray-400 line-through">
+                                  £{discount.price.toFixed(2)}
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  — how it will look on the booking page
+                                </span>
+                              </div>
+                            ) : (
+                              <p className="text-xs text-red-600">
+                                Discount price must be lower than the price above
+                                {discount.price > 0 ? ` (£${discount.price.toFixed(2)})` : ''}.
+                                Until then no discount is applied.
+                              </p>
+                            )}
+                          </>
+                        )}
+                      </div>
+
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Description
@@ -949,7 +1126,8 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
                         </span>
                       </label>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
