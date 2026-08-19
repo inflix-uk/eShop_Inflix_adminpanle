@@ -403,7 +403,8 @@ export const createAdminBooking = async (bookingData) => {
       headers: getHeaders(),
     });
     if (response.data.status === 201) {
-      toast.success('Booking created successfully');
+      const count = Array.isArray(response.data.bookings) ? response.data.bookings.length : 1;
+      toast.success(count > 1 ? `${count} bookings created successfully` : 'Booking created successfully');
     }
     return response.data;
   } catch (error) {

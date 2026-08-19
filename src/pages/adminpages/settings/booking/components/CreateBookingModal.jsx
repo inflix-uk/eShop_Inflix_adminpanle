@@ -2,17 +2,35 @@ import { useState, useEffect } from 'react';
 import { getPackages, getAvailableSlots, createAdminBooking } from '../service/bookingService';
 import { formatDurationLabel } from '../utils/durationDisplay';
 
+function slotKey(date, startTime) {
+  return `${date}|${startTime}`;
+}
+
+function formatSlotLabel(date, startTime) {
+  if (!date || !startTime) return '';
+  try {
+    const label = new Date(`${date}T12:00:00`).toLocaleDateString('en-GB', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+    });
+    return `${label} · ${startTime}`;
+  } catch {
+    return `${date} · ${startTime}`;
+  }
+}
+
 export default function CreateBookingModal({ isOpen, onClose, onSuccess }) {
   const [step, setStep] = useState(1);
   const [packages, setPackages] = useState([]);
   const [slots, setSlots] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [selectedSlots, setSelectedSlots] = useState([]);
 
   const [formData, setFormData] = useState({
     packageId: '',
     date: '',
-    startTime: '',
     customer: { name: '', email: '', phone: '' },
     notes: '',
     paymentStatus: 'paid',
@@ -28,7 +46,6 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess }) {
       setFormData({
         packageId: '',
         date: '',
-        startTime: '',
         customer: { name: '', email: '', phone: '' },
         notes: '',
         paymentStatus: 'paid',
@@ -36,6 +53,7 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess }) {
       });
       setSelectedPackage(null);
       setSlots([]);
+      setSelectedSlots([]);
     }
   }, [isOpen]);
 
@@ -54,6 +72,8 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess }) {
     const data = await getAvailableSlots(formData.packageId, formData.date);
     if (data?.slots) {
       setSlots(data.slots.filter((slot) => slot.available !== false));
+    } else {
+      setSlots([]);
     }
     setLoading(false);
   };
@@ -66,21 +86,48 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess }) {
 
   const handlePackageSelect = (pkg) => {
     setSelectedPackage(pkg);
-    setFormData({ ...formData, packageId: pkg._id });
+    setFormData({ ...formData, packageId: pkg._id, date: '' });
+    setSelectedSlots([]);
+    setSlots([]);
     setStep(2);
   };
 
-  const handleSlotSelect = (slot) => {
-    setFormData({ ...formData, startTime: slot.startTime });
-    setStep(3);
+  const isSlotSelected = (date, startTime) =>
+    selectedSlots.some((slot) => slotKey(slot.date, slot.startTime) === slotKey(date, startTime));
+
+  const handleSlotToggle = (slot) => {
+    const date = formData.date;
+    const key = slotKey(date, slot.startTime);
+    setSelectedSlots((prev) => {
+      if (prev.some((item) => slotKey(item.date, item.startTime) === key)) {
+        return prev.filter((item) => slotKey(item.date, item.startTime) !== key);
+      }
+      return [...prev, { date, startTime: slot.startTime }].sort(
+        (a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime)
+      );
+    });
+  };
+
+  const removeSlot = (date, startTime) => {
+    setSelectedSlots((prev) =>
+      prev.filter((slot) => slotKey(slot.date, slot.startTime) !== slotKey(date, startTime))
+    );
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.customer.name || !formData.customer.email) return;
+    if (selectedSlots.length === 0) return;
 
     setSaving(true);
-    const result = await createAdminBooking(formData);
+    const result = await createAdminBooking({
+      packageId: formData.packageId,
+      slots: selectedSlots,
+      customer: formData.customer,
+      notes: formData.notes,
+      paymentStatus: formData.paymentStatus,
+      status: formData.status,
+    });
     setSaving(false);
 
     if (result?.booking) {
@@ -90,12 +137,13 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess }) {
 
   if (!isOpen) return null;
 
+  const selectedOnCurrentDate = selectedSlots.filter((slot) => slot.date === formData.date).length;
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto">
       <div className="flex min-h-full items-center justify-center p-4">
         <div className="fixed inset-0 bg-black/50" onClick={onClose} />
         <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-          {/* Header */}
           <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between">
             <h2 className="text-xl font-semibold text-gray-900">Create Booking</h2>
             <button onClick={onClose} className="text-gray-400 hover:text-gray-500">
@@ -105,7 +153,6 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess }) {
             </button>
           </div>
 
-          {/* Steps Indicator */}
           <div className="px-6 py-4 border-b">
             <div className="flex items-center gap-4">
               {[1, 2, 3].map((s) => (
@@ -119,7 +166,7 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess }) {
                   </div>
                   <span className={`ml-2 text-sm ${step >= s ? 'text-gray-900' : 'text-gray-500'}`}>
                     {s === 1 && 'Select Package'}
-                    {s === 2 && 'Choose Slot'}
+                    {s === 2 && 'Choose Slots'}
                     {s === 3 && 'Customer Info'}
                   </span>
                   {s < 3 && <div className="w-8 h-px bg-gray-300 ml-4" />}
@@ -129,7 +176,6 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess }) {
           </div>
 
           <div className="p-6">
-            {/* Step 1: Select Package */}
             {step === 1 && (
               <div>
                 {loading ? (
@@ -161,7 +207,6 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess }) {
               </div>
             )}
 
-            {/* Step 2: Choose Slot */}
             {step === 2 && (
               <div className="space-y-4">
                 <button
@@ -187,15 +232,25 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess }) {
                   <input
                     type="date"
                     value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value, startTime: '' })}
+                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                     min={new Date().toISOString().split('T')[0]}
                     className="w-full border border-gray-300 rounded-md px-3 py-2"
                   />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Pick a date, tap times to add them, then change date to add more days. Slots stay selected.
+                  </p>
                 </div>
 
                 {formData.date && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Available Slots</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Available Slots
+                      {selectedOnCurrentDate > 0 ? (
+                        <span className="ml-2 font-normal text-gray-500">
+                          ({selectedOnCurrentDate} selected on this date)
+                        </span>
+                      ) : null}
+                    </label>
                     {loading ? (
                       <div className="flex justify-center py-4">
                         <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
@@ -204,27 +259,66 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess }) {
                       <div className="text-sm text-gray-500 py-4">No slots available for this date.</div>
                     ) : (
                       <div className="grid grid-cols-4 gap-2">
-                        {slots.map((slot) => (
-                          <button
-                            key={slot.startTime}
-                            onClick={() => handleSlotSelect(slot)}
-                            className={`px-3 py-2 text-sm border rounded-md hover:border-primary hover:bg-primary/5 ${
-                              formData.startTime === slot.startTime
-                                ? 'border-primary bg-primary/10'
-                                : 'border-gray-300'
-                            }`}
-                          >
-                            {slot.startTime}
-                          </button>
-                        ))}
+                        {slots.map((slot) => {
+                          const selected = isSlotSelected(formData.date, slot.startTime);
+                          return (
+                            <button
+                              key={slot.startTime}
+                              type="button"
+                              onClick={() => handleSlotToggle(slot)}
+                              className={`px-3 py-2 text-sm border rounded-md hover:border-primary hover:bg-primary/5 ${
+                                selected ? 'border-primary bg-primary/10 font-medium' : 'border-gray-300'
+                              }`}
+                            >
+                              {slot.startTime}
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
                 )}
+
+                {selectedSlots.length > 0 && (
+                  <div className="border border-gray-200 rounded-lg p-3">
+                    <div className="text-sm font-medium text-gray-900 mb-2">
+                      Selected slots ({selectedSlots.length})
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {selectedSlots.map((slot) => (
+                        <span
+                          key={slotKey(slot.date, slot.startTime)}
+                          className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-primary/10 text-gray-800"
+                        >
+                          {formatSlotLabel(slot.date, slot.startTime)}
+                          <button
+                            type="button"
+                            onClick={() => removeSlot(slot.date, slot.startTime)}
+                            className="ml-0.5 text-gray-500 hover:text-gray-800"
+                            aria-label={`Remove ${formatSlotLabel(slot.date, slot.startTime)}`}
+                          >
+                            ×
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex justify-end pt-2 border-t">
+                  <button
+                    type="button"
+                    disabled={selectedSlots.length === 0}
+                    onClick={() => setStep(3)}
+                    className="px-4 py-2 bg-primary text-white rounded-md hover:bg-secondary disabled:opacity-50"
+                  >
+                    Continue with {selectedSlots.length || 0} slot
+                    {selectedSlots.length === 1 ? '' : 's'}
+                  </button>
+                </div>
               </div>
             )}
 
-            {/* Step 3: Customer Info */}
             {step === 3 && (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <button
@@ -237,8 +331,12 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess }) {
 
                 <div className="bg-gray-50 rounded-lg p-4">
                   <div className="font-medium">{selectedPackage?.name}</div>
-                  <div className="text-sm text-gray-500">
-                    {formData.date} at {formData.startTime}
+                  <div className="text-sm text-gray-500 mt-1 space-y-0.5">
+                    {selectedSlots.map((slot) => (
+                      <div key={slotKey(slot.date, slot.startTime)}>
+                        {formatSlotLabel(slot.date, slot.startTime)}
+                      </div>
+                    ))}
                   </div>
                 </div>
 
@@ -325,10 +423,14 @@ export default function CreateBookingModal({ isOpen, onClose, onSuccess }) {
                   </button>
                   <button
                     type="submit"
-                    disabled={saving}
+                    disabled={saving || selectedSlots.length === 0}
                     className="px-4 py-2 bg-primary text-white rounded-md hover:bg-secondary disabled:opacity-50"
                   >
-                    {saving ? 'Creating...' : 'Create Booking'}
+                    {saving
+                      ? 'Creating...'
+                      : selectedSlots.length > 1
+                        ? `Create ${selectedSlots.length} Bookings`
+                        : 'Create Booking'}
                   </button>
                 </div>
               </form>
