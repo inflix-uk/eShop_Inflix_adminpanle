@@ -42,7 +42,16 @@ const EMPTY_EXTRA = {
   quantityEnabled: false,
   discountEnabled: false,
   discountPrice: 0,
+  unitLabel: 'per episode',
+  priceTbc: false,
 };
+
+const EXTRA_UNIT_OPTIONS = [
+  { value: 'per episode', label: 'Per episode' },
+  { value: 'per reel', label: 'Per reel' },
+  { value: 'per order', label: 'Per order' },
+  { value: 'per hour', label: 'Per hour' },
+];
 
 function normalizeMoney(value) {
   const amount = Number(value);
@@ -110,6 +119,7 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
     price: 0,
     pricingMode: 'hourly',
     maxHours: 0,
+    turnaroundDays: 5,
     includedMics: 0,
     subtitle: '',
     maxGuests: 5,
@@ -150,6 +160,7 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
         price: editPackage.price || 0,
         pricingMode: normalizePricingMode(editPackage.pricingMode),
         maxHours: normalizeMaxHours(editPackage.maxHours),
+        turnaroundDays: Math.max(0, Math.floor(Number(editPackage.turnaroundDays) || 0)),
         includedMics: Number(editPackage.includedMics) || 0,
         subtitle: editPackage.subtitle || '',
         maxGuests: Math.min(9, Math.max(1, Number(editPackage.maxGuests) || 5)),
@@ -171,6 +182,8 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
               quantityEnabled: Boolean(extra.quantityEnabled),
               discountEnabled: Boolean(extra.discountEnabled),
               discountPrice: extra.discountPrice ?? 0,
+              unitLabel: extra.unitLabel || 'per episode',
+              priceTbc: false,
             }))
           : [],
         image,
@@ -196,6 +209,7 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
         price: 0,
         pricingMode: 'hourly',
         maxHours: 0,
+        turnaroundDays: 5,
         includedMics: 0,
         subtitle: '',
         maxGuests: 5,
@@ -223,11 +237,22 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
   }, [editPackage, isOpen]);
 
   const handleChange = (field, value) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    setFormData((prev) => {
+      if (field === 'type') {
+        const next = { ...prev, type: value };
+        if (value === 'service' || value === 'editing') {
+          next.pricingMode = 'fixed';
+          if (!prev.turnaroundDays) next.turnaroundDays = 5;
+        }
+        return next;
+      }
+      return { ...prev, [field]: value };
+    });
   };
 
   const isFixedPrice = formData.pricingMode === 'fixed';
   const maxHoursValue = normalizeMaxHours(formData.maxHours);
+  const isServiceFlow = formData.type === 'service' || formData.type === 'editing';
 
   const handleFeatureChange = (index, value) => {
     setFormData((prev) => {
@@ -447,9 +472,12 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
       ...rest,
       durationMinutes,
       durationDisplayUnit: normalizeDurationUnit(formData.durationDisplayUnit),
-      pricingMode: normalizePricingMode(formData.pricingMode),
-      maxHours: normalizeMaxHours(formData.maxHours),
-      includedMics: Math.max(0, Number(formData.includedMics) || 0),
+      pricingMode: isServiceFlow ? 'fixed' : normalizePricingMode(formData.pricingMode),
+      maxHours: isServiceFlow ? 0 : normalizeMaxHours(formData.maxHours),
+      turnaroundDays: isServiceFlow
+        ? Math.max(0, Math.floor(Number(formData.turnaroundDays) || 0))
+        : 0,
+      includedMics: isServiceFlow ? 0 : Math.max(0, Number(formData.includedMics) || 0),
       subtitle: formData.subtitle?.trim() || '',
       maxGuests: Math.min(9, Math.max(1, Number(formData.maxGuests) || 5)),
       highlightBadgeText: formData.highlightBadgeText?.trim() || 'Most Popular',
@@ -470,14 +498,17 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
       extras: formData.extras
         .map((extra) => {
           const discount = resolveExtraDiscount(extra);
+          const title = String(extra?.title || '').trim();
           return {
             image: extra.image || '',
-            title: extra.title.trim(),
+            title,
             price: discount.price,
-            description: extra.description.trim(),
+            description: String(extra?.description || '').trim(),
             quantityEnabled: Boolean(extra.quantityEnabled),
             discountEnabled: discount.active,
             discountPrice: discount.active ? discount.discountPrice : 0,
+            unitLabel: extra.unitLabel ? String(extra.unitLabel).trim() : isServiceFlow ? 'per episode' : '',
+            priceTbc: false,
           };
         })
         .filter((extra) => extra.title.length > 0),
@@ -532,7 +563,7 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Duration *
+                  {isServiceFlow ? 'Covers up to *' : 'Duration *'}
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -550,8 +581,9 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
                   />
                 </div>
                 <p className="mt-1 text-xs text-gray-500">
-                  Shown as {formData.durationDisplayUnit === 'hours' ? 'hours' : 'minutes'} on
-                  admin and storefront.
+                  {isServiceFlow
+                    ? 'Longest recording this editing package covers. Shown as “up to 60 min” on the booking page.'
+                    : `Shown as ${formData.durationDisplayUnit === 'hours' ? 'hours' : 'minutes'} on admin and storefront.`}
                 </p>
               </div>
             </div>
@@ -570,89 +602,121 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
                 required
               />
               <p className="mt-1 text-xs text-gray-500">
-                {isFixedPrice
-                  ? 'Charged once per booking, no matter how many hours the customer picks.'
-                  : 'Charged for every hour the customer books (price × hours).'}
+                {isServiceFlow
+                  ? 'Charged per finished episode. Quantity on the booking page multiplies this price.'
+                  : isFixedPrice
+                    ? 'Charged once per booking, no matter how many hours the customer picks.'
+                    : 'Charged for every hour the customer books (price × hours).'}
               </p>
             </div>
 
-            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-4">
-              <div className="flex items-start gap-3">
-                <input
-                  type="checkbox"
-                  id="staticPricing"
-                  checked={isFixedPrice}
-                  onChange={(e) =>
-                    handleChange('pricingMode', e.target.checked ? 'fixed' : 'hourly')
-                  }
-                  className="mt-1 h-4 w-4 text-primary rounded border-gray-300"
-                />
-                <div className="flex-1">
-                  <label htmlFor="staticPricing" className="text-sm font-medium text-gray-900">
-                    Static price (do not multiply by hours)
-                  </label>
-                  <p className="text-xs text-gray-500 mt-1">
-                    On: the price above is the total for the whole booking — a customer who picks 5
-                    hours pays the same as one who picks 1. Off: the package is billed per hour, as
-                    normal.
-                  </p>
-                </div>
-              </div>
-
-              <div className="pl-7">
+            {isServiceFlow ? (
+              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Hours limit per booking
+                  Turnaround (working days)
                 </label>
                 <input
                   type="number"
                   min={0}
                   step={1}
-                  value={formData.maxHours}
+                  value={formData.turnaroundDays}
                   onChange={(e) =>
                     handleChange(
-                      'maxHours',
-                      e.target.value === '' ? 0 : Math.max(0, Math.floor(Number(e.target.value) || 0))
+                      'turnaroundDays',
+                      e.target.value === ''
+                        ? 0
+                        : Math.max(0, Math.floor(Number(e.target.value) || 0))
                     )
                   }
-                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-primary focus:border-primary bg-white"
-                  placeholder="0"
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-primary focus:border-primary"
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  {maxHoursValue > 0 ? (
-                    <>
-                      Customers can book at most <b>{maxHoursValue}</b> hour
-                      {maxHoursValue === 1 ? '' : 's'} for this package. Going over shows a
-                      &quot;limit exceeded&quot; error and blocks checkout.
-                    </>
-                  ) : (
-                    <>Set to 0 for no limit.</>
-                  )}
+                  Shown next to episode quantity, e.g. “back in about 5 working days”. Set 0 to hide.
                 </p>
               </div>
-            </div>
+            ) : (
+              <>
+                <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-4">
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      id="staticPricing"
+                      checked={isFixedPrice}
+                      onChange={(e) =>
+                        handleChange('pricingMode', e.target.checked ? 'fixed' : 'hourly')
+                      }
+                      className="mt-1 h-4 w-4 text-primary rounded border-gray-300"
+                    />
+                    <div className="flex-1">
+                      <label htmlFor="staticPricing" className="text-sm font-medium text-gray-900">
+                        Static price (do not multiply by hours)
+                      </label>
+                      <p className="text-xs text-gray-500 mt-1">
+                        On: the price above is the total for the whole booking — a customer who picks 5
+                        hours pays the same as one who picks 1. Off: the package is billed per hour, as
+                        normal.
+                      </p>
+                    </div>
+                  </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Included microphones
-              </label>
-              <input
-                type="number"
-                min={0}
-                step={1}
-                value={formData.includedMics}
-                onChange={(e) =>
-                  handleChange(
-                    'includedMics',
-                    e.target.value === '' ? 0 : Math.max(0, Number(e.target.value) || 0)
-                  )
-                }
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-primary focus:border-primary"
-                placeholder="e.g. 2"
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                How many mics this package includes. Used when guests need extra mics.
-              </p>
-            </div>
+                  <div className="pl-7">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Hours limit per booking
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step={1}
+                      value={formData.maxHours}
+                      onChange={(e) =>
+                        handleChange(
+                          'maxHours',
+                          e.target.value === ''
+                            ? 0
+                            : Math.max(0, Math.floor(Number(e.target.value) || 0))
+                        )
+                      }
+                      className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-primary focus:border-primary bg-white"
+                      placeholder="0"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      {maxHoursValue > 0 ? (
+                        <>
+                          Customers can book at most <b>{maxHoursValue}</b> hour
+                          {maxHoursValue === 1 ? '' : 's'} for this package. Going over shows a
+                          &quot;limit exceeded&quot; error and blocks checkout.
+                        </>
+                      ) : (
+                        <>Set to 0 for no limit.</>
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Included microphones
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={formData.includedMics}
+                    onChange={(e) =>
+                      handleChange(
+                        'includedMics',
+                        e.target.value === '' ? 0 : Math.max(0, Number(e.target.value) || 0)
+                      )
+                    }
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-primary focus:border-primary"
+                    placeholder="e.g. 2"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    How many mics this package includes. Used when guests need extra mics.
+                  </p>
+                </div>
+              </>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -663,13 +727,14 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
                 value={formData.subtitle}
                 onChange={(e) => handleChange('subtitle', e.target.value)}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-primary focus:border-primary"
-                placeholder="e.g. 2 mics included, up to 5"
+                placeholder={isServiceFlow ? 'e.g. Clean, publishable episode' : 'e.g. 2 mics included, up to 5'}
               />
               <p className="mt-1 text-xs text-gray-500">
                 Shown under the price on booking package cards.
               </p>
             </div>
 
+            {!isServiceFlow && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 No. of guests
@@ -691,6 +756,7 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
                 Guest number options shown on the booking flow for this package (1–9).
               </p>
             </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -943,40 +1009,53 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
               </div>
             </div>
 
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-medium text-gray-700">
-                  Extras
-                </label>
+            <div className="rounded-lg border border-gray-200 p-4 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900">
+                    Add-ons
+                  </label>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    {isServiceFlow
+                      ? 'Optional extras on the editing booking page (storage, extra reels, rush, and so on).'
+                      : 'Optional extras customers can add when they book this package.'}
+                  </p>
+                </div>
                 <button
                   type="button"
                   onClick={addExtra}
-                  className="text-sm text-primary hover:text-secondary font-medium"
+                  className="shrink-0 text-sm text-primary hover:text-secondary font-medium"
                 >
                   + Add extra
                 </button>
               </div>
-              <p className="text-xs text-gray-500 mb-3">
-                Optional add-ons customers can choose with this package.
-              </p>
 
               {formData.extras.length === 0 ? (
-                <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center text-sm text-gray-500">
-                  No extras yet. Click &quot;Add extra&quot; to create one.
+                <div className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-5 text-center text-sm text-gray-500">
+                  No add-ons yet.
                 </div>
               ) : (
                 <div className="space-y-4">
                   {formData.extras.map((extra, index) => {
                     const discount = resolveExtraDiscount(extra);
+                    const unit = extra.unitLabel || (isServiceFlow ? 'per episode' : 'per hour');
+                    const extraName = String(extra.title || '').trim() || `Add-on ${index + 1}`;
                     return (
                     <div
                       key={index}
-                      className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-3"
+                      className="rounded-lg border border-gray-200 bg-white p-4 space-y-4"
                     >
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-sm font-semibold text-gray-800">
-                          Extra {index + 1}
-                        </h4>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <h4 className="text-sm font-semibold text-gray-900 truncate">
+                            {extraName}
+                          </h4>
+                          <p className="text-xs text-gray-500">
+                            {discount.price > 0
+                              ? `Booking page: +£${discount.price.toFixed(2)} ${unit}`
+                              : 'Enter the add-on price'}
+                          </p>
+                        </div>
                         <button
                           type="button"
                           onClick={() => removeExtra(index)}
@@ -989,122 +1068,221 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
                         </button>
                       </div>
 
-                      <ImageUploader
-                        label="Extra Image"
-                        helperText="Optional. Upload from PC or select from Media Library (max 5MB for local upload)."
-                        value={extraImagePreviews[index] || (extra.image ? resolveImagePreview(extra.image) : '')}
-                        onChange={(file) => handleExtraImageChange(index, file)}
-                        onSelectFromLibrary={() => setMediaPickerTarget(index)}
-                        maxSizeMB={5}
-                      />
-                      {uploadingExtraIndex === index && (
-                        <p className="text-sm text-gray-500">Uploading image...</p>
-                      )}
-
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Title *
+                          Name *
                         </label>
                         <input
                           type="text"
                           value={extra.title}
                           onChange={(e) => handleExtraChange(index, 'title', e.target.value)}
                           className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-primary focus:border-primary"
-                          placeholder="e.g., Extra microphone"
+                          placeholder={isServiceFlow ? 'e.g. Extra vertical reels' : 'e.g. Extra microphone'}
                         />
                       </div>
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Price (£ / hour)
+                          Short description
                         </label>
-                        <input
-                          type="number"
-                          min={0}
-                          step={0.01}
-                          value={extra.price}
-                          onChange={(e) => handleExtraChange(index, 'price', Number(e.target.value))}
+                        <textarea
+                          rows={2}
+                          value={extra.description}
+                          onChange={(e) => handleExtraChange(index, 'description', e.target.value)}
                           className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-primary focus:border-primary"
+                          placeholder="Shown under the name on the booking page"
                         />
                       </div>
 
-                      <div className="rounded-md border border-gray-200 bg-white p-3 space-y-3">
-                        <label className="flex items-start gap-2 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={Boolean(extra.discountEnabled)}
-                            onChange={(e) =>
-                              handleExtraChange(index, 'discountEnabled', e.target.checked)
-                            }
-                            className="mt-1 rounded border-gray-300 text-primary focus:ring-primary"
-                          />
-                          <span>
-                            <span className="block text-sm font-medium text-gray-800">
-                              Offer a discount on this extra
-                            </span>
-                            <span className="block text-xs text-gray-500">
-                              Customers are charged the discount price. The booking page shows the
-                              original price crossed out with a % off badge.
-                            </span>
-                          </span>
-                        </label>
-
-                        {extra.discountEnabled && (
-                          <>
+                      {isServiceFlow ? (
+                        <div className="rounded-md border border-gray-200 bg-gray-50 p-3 space-y-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Discount price (£ / hour)
+                                Amount (£)
                               </label>
                               <input
                                 type="number"
                                 min={0}
                                 step={0.01}
-                                value={extra.discountPrice}
-                                onChange={(e) =>
-                                  handleExtraChange(index, 'discountPrice', Number(e.target.value))
-                                }
-                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-primary focus:border-primary"
+                                value={extra.price === '' || extra.price === undefined || extra.price === null ? '' : extra.price}
+                                onChange={(e) => {
+                                  const raw = e.target.value;
+                                  handleExtraChange(index, 'price', raw === '' ? '' : raw);
+                                }}
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-primary focus:border-primary bg-white"
+                                placeholder="0.00"
                               />
                             </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Charged
+                              </label>
+                              <select
+                                value={extra.unitLabel || 'per episode'}
+                                onChange={(e) => handleExtraChange(index, 'unitLabel', e.target.value)}
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-primary focus:border-primary bg-white"
+                              >
+                                {EXTRA_UNIT_OPTIONS.map((opt) => (
+                                  <option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
 
-                            {discount.active ? (
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700">
-                                  {discount.percent}% OFF
-                                </span>
-                                <span className="text-sm font-semibold text-gray-900">
-                                  £{discount.discountPrice.toFixed(2)}
-                                </span>
-                                <span className="text-sm text-gray-400 line-through">
-                                  £{discount.price.toFixed(2)}
-                                </span>
-                                <span className="text-xs text-gray-500">
-                                  — how it will look on the booking page
-                                </span>
-                              </div>
-                            ) : (
-                              <p className="text-xs text-red-600">
-                                Discount price must be lower than the price above
-                                {discount.price > 0 ? ` (£${discount.price.toFixed(2)})` : ''}.
-                                Until then no discount is applied.
-                              </p>
-                            )}
-                          </>
-                        )}
-                      </div>
+                          <label className="flex items-start gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(extra.discountEnabled)}
+                              onChange={(e) =>
+                                handleExtraChange(index, 'discountEnabled', e.target.checked)
+                              }
+                              className="mt-1 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                            <span>
+                              <span className="block text-sm font-medium text-gray-800">
+                                Sale price
+                              </span>
+                              <span className="block text-xs text-gray-500">
+                                Show the original amount crossed out, with a % off badge
+                              </span>
+                            </span>
+                          </label>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Description
-                        </label>
-                        <textarea
-                          rows={3}
-                          value={extra.description}
-                          onChange={(e) => handleExtraChange(index, 'description', e.target.value)}
-                          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-primary focus:border-primary"
-                          placeholder="Short description of this extra"
-                        />
-                      </div>
+                          {extra.discountEnabled && (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Sale amount (£)
+                              </label>
+                              <input
+                                type="number"
+                                min={0}
+                                step={0.01}
+                                value={
+                                  extra.discountPrice === '' ||
+                                  extra.discountPrice === undefined ||
+                                  extra.discountPrice === null
+                                    ? ''
+                                    : extra.discountPrice
+                                }
+                                onChange={(e) => {
+                                  const raw = e.target.value;
+                                  handleExtraChange(
+                                    index,
+                                    'discountPrice',
+                                    raw === '' ? '' : raw
+                                  );
+                                }}
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-primary focus:border-primary bg-white"
+                              />
+                              {discount.active ? (
+                                <p className="mt-2 text-xs text-gray-600">
+                                  Preview:{' '}
+                                  <span className="font-semibold text-gray-900">
+                                    £{discount.discountPrice.toFixed(2)}
+                                  </span>
+                                  <span className="text-gray-400 line-through ml-1">
+                                    £{discount.price.toFixed(2)}
+                                  </span>
+                                  <span className="ml-1 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-700">
+                                    {discount.percent}% OFF
+                                  </span>
+                                </p>
+                              ) : (
+                                <p className="mt-1 text-xs text-red-600">
+                                  Sale amount must be lower than £
+                                  {discount.price > 0 ? discount.price.toFixed(2) : 'the price above'}.
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="rounded-md border border-gray-200 bg-gray-50 p-3 space-y-3">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Price (£ / hour)
+                            </label>
+                            <input
+                              type="number"
+                              min={0}
+                              step={0.01}
+                              value={extra.price === '' || extra.price === undefined || extra.price === null ? '' : extra.price}
+                              onChange={(e) => {
+                                const raw = e.target.value;
+                                handleExtraChange(index, 'price', raw === '' ? '' : raw);
+                              }}
+                              className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-primary focus:border-primary bg-white"
+                            />
+                          </div>
+                          <label className="flex items-start gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(extra.discountEnabled)}
+                              onChange={(e) =>
+                                handleExtraChange(index, 'discountEnabled', e.target.checked)
+                              }
+                              className="mt-1 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                            <span>
+                              <span className="block text-sm font-medium text-gray-800">
+                                Sale price
+                              </span>
+                              <span className="block text-xs text-gray-500">
+                                Show the original amount crossed out, with a % off badge
+                              </span>
+                            </span>
+                          </label>
+                          {extra.discountEnabled && (
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Sale amount (£ / hour)
+                              </label>
+                              <input
+                                type="number"
+                                min={0}
+                                step={0.01}
+                                value={
+                                  extra.discountPrice === '' ||
+                                  extra.discountPrice === undefined ||
+                                  extra.discountPrice === null
+                                    ? ''
+                                    : extra.discountPrice
+                                }
+                                onChange={(e) => {
+                                  const raw = e.target.value;
+                                  handleExtraChange(
+                                    index,
+                                    'discountPrice',
+                                    raw === '' ? '' : raw
+                                  );
+                                }}
+                                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-primary focus:border-primary bg-white"
+                              />
+                              {discount.active ? (
+                                <p className="mt-2 text-xs text-gray-600">
+                                  Preview:{' '}
+                                  <span className="font-semibold text-gray-900">
+                                    £{discount.discountPrice.toFixed(2)}
+                                  </span>
+                                  <span className="text-gray-400 line-through ml-1">
+                                    £{discount.price.toFixed(2)}
+                                  </span>
+                                  <span className="ml-1 rounded-full bg-red-100 px-1.5 py-0.5 text-[10px] font-bold text-red-700">
+                                    {discount.percent}% OFF
+                                  </span>
+                                </p>
+                              ) : (
+                                <p className="mt-1 text-xs text-red-600">
+                                  Sale amount must be lower than the hourly price above.
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
 
                       <label className="flex items-start gap-2 cursor-pointer">
                         <input
@@ -1117,14 +1295,34 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
                         />
                         <span>
                           <span className="block text-sm font-medium text-gray-800">
-                            Enable quantity (+ / −)
+                            Let customers pick a quantity
                           </span>
                           <span className="block text-xs text-gray-500">
-                            Show increment/decrement on the booking page. Price is charged per
-                            quantity × hourly rate × booked hours.
+                            {isServiceFlow
+                              ? 'Shows + / −. Charged × quantity × the unit above (episode / reel / order).'
+                              : 'Shows + / −. Charged × quantity × hourly rate × booked hours.'}
                           </span>
                         </span>
                       </label>
+
+                      <details className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
+                        <summary className="cursor-pointer text-sm text-gray-700">
+                          Optional image
+                        </summary>
+                        <div className="mt-3">
+                          <ImageUploader
+                            label="Add-on image"
+                            helperText="Optional. Max 5MB."
+                            value={extraImagePreviews[index] || (extra.image ? resolveImagePreview(extra.image) : '')}
+                            onChange={(file) => handleExtraImageChange(index, file)}
+                            onSelectFromLibrary={() => setMediaPickerTarget(index)}
+                            maxSizeMB={5}
+                          />
+                          {uploadingExtraIndex === index && (
+                            <p className="text-sm text-gray-500 mt-2">Uploading image...</p>
+                          )}
+                        </div>
+                      </details>
                     </div>
                     );
                   })}

@@ -35,6 +35,7 @@ export default function StripeSettings() {
   const [hasSecretKey, setHasSecretKey] = useState(false);
   const [hasPublishableKey, setHasPublishableKey] = useState(false);
   const [hasWebhookSecret, setHasWebhookSecret] = useState(false);
+  const [testMode, setTestMode] = useState(false);
   const [updatedAt, setUpdatedAt] = useState(null);
 
   const toggleSidebar = () => {
@@ -63,6 +64,7 @@ export default function StripeSettings() {
         setHasSecretKey(data.hasSecretKey || false);
         setHasPublishableKey(data.hasPublishableKey || false);
         setHasWebhookSecret(data.hasWebhookSecret || false);
+        setTestMode(Boolean(data.testMode));
         setUpdatedAt(data.updatedAt || null);
       }
     } catch (error) {
@@ -258,6 +260,15 @@ export default function StripeSettings() {
                 <div className="flex items-center gap-2">
                   <span
                     className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      testMode
+                        ? "bg-amber-100 text-amber-800"
+                        : "bg-red-100 text-red-800"
+                    }`}
+                  >
+                    {testMode ? "Test mode" : "Live mode"}
+                  </span>
+                  <span
+                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                       hasSecretKey && hasPublishableKey
                         ? "bg-blue-100 text-blue-800"
                         : "bg-yellow-100 text-yellow-800"
@@ -278,7 +289,24 @@ export default function StripeSettings() {
               ) : (
                 <form onSubmit={handleSubmit} className="px-6 py-6">
                   <div className="space-y-6">
-                    {/* Secret Key */}
+                    <label className="flex items-start gap-3 p-4 rounded-lg border border-gray-200 bg-gray-50">
+                      <input
+                        type="checkbox"
+                        checked={testMode}
+                        readOnly
+                        className="mt-1 h-4 w-4 rounded border-gray-300 text-primary"
+                      />
+                      <span>
+                        <span className="block text-sm font-medium text-gray-900">
+                          Stripe test mode
+                        </span>
+                        <span className="block text-sm text-gray-500 mt-1">
+                          Controlled by <code>STRIPE_TEST_MODE</code> in backend
+                          .env. <strong>true</strong> = test cards.{" "}
+                          <strong>false</strong> or unset = live payments.
+                        </span>
+                      </span>
+                    </label>
                     <div>
                       <label
                         htmlFor="secretKey"
