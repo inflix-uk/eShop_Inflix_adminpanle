@@ -321,6 +321,7 @@ class NewProductService {
           productSKU: productData.productSKU,
           productEIN: productData.productEIN,
           productMPN: productData.productMPN,
+          productColor: productData.productColor,
         })
       );
     } else {

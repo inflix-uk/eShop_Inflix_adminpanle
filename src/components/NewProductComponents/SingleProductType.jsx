@@ -15,6 +15,8 @@ export default function SingleProductType({
   setProductEIN,
   productMPN,
   setProductMPN,
+  productColor,
+  setProductColor,
 }) {
   return (
     <>
@@ -157,6 +159,25 @@ export default function SingleProductType({
               />
             </div>
           </div>
+          <div className="flex flex-row items-center justify-between">
+            <label
+              htmlFor="productColor"
+              className="block text-sm font-medium leading-6 text-gray-900"
+            >
+              Color
+            </label>
+            <div className="relative mt-2 rounded-md shadow-sm w-3/4">
+              <input
+                type="text"
+                name="productColor"
+                id="productColor"
+                className="block w-full rounded-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
+                placeholder="e.g. Black, Gold, Clear"
+                value={productColor || ""}
+                onChange={(e) => setProductColor?.(e.target.value)}
+              />
+            </div>
+          </div>
         </div>
       </div>
     </>
@@ -178,4 +199,6 @@ SingleProductType.propTypes = {
   setProductEIN: PropTypes.func.isRequired,
   productMPN: PropTypes.string.isRequired,
   setProductMPN: PropTypes.func.isRequired,
+  productColor: PropTypes.string,
+  setProductColor: PropTypes.func,
 };

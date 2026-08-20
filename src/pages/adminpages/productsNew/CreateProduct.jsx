@@ -64,6 +64,7 @@ export default function NewProduct() {
   const [productSKU, setProductSKU] = useState("");
   const [productEIN, setProductEIN] = useState("");
   const [productMPN, setProductMPN] = useState("");
+  const [productColor, setProductColor] = useState("");
 
   // Images State
   const [ProductThumbnailImage, setProductThumbnailImage] = useState(null);
@@ -484,6 +485,7 @@ export default function NewProduct() {
         productSKU,
         productEIN,
         productMPN,
+        productColor,
         specifications,
         summary,
         description,
@@ -901,6 +903,21 @@ export default function NewProduct() {
                               onChange={(e) => setProductMPN(e.target.value)}
                               className="block w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
                               placeholder="Enter MPN"
+                            />
+                          </div>
+
+                          {/* Color — used in Google Merchant CSV export */}
+                          <div>
+                            <label htmlFor="productColor" className="block text-sm font-medium text-gray-700 mb-2">
+                              Color
+                            </label>
+                            <input
+                              type="text"
+                              id="productColor"
+                              value={productColor}
+                              onChange={(e) => setProductColor(e.target.value)}
+                              className="block w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                              placeholder="e.g. Black, Gold, Clear"
                             />
                           </div>
                         </div>
