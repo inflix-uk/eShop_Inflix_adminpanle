@@ -165,6 +165,7 @@ class EditProductService {
     // Handle single product type
     if (product.productType.type === "single") {
       const singleProductValues = {
+        name: product.variantValues[0]?.name || "single",
         Cost: product.variantValues[0]?.Cost,
         Price: product.variantValues[0]?.Price,
         salePrice: product.variantValues[0]?.salePrice,
@@ -172,6 +173,9 @@ class EditProductService {
         SKU: product.variantValues[0]?.SKU,
         EIN: product.variantValues[0]?.EIN,
         MPN: product.variantValues[0]?.MPN,
+        attributes: Array.isArray(product.variantValues[0]?.attributes)
+          ? product.variantValues[0].attributes
+          : [],
       };
 
       formData.append("variantValues", JSON.stringify([singleProductValues]));

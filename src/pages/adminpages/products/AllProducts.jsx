@@ -10,10 +10,8 @@ import { ClipboardDocumentIcon } from "@heroicons/react/24/outline"; // Cli
 import { Helmet } from "react-helmet-async";
 import {
   buildCategoryGooglePathMap,
-  buildExportVariantProductSlug,
-  getStorefrontMobileProductUrl,
+  buildMerchantFeedRows,
   getStorefrontProductUrl,
-  resolveGoogleProductCategoryForExport,
 } from "../productsNew/Components/allProducts/utils";
 import { isProductMissingBrand } from "../productsNew/constants/brandConstants";
 import { TableSkeleton } from "../shared/Skeletons";
@@ -179,16 +177,12 @@ export default function AllProducts() {
     return `ZEX-${namePrefix}${variantPrefix}-${timestamp}-${randomPart}`;
   };
 
-  const googleCategoryForProduct = (product) =>
-    resolveGoogleProductCategoryForExport(product, categoryGooglePathMap);
-
-  // Helper to get image URL - handles both url (Blob) and path (local) properties
-  const getImageUrl = (img) => {
-    if (!img) return '';
-    if (img.url) return img.url;
-    if (img.path) return `${import.meta.env.VITE_BACKEND_URL}${img.path}`;
-    return '';
-  };
+  const buildCsvRows = (options = {}) =>
+    buildMerchantFeedRows(products, {
+      categoryGooglePathMap,
+      generateSku: generateRandomSKU,
+      ...options,
+    });
 
   const handleExportClick = () => {
     if (exportLoading) return; // Prevent multiple clicks
@@ -197,90 +191,9 @@ export default function AllProducts() {
     if (products.length > 0) {
       setExportLoading(true); // Start loading
       console.log("Products:", products);
-      const csvData = products.flatMap(product => {
-        // Exclude products in 'Accessories' category
-        if (product.category.includes("Accessories") || product.category.includes("PAYG-SIM-Card")) {
-          return []; // Return an empty array to exclude this product
-        }
-        const googleProductCategory = googleCategoryForProduct(product);
-
-        if (product.productType?.type === 'single') {
-          // Check product stock for single-type products
-          if (!product.variantValues[0].Quantity || product.variantValues[0].Quantity <= 0) {
-            return []; // Skip out of stock variants
-          }
-          const productNameSlug = product.producturl;
-          const condition = product.condition === 'Brand New' ? 'New' : product.condition;
-
-          return [{
-            id: product.variantValues[0].SKU || generateRandomSKU(product.name),
-            title: `${product.name}`,
-            description: product.Product_summary || '',
-            availability: 'in_stock',
-            link: getStorefrontProductUrl(productNameSlug),
-            image_link: getImageUrl(product.thumbnail_image),
-            additional_image_link: (product.Gallery_Images || []).map(img => getImageUrl(img)).filter(Boolean).join(", "),
-            price: `${product.variantValues[0].Price} GBP`,
-            sale_price: product.variantValues[0].salePrice ? `${product.variantValues[0].salePrice} GBP` : null,
-            identifier_exists: product.variantValues[0].EIN ? 'yes' : 'no',
-            gtin: product.variantValues[0].EIN ? product.variantValues[0].EIN : '',
-            mpn: product.variantValues[0].MPN || "",
-            brand: product.brand || '',
-            condition: condition || 'N/A',
-            custom_label_0: product.condition === 'refurbished' || product.condition === 'Refurbished' ? '' : '',
-            color: 'N/A',
-            capacity: 'N/A',
-            shipping: product.shipping_cost || '0.00 GBP',
-            tax: product.tax_rate || '0%',
-            mobile_link: getStorefrontMobileProductUrl(productNameSlug),
-            google_product_category: googleProductCategory
-          }];
-        } else {
-          // Handle variant-based products
-          return product.variantValues.flatMap(variant => {
-            // Exclude out of stock variants
-            if (!variant.Quantity || variant.Quantity <= 0) {
-              return []; // Skip out of stock variants
-            }
-            const variantName = variant.name || '';
-            const fullProductNameSlug = buildExportVariantProductSlug(product, variant);
-            const nameParts = variantName.split('-');
-            const storage = nameParts.find(part => /\d+(GB|TB)/i.test(part)) || 'N/A';
-            const colorParts = nameParts.filter(part => !(/\d+(GB|TB)/i.test(part)));
-            const colorName =
-              colorParts.join('-').split(' (')[0].trim().replace(/\s+/g, '-') ||
-              variant.slug ||
-              variantName ||
-              'N/A';
-            const firstImageLink = (variant.variantImages || []).length > 0
-              ? getImageUrl(variant.variantImages[0])
-              : '';
-            const condition = product.condition === 'Brand New' ? 'New' : product.condition;
-            return {
-              id: variant.SKU || generateRandomSKU(product.name, variantName),
-              title: `${product.name}  - ${colorName} - ${storage}`,
-              description: product.Product_summary || '',
-              availability: 'in_stock',
-              link: getStorefrontProductUrl(fullProductNameSlug),
-              image_link: firstImageLink,
-              additional_image_link: (variant.variantImages || []).map(img => getImageUrl(img)).filter(Boolean).join(", "),
-              price: `${variant.Price} GBP`,
-              sale_price: variant.salePrice ? `${variant.salePrice} GBP` : null,
-              identifier_exists: variant.EIN ? 'yes' : 'no',
-              gtin: variant.EIN ? variant.EIN : '',
-              mpn: variant.MPN || "",
-              brand: product.brand || '',
-              condition: condition || 'N/A',
-              custom_label_0: product.condition === 'refurbished' || product.condition === 'Refurbished' ? (variant.slug || variantName) : '',
-              color: colorName || 'N/A',
-              capacity: storage || 'N/A',
-              shipping: product.shipping_cost || '0.00 GBP',
-              tax: product.tax_rate || '0%',
-              mobile_link: getStorefrontMobileProductUrl(fullProductNameSlug),
-              google_product_category: googleProductCategory
-            };
-          });
-        }
+      const csvData = buildCsvRows({
+        includeAccessories: false,
+        includeOutOfStock: false,
       });
 
 
@@ -317,89 +230,9 @@ export default function AllProducts() {
     // After fetching products, send data to the backend
     if (products.length > 0) {
       setAccessoriesLoading(true); // Start loading
-      const csvData = products.flatMap(product => {
-        // Exclude products in 'Accessories' category
-        // if (product.category.includes("Accessories") || product.category.includes("PAYG SIM Card")) {
-        //   return []; // Return an empty array to exclude this product
-        // }
-        const googleProductCategory = googleCategoryForProduct(product);
-
-        if (product.productType?.type === 'single') {
-          // Check product stock for single-type products
-          if (!product.variantValues[0].Quantity || product.variantValues[0].Quantity <= 0) {
-            return []; // Skip out of stock variants
-          }
-          const productNameSlug = product.producturl;
-          const condition = product.condition === 'Brand New' ? 'New' : product.condition;
-          return [{
-            id: product.variantValues[0].SKU || generateRandomSKU(product.name),
-            title: `${product.name}`,
-            description: product.Product_summary || '',
-            availability: 'in_stock',
-            link: getStorefrontProductUrl(productNameSlug),
-            image_link: getImageUrl(product.thumbnail_image),
-            additional_image_link: (product.Gallery_Images || []).map(img => getImageUrl(img)).filter(Boolean).join(", "),
-            price: `${product.variantValues[0].Price} GBP`,
-            sale_price: product.variantValues[0].salePrice ? `${product.variantValues[0].salePrice} GBP` : null,
-            identifier_exists: product.variantValues[0].EIN ? 'yes' : 'no',
-            gtin: product.variantValues[0].EIN ? product.variantValues[0].EIN : '',
-            mpn: product.variantValues[0].MPN || "",
-            brand: product.brand || '',
-            condition: condition || 'N/A',
-            custom_label_0: product.condition === 'refurbished' || product.condition === 'Refurbished' ? '' : '',
-            color: 'N/A',
-            capacity: 'N/A',
-            shipping: product.shipping_cost || '0.00 GBP',
-            tax: product.tax_rate || '0%',
-            mobile_link: getStorefrontMobileProductUrl(productNameSlug),
-            google_product_category: googleProductCategory
-          }];
-        } else {
-          // Handle variant-based products
-          return product.variantValues.flatMap(variant => {
-            // Exclude out of stock variants
-            if (!variant.Quantity || variant.Quantity <= 0) {
-              return []; // Skip out of stock variants
-            }
-            const variantName = variant.name || '';
-            const fullProductNameSlug = buildExportVariantProductSlug(product, variant);
-            const nameParts = variantName.split('-');
-            const storage = nameParts.find(part => /\d+(GB|TB)/i.test(part)) || 'N/A';
-            const colorParts = nameParts.filter(part => !(/\d+(GB|TB)/i.test(part)));
-            const colorName =
-              colorParts.join('-').split(' (')[0].trim().replace(/\s+/g, '-') ||
-              variant.slug ||
-              variantName ||
-              'N/A';
-            const firstImageLink = (variant.variantImages || []).length > 0
-              ? getImageUrl(variant.variantImages[0])
-              : '';
-            const condition = product.condition === 'Brand New' ? 'New' : product.condition;
-            return {
-              id: variant.SKU || generateRandomSKU(product.name, variantName),
-              title: `${product.name}  - ${colorName} - ${storage}`,
-              description: product.Product_summary || '',
-              availability: 'in_stock',
-              link: getStorefrontProductUrl(fullProductNameSlug),
-              image_link: firstImageLink,
-              additional_image_link: (variant.variantImages || []).map(img => getImageUrl(img)).filter(Boolean).join(", "),
-              price: `${variant.Price} GBP`,
-              sale_price: variant.salePrice ? `${variant.salePrice} GBP` : null,
-              identifier_exists: variant.EIN ? 'yes' : 'no',
-              gtin: variant.EIN ? variant.EIN : '',
-              mpn: variant.MPN || "",
-              brand: product.brand || '',
-              condition: condition || 'N/A',
-              custom_label_0: product.condition === 'refurbished' || product.condition === 'Refurbished' ? (variant.slug || variantName) : '',
-              color: colorName || 'N/A',
-              capacity: storage || 'N/A',
-              shipping: product.shipping_cost || '0.00 GBP',
-              tax: product.tax_rate || '0%',
-              mobile_link: getStorefrontMobileProductUrl(fullProductNameSlug),
-              google_product_category: googleProductCategory
-            };
-          });
-        }
+      const csvData = buildCsvRows({
+        includeAccessories: true,
+        includeOutOfStock: false,
       });
 
 
@@ -438,89 +271,9 @@ export default function AllProducts() {
     if (products.length > 0) {
       setExportAllLoading(true); // Start loading
       console.log("Exporting ALL Products:", products);
-      const csvData = products.flatMap(product => {
-        // Exclude Accessories and PAYG-SIM-Card categories
-        if (product.category.includes("Accessories") || product.category.includes("PAYG-SIM-Card")) {
-          return [];
-        }
-        const googleProductCategory = googleCategoryForProduct(product);
-
-        if (product.productType?.type === 'single') {
-          const productNameSlug = product.producturl;
-          const condition = product.condition === 'Brand New' ? 'New' : product.condition;
-          // Dynamic availability based on quantity
-          const quantity = product.variantValues[0]?.Quantity || 0;
-          const availability = quantity > 0 ? 'in_stock' : 'out_of_stock';
-
-          return [{
-            id: product.variantValues[0].SKU || generateRandomSKU(product.name),
-            title: `${product.name}`,
-            description: product.Product_summary || '',
-            availability: availability,
-            link: getStorefrontProductUrl(productNameSlug),
-            image_link: getImageUrl(product.thumbnail_image),
-            additional_image_link: (product.Gallery_Images || []).map(img => getImageUrl(img)).filter(Boolean).join(", "),
-            price: `${product.variantValues[0].Price} GBP`,
-            sale_price: product.variantValues[0].salePrice ? `${product.variantValues[0].salePrice} GBP` : null,
-            identifier_exists: product.variantValues[0].EIN ? 'yes' : 'no',
-            gtin: product.variantValues[0].EIN ? product.variantValues[0].EIN : '',
-            mpn: product.variantValues[0].MPN || "",
-            brand: product.brand || '',
-            condition: condition || 'N/A',
-            custom_label_0: product.condition === 'refurbished' || product.condition === 'Refurbished' ? '' : '',
-            color: 'N/A',
-            capacity: 'N/A',
-            shipping: product.shipping_cost || '0.00 GBP',
-            tax: product.tax_rate || '0%',
-            mobile_link: getStorefrontMobileProductUrl(productNameSlug),
-            google_product_category: googleProductCategory
-          }];
-        } else {
-          // Handle variant-based products - include ALL variants
-          return product.variantValues.flatMap(variant => {
-            const variantName = variant.name || '';
-            const fullProductNameSlug = buildExportVariantProductSlug(product, variant);
-            const nameParts = variantName.split('-');
-            const storage = nameParts.find(part => /\d+(GB|TB)/i.test(part)) || 'N/A';
-            const colorParts = nameParts.filter(part => !(/\d+(GB|TB)/i.test(part)));
-            const colorName =
-              colorParts.join('-').split(' (')[0].trim().replace(/\s+/g, '-') ||
-              variant.slug ||
-              variantName ||
-              'N/A';
-            const firstImageLink = (variant.variantImages || []).length > 0
-              ? getImageUrl(variant.variantImages[0])
-              : '';
-            const condition = product.condition === 'Brand New' ? 'New' : product.condition;
-            // Dynamic availability based on quantity
-            const quantity = variant.Quantity || 0;
-            const availability = quantity > 0 ? 'in_stock' : 'out_of_stock';
-
-            return {
-              id: variant.SKU || generateRandomSKU(product.name, variantName),
-              title: `${product.name}  - ${colorName} - ${storage}`,
-              description: product.Product_summary || '',
-              availability: availability,
-              link: getStorefrontProductUrl(fullProductNameSlug),
-              image_link: firstImageLink,
-              additional_image_link: (variant.variantImages || []).map(img => getImageUrl(img)).filter(Boolean).join(", "),
-              price: `${variant.Price} GBP`,
-              sale_price: variant.salePrice ? `${variant.salePrice} GBP` : null,
-              identifier_exists: variant.EIN ? 'yes' : 'no',
-              gtin: variant.EIN ? variant.EIN : '',
-              mpn: variant.MPN || "",
-              brand: product.brand || '',
-              condition: condition || 'N/A',
-              custom_label_0: product.condition === 'refurbished' || product.condition === 'Refurbished' ? (variant.slug || variantName) : '',
-              color: colorName || 'N/A',
-              capacity: storage || 'N/A',
-              shipping: product.shipping_cost || '0.00 GBP',
-              tax: product.tax_rate || '0%',
-              mobile_link: getStorefrontMobileProductUrl(fullProductNameSlug),
-              google_product_category: googleProductCategory
-            };
-          });
-        }
+      const csvData = buildCsvRows({
+        includeAccessories: false,
+        includeOutOfStock: true,
       });
 
       console.log('CSV Data (All Products):', csvData);

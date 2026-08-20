@@ -88,19 +88,24 @@ export default function NewProducts() {
     }
   };
 
-  // Handle featured status change
+  // Handle featured status change (index is from paginatedProducts)
   const handleFeaturedChange = async (index) => {
-    // Get product ID using service
-    const productId = allProductsService.getProductIdByIndex(products, index);
-    if (!productId) {
+    const pageProduct = paginatedProducts[index];
+    if (!pageProduct?._id) {
       toast.error("Product not found");
       return;
     }
 
-    // Toggle featured status using service
+    const actualIndex = products.findIndex((p) => p._id === pageProduct._id);
+    if (actualIndex < 0) {
+      toast.error("Product not found");
+      return;
+    }
+
+    const productId = pageProduct._id;
     const updatedProducts = allProductsService.toggleFeaturedStatus(
       products,
-      index
+      actualIndex
     );
     setProducts(updatedProducts);
 
@@ -108,27 +113,25 @@ export default function NewProducts() {
     try {
       const response = await productApi.updateProductFeatured(
         productId,
-        updatedProducts[index].is_featured
+        updatedProducts[actualIndex].is_featured
       );
       if (response.data.status === 201) {
         toast.success(response.data.message);
         getProducts(false, selectedBrand); // Refresh products
       } else {
         toast.error(response.data.message);
-        // Revert on error
         const revertedProducts = allProductsService.toggleFeaturedStatus(
           updatedProducts,
-          index
+          actualIndex
         );
         setProducts(revertedProducts);
       }
     } catch (error) {
       console.error("Error updating featured status:", error);
       toast.error("An error occurred while updating the product.");
-      // Revert on error
       const revertedProducts = allProductsService.toggleFeaturedStatus(
         updatedProducts,
-        index
+        actualIndex
       );
       setProducts(revertedProducts);
     } finally {
@@ -136,44 +139,50 @@ export default function NewProducts() {
     }
   };
 
-  // Handle status change
+  // Handle published status change (index is from paginatedProducts)
   const handleStatusChange = async (index) => {
-    // Get product ID using service
-    const productId = allProductsService.getProductIdByIndex(products, index);
-    if (!productId) {
+    const pageProduct = paginatedProducts[index];
+    if (!pageProduct?._id) {
       toast.error("Product not found");
       return;
     }
 
-    // Toggle status using service
-    const updatedProducts = allProductsService.toggleStatus(products, index);
+    const actualIndex = products.findIndex((p) => p._id === pageProduct._id);
+    if (actualIndex < 0) {
+      toast.error("Product not found");
+      return;
+    }
+
+    const productId = pageProduct._id;
+    const updatedProducts = allProductsService.toggleStatus(
+      products,
+      actualIndex
+    );
     setProducts(updatedProducts);
 
     setProgress(50);
     try {
       const response = await productApi.updateProductStatus(
         productId,
-        updatedProducts[index].status
+        updatedProducts[actualIndex].status
       );
       if (response.data.status === 201) {
         toast.success(response.data.message);
         getProducts(false, selectedBrand); // Refresh products
       } else {
         toast.error(response.data.message);
-        // Revert on error
         const revertedProducts = allProductsService.toggleStatus(
           updatedProducts,
-          index
+          actualIndex
         );
         setProducts(revertedProducts);
       }
     } catch (error) {
       console.error("Error updating status:", error);
       toast.error("An error occurred while updating the product status.");
-      // Revert on error
       const revertedProducts = allProductsService.toggleStatus(
         updatedProducts,
-        index
+        actualIndex
       );
       setProducts(revertedProducts);
     } finally {

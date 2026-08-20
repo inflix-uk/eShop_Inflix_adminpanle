@@ -1,5 +1,44 @@
 import PropTypes from "prop-types";
 
+function isColorAttribute(attr) {
+  const slug = String(attr?.attributeSlug || "").toLowerCase();
+  const name = String(attr?.attributeName || "").toLowerCase();
+  return (
+    slug === "color" ||
+    slug === "colour" ||
+    name === "color" ||
+    name === "colour"
+  );
+}
+
+function getSingleProductColor(variant) {
+  const attrs = Array.isArray(variant?.attributes) ? variant.attributes : [];
+  const hit = attrs.find(isColorAttribute);
+  return hit?.value ? String(hit.value) : "";
+}
+
+function withSingleProductColor(variant, colorValue) {
+  const trimmed = String(colorValue || "").trim();
+  const attrs = Array.isArray(variant?.attributes)
+    ? variant.attributes.filter((a) => !isColorAttribute(a))
+    : [];
+
+  if (trimmed) {
+    const valueSlug = trimmed
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    attrs.push({
+      attributeName: "Color",
+      attributeSlug: "color",
+      value: trimmed,
+      valueSlug: valueSlug || trimmed.toLowerCase(),
+    });
+  }
+
+  return { ...variant, attributes: attrs };
+}
+
 export default function ProductSingleType({ product, setProduct }) {
   // Safety check: ensure variantValues exists
   if (
@@ -9,6 +48,18 @@ export default function ProductSingleType({ product, setProduct }) {
   ) {
     return null;
   }
+
+  const updateFirstVariant = (patch) => {
+    setProduct({
+      ...product,
+      variantValues: [
+        {
+          ...product.variantValues[0],
+          ...patch,
+        },
+      ],
+    });
+  };
 
   return (
     <>
@@ -31,16 +82,7 @@ export default function ProductSingleType({ product, setProduct }) {
                 placeholder="0.0"
                 value={product.variantValues[0]?.Cost || ""}
                 onChange={(e) => {
-                  setProduct({
-                    ...product,
-                    variantValues: [
-                      {
-                        ...product.variantValues[0],
-                        Cost: e.target.value,
-                      },
-                    ],
-                  });
-                  // console.log(product);
+                  updateFirstVariant({ Cost: e.target.value });
                 }}
               />
             </div>
@@ -61,22 +103,14 @@ export default function ProductSingleType({ product, setProduct }) {
                 placeholder="0.0"
                 value={product.variantValues[0]?.Price || ""}
                 onChange={(e) => {
-                  setProduct({
-                    ...product,
-                    variantValues: [
-                      {
-                        ...product.variantValues[0],
-                        Price: e.target.value,
-                      },
-                    ],
-                  });
+                  updateFirstVariant({ Price: e.target.value });
                 }}
               />
             </div>
           </div>
           <div className="flex flex-row items-center justify-between">
             <label
-              htmlFor="productCost"
+              htmlFor="productSalePrice"
               className="block text-sm font-medium leading-6 text-gray-900"
             >
               Sale Price
@@ -84,21 +118,13 @@ export default function ProductSingleType({ product, setProduct }) {
             <div className="relative mt-2 rounded-md shadow-sm w-3/4">
               <input
                 type="number"
-                name="productCost"
-                id="productCost"
+                name="productSalePrice"
+                id="productSalePrice"
                 className="block w-full rounded-md border-0 py-1.5  text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
                 placeholder="0.0"
                 value={product.variantValues[0]?.salePrice || ""}
                 onChange={(e) => {
-                  setProduct({
-                    ...product,
-                    variantValues: [
-                      {
-                        ...product.variantValues[0],
-                        salePrice: e.target.value,
-                      },
-                    ],
-                  });
+                  updateFirstVariant({ salePrice: e.target.value });
                 }}
               />
             </div>
@@ -116,18 +142,10 @@ export default function ProductSingleType({ product, setProduct }) {
                 name="productQty"
                 id="productQty"
                 className="block w-full rounded-md border-0 py-1.5  text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
-                placeholder="0.0"
+                placeholder="0"
                 value={product.variantValues[0]?.Quantity || ""}
                 onChange={(e) => {
-                  setProduct({
-                    ...product,
-                    variantValues: [
-                      {
-                        ...product.variantValues[0],
-                        Quantity: e.target.value,
-                      },
-                    ],
-                  });
+                  updateFirstVariant({ Quantity: e.target.value });
                 }}
               />
             </div>
@@ -148,15 +166,7 @@ export default function ProductSingleType({ product, setProduct }) {
                 placeholder="0.0"
                 value={product.variantValues[0]?.SKU || ""}
                 onChange={(e) => {
-                  setProduct({
-                    ...product,
-                    variantValues: [
-                      {
-                        ...product.variantValues[0],
-                        SKU: e.target.value,
-                      },
-                    ],
-                  });
+                  updateFirstVariant({ SKU: e.target.value });
                 }}
               />
             </div>
@@ -180,15 +190,7 @@ export default function ProductSingleType({ product, setProduct }) {
                 placeholder="Enter EAN"
                 value={product.variantValues[0]?.EIN || ""}
                 onChange={(e) => {
-                  setProduct({
-                    ...product,
-                    variantValues: [
-                      {
-                        ...product.variantValues[0],
-                        EIN: e.target.value,
-                      },
-                    ],
-                  });
+                  updateFirstVariant({ EIN: e.target.value });
                 }}
               />
             </div>
@@ -212,13 +214,37 @@ export default function ProductSingleType({ product, setProduct }) {
                 placeholder="Enter MPN"
                 value={product.variantValues[0]?.MPN || ""}
                 onChange={(e) => {
+                  updateFirstVariant({ MPN: e.target.value });
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Color — Google Merchant CSV export */}
+          <div className="flex flex-row items-center justify-between">
+            <label
+              htmlFor="productColor"
+              className="block text-sm font-medium leading-6 text-gray-900"
+            >
+              Color
+            </label>
+
+            <div className="relative mt-2 rounded-md shadow-sm w-3/4">
+              <input
+                type="text"
+                name="productColor"
+                id="productColor"
+                className="block w-full rounded-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary sm:text-sm sm:leading-6"
+                placeholder="e.g. Black, Gold, Clear"
+                value={getSingleProductColor(product.variantValues[0])}
+                onChange={(e) => {
                   setProduct({
                     ...product,
                     variantValues: [
-                      {
-                        ...product.variantValues[0],
-                        MPN: e.target.value,
-                      },
+                      withSingleProductColor(
+                        product.variantValues[0],
+                        e.target.value
+                      ),
                     ],
                   });
                 }}
