@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, Fragment } from "react";
-import { Code2, CreditCard, Plus, Pencil, Trash2 } from "lucide-react";
+import { AlertCircle, Code2, CreditCard, Package, Plus, Pencil, RefreshCw, Trash2 } from "lucide-react";
 import {
   getPackages,
   createPackage,
@@ -9,6 +9,7 @@ import {
   getBookingPageContent,
   patchBookingPageContent,
   getBookingSettings,
+  syncPackagesToStripe,
 } from "../service/bookingService";
 import PackageModal from "./PackageModal";
 import InlineWidgetModal from "./InlineWidgetModal";
@@ -64,6 +65,7 @@ export default function PackagesTab({ setProgress }) {
   const [inlineWidgets, setInlineWidgets] = useState([]);
   const [studioMicCapacity, setStudioMicCapacity] = useState(5);
   const [stripeAccounts, setStripeAccounts] = useState([]);
+  const [syncingStripe, setSyncingStripe] = useState(false);
   const [widgetModal, setWidgetModal] = useState(null); // { afterPackageCount, widget? }
   const [widgetSaving, setWidgetSaving] = useState(false);
   const [widgetDeleteConfirm, setWidgetDeleteConfirm] = useState(null);
@@ -149,6 +151,15 @@ export default function PackagesTab({ setProgress }) {
     if (!result) return;
 
     setModalOpen(false);
+    loadPackages();
+  };
+
+  const handleSyncStripe = async () => {
+    setSyncingStripe(true);
+    setProgress(40);
+    await syncPackagesToStripe();
+    setSyncingStripe(false);
+    setProgress(100);
     loadPackages();
   };
 
@@ -260,6 +271,17 @@ export default function PackagesTab({ setProgress }) {
             <option value="editing">Editing</option>
           </select>
         </div>
+        <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={handleSyncStripe}
+          disabled={syncingStripe}
+          title="Re-create every package in the Stripe product catalog"
+          className="inline-flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+        >
+          <RefreshCw size={15} className={syncingStripe ? "animate-spin" : ""} />
+          {syncingStripe ? "Syncing…" : "Sync to Stripe"}
+        </button>
         <button
           onClick={handleCreate}
           className="inline-flex items-center px-4 py-2 bg-primary text-white rounded-md hover:bg-secondary"
@@ -269,6 +291,7 @@ export default function PackagesTab({ setProgress }) {
           </svg>
           Add Package
         </button>
+        </div>
       </div>
 
       {packages.length > 1 && (
@@ -388,6 +411,28 @@ export default function PackagesTab({ setProgress }) {
                                 Badge: {pkg.highlightBadgeText || "Most Popular"}
                               </div>
                             ) : null}
+                            {pkg.stripeSyncError ? (
+                              <div
+                                className="mt-1 inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-900"
+                                title={pkg.stripeSyncError}
+                              >
+                                <AlertCircle size={11} />
+                                Stripe sync failed
+                              </div>
+                            ) : pkg.stripeProductId ? (
+                              <div
+                                className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-900"
+                                title={`Stripe product ${pkg.stripeProductId}`}
+                              >
+                                <Package size={11} />
+                                In Stripe catalog
+                              </div>
+                            ) : (
+                              <div className="mt-1 inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
+                                <Package size={11} />
+                                Not in Stripe
+                              </div>
+                            )}
                             {pkg.stripeAccountId ? (
                               <div
                                 className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${

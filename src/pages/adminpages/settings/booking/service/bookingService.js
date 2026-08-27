@@ -528,3 +528,28 @@ export const getAvailableSlots = async (packageId, date, excludeBookingId) => {
     return null;
   }
 };
+
+// ============================================================================
+// STRIPE PRODUCT CATALOG
+// Packages are mirrored into Stripe as Product + Price on every save. These
+// endpoints re-push them manually (e.g. after adding Stripe keys).
+// ============================================================================
+
+export const syncPackagesToStripe = async (packageId = null) => {
+  try {
+    const url = packageId
+      ? `${API_BASE_URL}sync/booking/package/${packageId}/stripe`
+      : `${API_BASE_URL}sync/booking/packages/stripe`;
+    const response = await axios.post(url, {}, { headers: getHeaders() });
+    if (response.data.status === 200) {
+      toast.success(response.data.message || 'Synced to Stripe');
+      return response.data;
+    }
+    toast.error(response.data.error || 'Failed to sync to Stripe');
+    return null;
+  } catch (error) {
+    console.error('Error syncing packages to Stripe:', error);
+    toast.error(error.response?.data?.error || 'Failed to sync to Stripe');
+    return null;
+  }
+};
