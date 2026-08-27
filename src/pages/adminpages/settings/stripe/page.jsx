@@ -9,6 +9,7 @@ import {
   saveStripeSettings,
   testStripeConnection,
 } from "./service/stripeSettingsService";
+import StripeAccountsPanel from "./components/StripeAccountsPanel";
 
 export default function StripeSettings() {
   const [selectedPage, setSelectedPage] = useState("stripe-settings");
@@ -37,6 +38,10 @@ export default function StripeSettings() {
   const [hasWebhookSecret, setHasWebhookSecret] = useState(false);
   const [testMode, setTestMode] = useState(false);
   const [updatedAt, setUpdatedAt] = useState(null);
+  const [savedKeyMode, setSavedKeyMode] = useState("unknown");
+  const [savedKeysInUse, setSavedKeysInUse] = useState(true);
+  const [effectiveSource, setEffectiveSource] = useState("");
+  const [effectiveWebhookSet, setEffectiveWebhookSet] = useState(false);
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -66,6 +71,10 @@ export default function StripeSettings() {
         setHasWebhookSecret(data.hasWebhookSecret || false);
         setTestMode(Boolean(data.testMode));
         setUpdatedAt(data.updatedAt || null);
+        setSavedKeyMode(data.savedKeyMode || "unknown");
+        setSavedKeysInUse(data.savedKeysInUse !== false);
+        setEffectiveSource(data.effectiveSource || "");
+        setEffectiveWebhookSet(Boolean(data.effectiveWebhookSecretSet));
       }
     } catch (error) {
       console.error("Error loading settings:", error);
@@ -248,8 +257,12 @@ export default function StripeSettings() {
               <div className="px-6 py-5 border-b border-gray-200 flex justify-between items-center">
                 <div>
                   <h2 className="text-xl font-semibold text-gray-900">
-                    API Credentials
+                    API Credentials — live mode
                   </h2>
+                  <p className="text-sm text-gray-500 mt-1">
+                    These are the <strong>live</strong> keys. Test keys belong in the backend{" "}
+                    <code>.env</code>, not here.
+                  </p>
                   {updatedAt && (
                     <p className="text-sm text-gray-500 mt-1">
                       Last updated:{" "}
@@ -307,6 +320,20 @@ export default function StripeSettings() {
                         </span>
                       </span>
                     </label>
+                    {hasSecretKey && !savedKeysInUse ? (
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+                        <p className="text-sm font-medium text-amber-900">
+                          The keys saved here are not being used right now
+                        </p>
+                        <p className="text-sm text-amber-800 mt-1">
+                          They are <strong>{savedKeyMode}</strong> keys but the backend is in{" "}
+                          <strong>{testMode ? "test" : "live"}</strong> mode, so payments are
+                          running on the <strong>{effectiveSource || "environment"}</strong> keys
+                          instead. Save {testMode ? "test" : "live"} keys to use these.
+                        </p>
+                      </div>
+                    ) : null}
+
                     <div>
                       <label
                         htmlFor="secretKey"
@@ -378,7 +405,7 @@ export default function StripeSettings() {
                         htmlFor="webhookSecret"
                         className="block text-sm font-medium text-gray-700 mb-2"
                       >
-                        Webhook Secret (Optional)
+                        Webhook Signing Secret
                       </label>
                       <div className="relative">
                         <input
@@ -402,8 +429,15 @@ export default function StripeSettings() {
                       <p className="mt-2 text-sm text-gray-500">
                         {hasWebhookSecret
                           ? "Current secret is set. Enter a new one to replace it."
-                          : "Used to verify webhook events from Stripe."}
+                          : "Verifies webhook events from Stripe."}
                       </p>
+                      {!effectiveWebhookSet ? (
+                        <p className="mt-1 text-sm text-amber-700">
+                          Not set anywhere (neither here nor <code>STRIPE_WEBHOOK_SECRET</code>).
+                          Payments will still go through, but bookings will not auto-confirm
+                          and orders will not complete until this is filled in.
+                        </p>
+                      ) : null}
                     </div>
 
                     {/* Webhook URL (Read-only) */}
@@ -511,6 +545,10 @@ export default function StripeSettings() {
               )}
             </div>
 
+            <StripeAccountsPanel
+              webhookUrl={`${import.meta.env.VITE_BACKEND_URL}webhook/stripe`}
+            />
+
             {/* Warning Card */}
             <div className="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
               <h3 className="text-sm font-semibold text-yellow-900 mb-2">
@@ -518,7 +556,9 @@ export default function StripeSettings() {
               </h3>
               <ul className="list-disc list-inside space-y-1 text-sm text-yellow-800">
                 <li>
-                  Keys stored here will override environment variables
+                  In <strong>live</strong> mode these keys override the environment. In{" "}
+                  <strong>test</strong> mode (<code>STRIPE_TEST_MODE=true</code>) the{" "}
+                  <code>.env</code> test keys win and anything saved here is ignored.
                 </li>
                 <li>
                   Never share your secret key with anyone

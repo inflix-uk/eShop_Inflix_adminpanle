@@ -97,3 +97,118 @@ export const testStripeConnection = async () => {
     return null;
   }
 };
+
+// ============================================================================
+// ADDITIONAL STRIPE ACCOUNTS
+// Booking packages can each collect into their own account. The platform
+// default above stays in charge of shop checkout and any package with no
+// account of its own.
+// ============================================================================
+
+/** Full account rows (masked keys) for the settings screen. */
+export const getStripeAccounts = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}stripe/accounts`, {
+      headers: getHeaders(),
+    });
+    if (response.data.success) {
+      return response.data;
+    }
+    toast.error(response.data.message || 'Failed to load Stripe accounts');
+    return null;
+  } catch (error) {
+    console.error('Error fetching Stripe accounts:', error);
+    toast.error(error.response?.data?.message || 'Failed to load Stripe accounts');
+    return null;
+  }
+};
+
+/** Slim list (no keys) for the booking package dropdown. */
+export const getSelectableStripeAccounts = async () => {
+  try {
+    const response = await axios.get(`${API_BASE_URL}stripe/accounts/selectable`, {
+      headers: getHeaders(),
+    });
+    if (response.data.success) {
+      return response.data;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching selectable Stripe accounts:', error);
+    return null;
+  }
+};
+
+export const createStripeAccount = async (account) => {
+  try {
+    const response = await axios.post(`${API_BASE_URL}stripe/accounts`, account, {
+      headers: getHeaders(),
+    });
+    if (response.data.success) {
+      toast.success(response.data.message || 'Stripe account added');
+      return response.data.data;
+    }
+    toast.error(response.data.message || 'Failed to add Stripe account');
+    return null;
+  } catch (error) {
+    console.error('Error creating Stripe account:', error);
+    toast.error(error.response?.data?.message || 'Failed to add Stripe account');
+    return null;
+  }
+};
+
+export const updateStripeAccount = async (id, account) => {
+  try {
+    const response = await axios.patch(`${API_BASE_URL}stripe/accounts/${id}`, account, {
+      headers: getHeaders(),
+    });
+    if (response.data.success) {
+      toast.success(response.data.message || 'Stripe account updated');
+      return response.data.data;
+    }
+    toast.error(response.data.message || 'Failed to update Stripe account');
+    return null;
+  } catch (error) {
+    console.error('Error updating Stripe account:', error);
+    toast.error(error.response?.data?.message || 'Failed to update Stripe account');
+    return null;
+  }
+};
+
+export const deleteStripeAccount = async (id) => {
+  try {
+    const response = await axios.delete(`${API_BASE_URL}stripe/accounts/${id}`, {
+      headers: getHeaders(),
+    });
+    if (response.data.success) {
+      toast.success(response.data.message || 'Stripe account removed');
+      return true;
+    }
+    toast.error(response.data.message || 'Failed to remove Stripe account');
+    return false;
+  } catch (error) {
+    console.error('Error deleting Stripe account:', error);
+    toast.error(error.response?.data?.message || 'Failed to remove Stripe account');
+    return false;
+  }
+};
+
+export const testStripeAccount = async (id) => {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}stripe/accounts/${id}/test`,
+      {},
+      { headers: getHeaders() }
+    );
+    if (response.data.success) {
+      toast.success(`Connected: ${response.data.data?.accountId || 'OK'}`);
+      return response.data.data;
+    }
+    toast.error(response.data.message || 'Stripe connection failed');
+    return null;
+  } catch (error) {
+    console.error('Error testing Stripe account:', error);
+    toast.error(error.response?.data?.message || 'Stripe connection test failed');
+    return null;
+  }
+};

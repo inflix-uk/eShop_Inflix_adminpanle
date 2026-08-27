@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
+import { useSearchParams } from 'react-router-dom';
 import LoadingBar from 'react-top-loading-bar';
 import Side from '../../nav/Side';
 import Top from '../../nav/Top';
@@ -23,11 +24,23 @@ const TABS = [
   { id: 'bookings', label: 'Bookings', icon: 'calendar-check' },
 ];
 
+const DEFAULT_TAB = 'content';
+
 export default function BookingManagement() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const activeTab = TABS.some((tab) => tab.id === tabParam) ? tabParam : DEFAULT_TAB;
+
+  const setActiveTab = useCallback(
+    (tab) => {
+      setSearchParams({ tab }, { replace: true });
+    },
+    [setSearchParams]
+  );
+
   const [selectedPage, setSelectedPage] = useState('booking-management');
   const [progress, setProgress] = useState(0);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState('content');
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
   const closeSidebar = () => setIsSidebarOpen(false);
