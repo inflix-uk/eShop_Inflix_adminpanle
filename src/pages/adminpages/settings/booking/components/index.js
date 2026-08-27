@@ -4,6 +4,7 @@ export { default as SettingsTab } from './SettingsTab';
 export { default as PackagesTab } from './PackagesTab';
 export { default as PackageModal } from './PackageModal';
 export { default as InlineWidgetModal } from './InlineWidgetModal';
+export { default as PackagesPreview } from './PackagesPreview';
 export { default as AvailabilityTab } from './AvailabilityTab';
 export { default as BlockedDatesTab } from './BlockedDatesTab';
 export { default as BookingsTab } from './BookingsTab';

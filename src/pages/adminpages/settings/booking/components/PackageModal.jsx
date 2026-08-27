@@ -3,6 +3,7 @@ import { Editor } from '@tinymce/tinymce-react';
 import ImageUploader from '../../../banners/components/ImageUploader';
 import MediaLibraryPicker from '../../../media/components/media/MediaLibraryPicker';
 import { uploadPackageImage } from '../service/bookingService';
+import { getSelectableStripeAccounts } from '../../stripe/service/stripeSettingsService';
 import { tinymcePackageDescriptionInit } from './tinymcePackageConfig';
 import {
   UnitToggle,
@@ -136,6 +137,7 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
     highlightBadgeText: 'Most Popular',
     highlightBadgeUrl: '',
     bundleBenefits: '',
+    stripeAccountId: '',
   });
   const [imagePreview, setImagePreview] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -144,7 +146,23 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
   const [saving, setSaving] = useState(false);
   /** null | 'package' | number (extra index) */
   const [mediaPickerTarget, setMediaPickerTarget] = useState(null);
+  const [stripeAccounts, setStripeAccounts] = useState([]);
+  const [stripeMode, setStripeMode] = useState('live');
   const editorRef = useRef(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+    (async () => {
+      const data = await getSelectableStripeAccounts();
+      if (cancelled) return;
+      setStripeAccounts(data?.data || []);
+      setStripeMode(data?.activeMode || 'live');
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     if (editPackage) {
@@ -192,6 +210,9 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
         highlightBadgeText: editPackage.highlightBadgeText || 'Most Popular',
         highlightBadgeUrl: editPackage.highlightBadgeUrl || '',
         bundleBenefits: editPackage.bundleBenefits || '',
+        stripeAccountId: editPackage.stripeAccountId
+          ? String(editPackage.stripeAccountId)
+          : '',
       });
       setImagePreview(image ? resolveImagePreview(image) : '');
       const previews = {};
@@ -229,6 +250,7 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
         highlightBadgeText: 'Most Popular',
         highlightBadgeUrl: '',
         bundleBenefits: '',
+        stripeAccountId: '',
       });
       setImagePreview('');
       setExtraImagePreviews({});
@@ -249,6 +271,10 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
       return { ...prev, [field]: value };
     });
   };
+
+  const selectedStripeAccount = stripeAccounts.find(
+    (account) => String(account._id) === String(formData.stripeAccountId)
+  );
 
   const isFixedPrice = formData.pricingMode === 'fixed';
   const maxHoursValue = normalizeMaxHours(formData.maxHours);
@@ -483,6 +509,7 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
       highlightBadgeText: formData.highlightBadgeText?.trim() || 'Most Popular',
       highlightBadgeUrl: formData.highlightBadgeUrl?.trim() || '',
       bundleBenefits: formData.bundleBenefits?.trim() || '',
+      stripeAccountId: formData.stripeAccountId || null,
       features: formData.features
         .map((item) => item.trim())
         .filter((item) => item.length > 0),
@@ -914,6 +941,40 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
               <label htmlFor="isActive" className="text-sm text-gray-700">
                 Active (visible to customers)
               </label>
+            </div>
+
+            <div className="rounded-lg border border-gray-200 bg-gray-50 p-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Stripe account
+              </label>
+              <p className="text-xs text-gray-500 mb-2">
+                Which Stripe account collects the money for this package.
+              </p>
+              <select
+                value={formData.stripeAccountId || ''}
+                onChange={(e) => handleChange('stripeAccountId', e.target.value)}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-primary focus:border-primary bg-white"
+              >
+                <option value="">Platform default (Stripe settings)</option>
+                {stripeAccounts.map((account) => (
+                  <option key={account._id} value={account._id}>
+                    {account.label}
+                    {account.usableInActiveMode ? '' : ` — no ${stripeMode} keys`}
+                  </option>
+                ))}
+              </select>
+              {selectedStripeAccount && !selectedStripeAccount.usableInActiveMode ? (
+                <p className="mt-2 text-xs text-amber-700">
+                  This account has no {stripeMode} keys, so payments fall back to the
+                  platform default until they are added in Settings &rarr; Stripe.
+                </p>
+              ) : null}
+              {stripeAccounts.length === 0 ? (
+                <p className="mt-2 text-xs text-gray-500">
+                  Add accounts under Settings &rarr; Stripe to route packages to a
+                  different Stripe account.
+                </p>
+              ) : null}
             </div>
 
             <div className="rounded-lg border border-gray-200 bg-gray-50 p-4 space-y-4">

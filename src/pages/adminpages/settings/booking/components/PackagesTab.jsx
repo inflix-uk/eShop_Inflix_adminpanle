@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, Fragment } from "react";
-import { Code2, Plus, Pencil, Trash2 } from "lucide-react";
+import { Code2, CreditCard, Plus, Pencil, Trash2 } from "lucide-react";
 import {
   getPackages,
   createPackage,
@@ -8,9 +8,12 @@ import {
   reorderPackages,
   getBookingPageContent,
   patchBookingPageContent,
+  getBookingSettings,
 } from "../service/bookingService";
 import PackageModal from "./PackageModal";
 import InlineWidgetModal from "./InlineWidgetModal";
+import PackagesPreview from "./PackagesPreview";
+import { getSelectableStripeAccounts } from "../../stripe/service/stripeSettingsService";
 import { formatDurationLabel } from "../utils/durationDisplay";
 
 const TYPE_COLORS = {
@@ -35,6 +38,11 @@ function normalizeInlineWidgets(list) {
     }));
 }
 
+function findStripeAccount(accounts, id) {
+  if (!id) return null;
+  return (accounts || []).find((a) => String(a._id) === String(id)) || null;
+}
+
 function findWidgetAt(widgets, afterPackageCount) {
   return (widgets || []).find(
     (w) => Number(w.afterPackageCount) === Number(afterPackageCount)
@@ -54,6 +62,8 @@ export default function PackagesTab({ setProgress }) {
 
   const [pageContent, setPageContent] = useState(null);
   const [inlineWidgets, setInlineWidgets] = useState([]);
+  const [studioMicCapacity, setStudioMicCapacity] = useState(5);
+  const [stripeAccounts, setStripeAccounts] = useState([]);
   const [widgetModal, setWidgetModal] = useState(null); // { afterPackageCount, widget? }
   const [widgetSaving, setWidgetSaving] = useState(false);
   const [widgetDeleteConfirm, setWidgetDeleteConfirm] = useState(null);
@@ -66,9 +76,11 @@ export default function PackagesTab({ setProgress }) {
     setLoading(true);
     setProgress(30);
     const params = filterType ? { type: filterType } : {};
-    const [pkgData, contentData] = await Promise.all([
+    const [pkgData, contentData, settingsData, stripeData] = await Promise.all([
       getPackages(params),
       getBookingPageContent(),
+      getBookingSettings(),
+      getSelectableStripeAccounts(),
     ]);
     if (pkgData?.packages) {
       setPackages(pkgData.packages);
@@ -76,6 +88,12 @@ export default function PackagesTab({ setProgress }) {
     if (contentData?.content) {
       setPageContent(contentData.content);
       setInlineWidgets(normalizeInlineWidgets(contentData.content.inlineWidgets));
+    }
+    if (settingsData?.settings) {
+      setStudioMicCapacity(Number(settingsData.settings.studioMicCapacity) || 5);
+    }
+    if (stripeData?.data) {
+      setStripeAccounts(stripeData.data);
     }
     setLoading(false);
     setProgress(100);
@@ -122,11 +140,14 @@ export default function PackagesTab({ setProgress }) {
   };
 
   const handleSave = async (formData) => {
-    if (editPackage) {
-      await updatePackage(editPackage._id, formData);
-    } else {
-      await createPackage(formData);
-    }
+    const result = editPackage
+      ? await updatePackage(editPackage._id, formData)
+      : await createPackage(formData);
+
+    // The service already toasted the reason. Keep the modal open so the
+    // admin's work survives a validation / network failure.
+    if (!result) return;
+
     setModalOpen(false);
     loadPackages();
   };
@@ -179,8 +200,25 @@ export default function PackagesTab({ setProgress }) {
       newPackages.splice(dragOverIndex, 0, draggedItem);
       setPackages(newPackages);
 
-      const orderedIds = newPackages.map((pkg) => pkg._id);
-      await reorderPackages(orderedIds);
+      let orderedIds = newPackages.map((pkg) => pkg._id);
+
+      // The server rewrites sortOrder as 0..n-1 over whatever ids it is sent.
+      // Under a type filter that would renumber only the visible packages and
+      // collide with the hidden ones, so rebuild the FULL order: hidden
+      // packages keep their slots, visible ones shuffle within their own.
+      if (filterType) {
+        const all = await getPackages();
+        const allIds = (all?.packages || []).map((pkg) => pkg._id);
+        if (allIds.length > 0) {
+          const visible = new Set(orderedIds);
+          const queue = [...orderedIds];
+          orderedIds = allIds.map((id) => (visible.has(id) ? queue.shift() : id));
+        }
+      }
+
+      const saved = await reorderPackages(orderedIds);
+      // Optimistic order was wrong if the save failed — fall back to server truth.
+      if (!saved) loadPackages();
     }
     setDraggedIndex(null);
     setDragOverIndex(null);
@@ -348,6 +386,21 @@ export default function PackagesTab({ setProgress }) {
                             {pkg.highlightBadgeEnabled ? (
                               <div className="mt-1 inline-flex items-center rounded-full bg-lime-100 px-2 py-0.5 text-xs font-medium text-lime-900">
                                 Badge: {pkg.highlightBadgeText || "Most Popular"}
+                              </div>
+                            ) : null}
+                            {pkg.stripeAccountId ? (
+                              <div
+                                className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                                  findStripeAccount(stripeAccounts, pkg.stripeAccountId)
+                                    ?.usableInActiveMode === false
+                                    ? "bg-amber-100 text-amber-900"
+                                    : "bg-indigo-100 text-indigo-900"
+                                }`}
+                                title="Payments for this package go to this Stripe account"
+                              >
+                                <CreditCard size={11} />
+                                {findStripeAccount(stripeAccounts, pkg.stripeAccountId)?.label ||
+                                  "Unknown Stripe account"}
                               </div>
                             ) : null}
                             {pkg.description && (
@@ -521,6 +574,14 @@ export default function PackagesTab({ setProgress }) {
               ))}
           </div>
         )}
+
+      <PackagesPreview
+        packages={packages}
+        inlineWidgets={inlineWidgets}
+        services={pageContent?.services}
+        studioMicCapacity={studioMicCapacity}
+        loading={loading}
+      />
 
       <PackageModal
         isOpen={modalOpen}
