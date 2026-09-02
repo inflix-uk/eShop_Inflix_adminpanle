@@ -436,12 +436,6 @@ const BannerModal = ({
       const layoutStyle = formData.content?.layoutStyle || "default";
       
       if (layoutStyle === "default") {
-        if (!formData.content?.title?.trim()) {
-          newErrors["content.title"] = "Title is required";
-        }
-        if (!formData.content?.subtitle?.trim()) {
-          newErrors["content.subtitle"] = "Subtitle is required";
-        }
         if (!formData.content?.buynow?.trim()) {
           newErrors["content.buynow"] = "Buy Now link is required";
         }
@@ -1177,7 +1171,7 @@ const BannerModal = ({
                           htmlFor="content.title"
                           className="block text-sm font-medium text-gray-700"
                         >
-                          Title *
+                          Title
                         </label>
                         <input
                           type="text"
@@ -1216,7 +1210,7 @@ const BannerModal = ({
                           htmlFor="content.subtitle"
                           className="block text-sm font-medium text-gray-700"
                         >
-                          Subtitle *
+                          Subtitle
                         </label>
                         <input
                           type="text"
