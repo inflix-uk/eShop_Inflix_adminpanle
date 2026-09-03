@@ -38,6 +38,8 @@ export default function ScriptsSettings() {
   const [ahrefsScript, setAhrefsScript] = useState("");
   const [googleSearchConsoleScript, setGoogleSearchConsoleScript] =
     useState("");
+  const [gtmContainerId, setGtmContainerId] = useState("");
+  const [googleAdsConversionId, setGoogleAdsConversionId] = useState("");
   const [customScripts, setCustomScripts] = useState([]);
 
   const [loading, setLoading] = useState(true);
@@ -77,6 +79,8 @@ export default function ScriptsSettings() {
         setSemrushScript(data.semrushScript || "");
         setAhrefsScript(data.ahrefsScript || "");
         setGoogleSearchConsoleScript(data.googleSearchConsoleScript || "");
+        setGtmContainerId(data.gtmContainerId || "");
+        setGoogleAdsConversionId(data.googleAdsConversionId || "");
         setCustomScripts(normalizeLoadedCustom(data.customScripts));
         setUpdatedAt(data.updatedAt || null);
       }
@@ -111,6 +115,8 @@ export default function ScriptsSettings() {
         semrushScript,
         ahrefsScript,
         googleSearchConsoleScript,
+        gtmContainerId,
+        googleAdsConversionId,
         customScripts: customScripts.map(({ _id, label, placement, content }) => {
           const item = {
             label,
@@ -170,10 +176,10 @@ export default function ScriptsSettings() {
             <div className="mb-8">
               <h1 className="text-3xl font-bold text-gray-900">Site scripts</h1>
               <p className="mt-2 text-gray-600">
-                Semrush, Ahrefs, and Google Search Console snippets, plus any
-                number of labeled custom blocks for head or body. Fixed blocks
-                load in order: Semrush → Ahrefs → Search Console → custom
-                (head) entries in list order.
+                Configure Google Tag Manager and Google Ads containers separately,
+                plus Semrush, Ahrefs, Search Console, and custom head/body blocks.
+                GTM and Ads IDs load through the storefront consent-aware loaders —
+                do not paste full GTM/Ads snippets into Custom scripts.
               </p>
               {updatedAt && (
                 <p className="text-sm text-gray-500 mt-1">
@@ -191,6 +197,26 @@ export default function ScriptsSettings() {
               ) : (
                 <form onSubmit={handleSubmit} className="px-6 py-6">
                   <div className="space-y-8">
+                    <IdFieldSection
+                      title="Google Tag Manager"
+                      description="Paste your GTM container ID only (e.g. GTM-XXXXXXX). Loaded deferred after consent defaults on the storefront. Leave blank to keep the site default container."
+                      id="gtmContainerId"
+                      value={gtmContainerId}
+                      onChange={setGtmContainerId}
+                      placeholder="GTM-XXXXXXX"
+                      inputClass={inputClass}
+                      hint="Container ID from tagmanager.google.com — not the full &lt;script&gt; snippet."
+                    />
+                    <IdFieldSection
+                      title="Google Ads tracking"
+                      description="Separate from GTM. Paste your Google Ads conversion / tag ID (e.g. AW-XXXXXXXXX). Loaded with gtag.js after marketing consent. Leave blank to disable direct Ads tagging."
+                      id="googleAdsConversionId"
+                      value={googleAdsConversionId}
+                      onChange={setGoogleAdsConversionId}
+                      placeholder="AW-XXXXXXXXX"
+                      inputClass={inputClass}
+                      hint="From Google Ads → Goals / Tag setup. Use a separate container/ID from GTM."
+                    />
                     <ScriptSection
                       title="Semrush"
                       description="Verification meta tags or scripts Semrush provides (injected in &lt;head&gt;)."
@@ -398,6 +424,44 @@ export default function ScriptsSettings() {
         </main>
       </div>
     </>
+  );
+}
+
+function IdFieldSection({
+  title,
+  description,
+  id,
+  value,
+  onChange,
+  placeholder,
+  inputClass,
+  hint,
+}) {
+  return (
+    <div className="border-b border-gray-200 pb-8">
+      <h2 className="text-xl font-semibold text-gray-900 mb-2">{title}</h2>
+      <p className="text-sm text-gray-500 mb-4">{description}</p>
+      <label
+        htmlFor={id}
+        className="block text-sm font-medium text-gray-700 mb-2"
+      >
+        Container / tracking ID
+      </label>
+      <input
+        id={id}
+        name={id}
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        className={`${inputClass} font-mono max-w-md`}
+        autoComplete="off"
+        spellCheck={false}
+      />
+      {hint ? (
+        <p className="mt-2 text-xs text-gray-500">{hint}</p>
+      ) : null}
+    </div>
   );
 }
 
