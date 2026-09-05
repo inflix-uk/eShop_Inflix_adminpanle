@@ -1,17 +1,21 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { Helmet } from "react-helmet-async";
 import { FaUpload, FaFolder } from "react-icons/fa";
+import { toast } from "react-toastify";
 import Side from "../nav/Side";
 import Top from "../nav/Top";
 import BlockEditor from "../blog-new/components/createblog/BlockEditor/BlockEditor";
 import MediaLibraryPicker from "../media/components/media/MediaLibraryPicker";
 import {
-  getStoredAuthors,
-  setStoredAuthors,
+  fetchAuthors,
+  createAuthor,
+  updateAuthor,
+  deleteAuthor,
   syncAuthorToBlogs,
+  getStoredAuthors,
 } from "./service/authorLocalService";
 
-const initialAuthor = {
+const emptyAuthorForm = () => ({
   name: "",
   email: "",
   designation: "",
@@ -19,35 +23,60 @@ const initialAuthor = {
   image: "",
   bio: "",
   blocks: [],
-};
-
-const createAuthorId = () =>
-  `author_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-
-const normalizeAuthors = (list) =>
-  (Array.isArray(list) ? list : []).map((item) => ({
-    ...item,
-    id: item?.id || createAuthorId(),
-  }));
+});
 
 export default function Author() {
   const [selectedPage, setSelectedPage] = useState("author");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [authorForm, setAuthorForm] = useState(initialAuthor);
-  const [authors, setAuthors] = useState(() =>
-    normalizeAuthors(getStoredAuthors())
-  );
+  const [authorForm, setAuthorForm] = useState(emptyAuthorForm);
+  const [authors, setAuthors] = useState([]);
   const [editingAuthorId, setEditingAuthorId] = useState(null);
   const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const profileImageInputRef = useRef(null);
 
-  useEffect(() => {
-    setStoredAuthors(authors);
-  }, [authors]);
+  const loadAuthors = useCallback(async () => {
+    setLoading(true);
+    try {
+      let list = await fetchAuthors();
+
+      // One-time migration: if DB is empty but browser still has local authors, import them
+      if (!list.length) {
+        const legacy = getStoredAuthors();
+        if (legacy.length) {
+          for (const item of legacy) {
+            try {
+              await createAuthor({
+                name: item.name,
+                email: item.email,
+                designation: item.designation,
+                role: item.role,
+                image: item.image?.startsWith?.("data:") ? "" : item.image,
+                bio: item.bio,
+                blocks: Array.isArray(item.blocks) ? item.blocks : [],
+              });
+            } catch (err) {
+              console.warn("Legacy author import skipped:", err?.message || err);
+            }
+          }
+          list = await fetchAuthors();
+        }
+      }
+
+      setAuthors(list);
+    } catch (error) {
+      console.error(error);
+      toast.error(error.message || "Failed to load authors");
+      setAuthors(getStoredAuthors());
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    setAuthors((prev) => normalizeAuthors(prev));
-  }, []);
+    loadAuthors();
+  }, [loadAuthors]);
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -66,6 +95,13 @@ export default function Author() {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
+
+    if (file.size > 800 * 1024) {
+      toast.error(
+        "Image is too large for inline upload. Please use Media Library (under ~800KB) or a smaller file."
+      );
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = (loadEvent) => {
@@ -88,6 +124,8 @@ export default function Author() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!authorForm.name.trim() || !authorForm.email.trim()) return;
+    if (saving) return;
+
     const normalizedEditingId =
       editingAuthorId == null ? null : String(editingAuthorId);
     const previousEntry =
@@ -96,23 +134,36 @@ export default function Author() {
         : authors.find((item) => String(item.id) === normalizedEditingId) || null;
 
     const payload = {
-      ...authorForm,
-      id: normalizedEditingId || createAuthorId(),
+      name: authorForm.name.trim(),
+      email: authorForm.email.trim(),
+      designation: authorForm.designation || "",
+      role: authorForm.role === "reviewer" ? "reviewer" : "author",
+      image: authorForm.image || "",
+      bio: authorForm.bio || "",
+      blocks: Array.isArray(authorForm.blocks) ? authorForm.blocks : [],
     };
 
-    setAuthors((prev) => {
+    setSaving(true);
+    try {
+      let saved;
       if (normalizedEditingId == null) {
-        return [payload, ...prev];
+        saved = await createAuthor(payload);
+        toast.success("Author saved");
+      } else {
+        saved = await updateAuthor(normalizedEditingId, payload);
+        toast.success("Author updated");
       }
-      return prev.map((item) =>
-        String(item.id) === normalizedEditingId ? payload : item
-      );
-    });
 
-    await syncAuthorToBlogs(payload, previousEntry?.name);
-
-    setAuthorForm(initialAuthor);
-    setEditingAuthorId(null);
+      await syncAuthorToBlogs(saved, previousEntry?.name);
+      setAuthorForm(emptyAuthorForm());
+      setEditingAuthorId(null);
+      await loadAuthors();
+    } catch (error) {
+      console.error(error);
+      toast.error(error.message || "Failed to save author");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleEditAuthor = (author) => {
@@ -130,22 +181,26 @@ export default function Author() {
   };
 
   const handleCancelEdit = () => {
-    setAuthorForm(initialAuthor);
+    setAuthorForm(emptyAuthorForm());
     setEditingAuthorId(null);
   };
 
-  const handleRemoveAuthor = (authorId) => {
+  const handleRemoveAuthor = async (authorId) => {
     const shouldDelete = window.confirm(
       "Are you sure you want to remove this Author/Reviewer?"
     );
     if (!shouldDelete) return;
 
-    const normalizedTargetId = String(authorId);
-    setAuthors((prev) =>
-      prev.filter((item) => String(item.id) !== normalizedTargetId)
-    );
-    if (String(editingAuthorId) === normalizedTargetId) {
-      handleCancelEdit();
+    try {
+      await deleteAuthor(authorId);
+      toast.success("Author removed");
+      if (String(editingAuthorId) === String(authorId)) {
+        handleCancelEdit();
+      }
+      await loadAuthors();
+    } catch (error) {
+      console.error(error);
+      toast.error(error.message || "Failed to remove author");
     }
   };
 
@@ -350,9 +405,14 @@ export default function Author() {
                   <div className="flex items-center gap-3">
                     <button
                       type="submit"
-                      className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+                      disabled={saving}
+                      className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50"
                     >
-                      {editingAuthorId ? "Update Author" : "Save Author"}
+                      {saving
+                        ? "Saving…"
+                        : editingAuthorId
+                          ? "Update Author"
+                          : "Save Author"}
                     </button>
                     {editingAuthorId ? (
                       <button
@@ -375,7 +435,11 @@ export default function Author() {
                 </h2>
               </div>
 
-              {authors.length === 0 ? (
+              {loading ? (
+                <div className="px-6 py-8 text-sm text-gray-500">
+                  Loading authors…
+                </div>
+              ) : authors.length === 0 ? (
                 <div className="px-6 py-8 text-sm text-gray-500">
                   No authors added yet.
                 </div>
