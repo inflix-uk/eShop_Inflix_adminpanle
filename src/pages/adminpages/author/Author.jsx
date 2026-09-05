@@ -7,6 +7,10 @@ import Top from "../nav/Top";
 import BlockEditor from "../blog-new/components/createblog/BlockEditor/BlockEditor";
 import MediaLibraryPicker from "../media/components/media/MediaLibraryPicker";
 import {
+  uploadFileSpaces,
+  uploadFile,
+} from "../media/service/mediaService";
+import {
   fetchAuthors,
   createAuthor,
   updateAuthor,
@@ -14,6 +18,12 @@ import {
   syncAuthorToBlogs,
   getStoredAuthors,
 } from "./service/authorLocalService";
+
+const BACKEND_URL = String(import.meta.env.VITE_BACKEND_URL || "").replace(
+  /\/?$/,
+  "/"
+);
+const MAX_AUTHOR_IMAGE_BYTES = 5 * 1024 * 1024;
 
 const emptyAuthorForm = () => ({
   name: "",
@@ -25,6 +35,23 @@ const emptyAuthorForm = () => ({
   blocks: [],
 });
 
+function extractUploadedUrl(result) {
+  const files =
+    result?.data?.data?.uploadedFiles ||
+    result?.data?.uploadedFiles ||
+    [];
+  const first = Array.isArray(files) ? files[0] : null;
+  if (!first) return "";
+  if (first.url) return String(first.url);
+  if (first.path) {
+    const path = String(first.path).replace(/^\//, "");
+    return path.startsWith("http")
+      ? path
+      : `${BACKEND_URL}${path.startsWith("uploads/") ? path : `uploads/${path}`}`;
+  }
+  return "";
+}
+
 export default function Author() {
   const [selectedPage, setSelectedPage] = useState("author");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -34,6 +61,7 @@ export default function Author() {
   const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const profileImageInputRef = useRef(null);
 
   const loadAuthors = useCallback(async () => {
@@ -91,26 +119,49 @@ export default function Author() {
     setAuthorForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleImageUpload = (event) => {
+  const handleImageUpload = async (event) => {
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
 
-    if (file.size > 800 * 1024) {
-      toast.error(
-        "Image is too large for inline upload. Please use Media Library (under ~800KB) or a smaller file."
-      );
+    if (!file.type?.startsWith("image/")) {
+      toast.error("Please select an image file");
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = (loadEvent) => {
+    if (file.size > MAX_AUTHOR_IMAGE_BYTES) {
+      toast.error("Image must be under 5MB. Please choose a smaller file.");
+      return;
+    }
+
+    if (!BACKEND_URL || BACKEND_URL === "/") {
+      toast.error("Backend URL is not configured");
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      let result = await uploadFileSpaces(BACKEND_URL, "authors", file, file.name);
+      if (!result.success) {
+        result = await uploadFile(BACKEND_URL, "authors", file, file.name);
+      }
+
+      const url = extractUploadedUrl(result);
+      if (!result.success || !url) {
+        throw new Error(result.error || result.message || "Upload failed");
+      }
+
       setAuthorForm((prev) => ({
         ...prev,
-        image: loadEvent.target?.result || "",
+        image: url,
       }));
-    };
-    reader.readAsDataURL(file);
+      toast.success("Profile image uploaded");
+    } catch (error) {
+      console.error(error);
+      toast.error(error.message || "Failed to upload image");
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   const handleMediaLibrarySelect = (url) => {
@@ -306,7 +357,7 @@ export default function Author() {
                     Profile Image
                   </label>
                   <p className="text-xs text-gray-500 mb-2">
-                    Upload from PC or choose from Media Library.
+                    Upload from PC (max 5MB) or choose from Media Library.
                   </p>
                   <input
                     ref={profileImageInputRef}
@@ -318,11 +369,12 @@ export default function Author() {
                   <div className="flex flex-wrap items-center gap-2 mb-3">
                     <button
                       type="button"
+                      disabled={uploadingImage}
                       onClick={() => profileImageInputRef.current?.click()}
-                      className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                      className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50"
                     >
                       <FaUpload size={11} />
-                      Upload from PC
+                      {uploadingImage ? "Uploading…" : "Upload from PC"}
                     </button>
                     <button
                       type="button"
