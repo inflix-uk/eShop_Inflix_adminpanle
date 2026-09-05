@@ -12,7 +12,7 @@ import PublishSettings from "../createblog/PublishSettings";
 import FeaturedImage from "../createblog/FeaturedImage";
 import CategoriesSelector from "../createblog/CategoriesSelector";
 import Notification from "../createblog/Notification";
-import { getStoredAuthors } from "../../../author/service/authorLocalService";
+import { getStoredAuthors, fetchAuthors, toBlogAuthorPayload } from "../../../author/service/authorLocalService";
 import {
   blocksHaveRenderableContent,
   extractWidgetSlideDataUrls,
@@ -298,7 +298,19 @@ export default function EditBlogForm({ blogData = {}, availableCategories = [] }
   }, [bannerPreview, blocks, getFullImageUrl, imagePreview, processBlockImages]);
 
   useEffect(() => {
-    setAvailableAuthors(getStoredAuthors());
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await fetchAuthors();
+        if (!cancelled) setAvailableAuthors(list);
+      } catch (error) {
+        console.error("Failed to load authors for blog form:", error);
+        if (!cancelled) setAvailableAuthors(getStoredAuthors());
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const authorOptions = availableAuthors.filter(
@@ -564,8 +576,8 @@ export default function EditBlogForm({ blogData = {}, availableCategories = [] }
         excerpt,
         blocks: processedBlocks,
         categories,
-        author: selectedAuthor || null,
-        reviewer: selectedReviewer || null,
+        author: toBlogAuthorPayload(selectedAuthor),
+        reviewer: toBlogAuthorPayload(selectedReviewer),
         tags,
         publishStatus,
         publishDate,
