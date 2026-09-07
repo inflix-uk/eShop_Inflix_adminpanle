@@ -68,7 +68,7 @@ export default function TagColorsForm({
 
       <p className="text-xs text-gray-500">
         {tagColorsEnabled !== false
-          ? "Applies site-wide to all h1–h6, p, span, and label tags on blog/product pages and generic content."
+          ? "Applies to h1–h6, p, span, and label on the storefront — including homepage HTML/CSS widgets, blog, and product pages. Navbar, footer, checkout, and banners keep their own pickers."
           : "Disabled — storefront sections will use their own dynamic admin colors (Tailwind / per-widget pickers)."}
       </p>
 

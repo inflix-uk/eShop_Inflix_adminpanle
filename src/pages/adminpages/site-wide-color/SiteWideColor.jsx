@@ -260,8 +260,9 @@ export default function SiteWideColor() {
               <div className="px-6 py-5 border-b border-gray-200">
                 <h2 className="text-xl font-semibold text-gray-900">HTML tag colors</h2>
                 <p className="mt-1 text-sm text-gray-600">
-                  Optional global colors for h1–h6, p, span, and label. Turn off when
-                  homepage sections and widgets use their own color pickers (dark/light themes).
+                  Optional global colors for h1–h6, p, span, and label — including
+                  homepage HTML/CSS widgets. Turn off to let widgets and section
+                  pickers keep their own colors.
                 </p>
               </div>
               <div className="px-6 py-6">
