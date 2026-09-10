@@ -41,6 +41,7 @@ const EMPTY_EXTRA = {
   price: 0,
   description: '',
   quantityEnabled: false,
+  quantityUnlimited: false,
   discountEnabled: false,
   discountPrice: 0,
   unitLabel: 'per episode',
@@ -197,7 +198,9 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
               title: extra.title || '',
               price: extra.price ?? 0,
               description: extra.description || '',
-              quantityEnabled: Boolean(extra.quantityEnabled),
+              quantityUnlimited: Boolean(extra.quantityUnlimited),
+              quantityEnabled:
+                Boolean(extra.quantityEnabled) && !Boolean(extra.quantityUnlimited),
               discountEnabled: Boolean(extra.discountEnabled),
               discountPrice: extra.discountPrice ?? 0,
               unitLabel: extra.unitLabel || 'per episode',
@@ -374,6 +377,18 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
     });
   };
 
+  const setExtraQuantityMode = (index, mode) => {
+    setFormData((prev) => {
+      const extras = [...prev.extras];
+      extras[index] = {
+        ...extras[index],
+        quantityEnabled: mode === 'guests',
+        quantityUnlimited: mode === 'unlimited',
+      };
+      return { ...prev, extras };
+    });
+  };
+
   const handleExtraImageChange = async (index, file) => {
     if (!file) {
       handleExtraChange(index, 'image', '');
@@ -526,12 +541,14 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
         .map((extra) => {
           const discount = resolveExtraDiscount(extra);
           const title = String(extra?.title || '').trim();
+          const quantityUnlimited = isServiceFlow ? false : Boolean(extra.quantityUnlimited);
           return {
             image: extra.image || '',
             title,
             price: discount.price,
             description: String(extra?.description || '').trim(),
-            quantityEnabled: Boolean(extra.quantityEnabled),
+            quantityUnlimited,
+            quantityEnabled: Boolean(extra.quantityEnabled) && !quantityUnlimited,
             discountEnabled: discount.active,
             discountPrice: discount.active ? discount.discountPrice : 0,
             unitLabel: extra.unitLabel ? String(extra.unitLabel).trim() : isServiceFlow ? 'per episode' : '',
@@ -1101,6 +1118,9 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
                     const discount = resolveExtraDiscount(extra);
                     const unit = extra.unitLabel || (isServiceFlow ? 'per episode' : 'per hour');
                     const extraName = String(extra.title || '').trim() || `Add-on ${index + 1}`;
+                    const quantityHidden = isServiceFlow
+                      ? !extra.quantityEnabled
+                      : !extra.quantityEnabled && !extra.quantityUnlimited;
                     return (
                     <div
                       key={index}
@@ -1345,26 +1365,62 @@ export default function PackageModal({ isOpen, onClose, onSave, editPackage }) {
                         </div>
                       )}
 
-                      <label className="flex items-start gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={Boolean(extra.quantityEnabled)}
-                          onChange={(e) =>
-                            handleExtraChange(index, 'quantityEnabled', e.target.checked)
-                          }
-                          className="mt-1 rounded border-gray-300 text-primary focus:ring-primary"
-                        />
-                        <span>
-                          <span className="block text-sm font-medium text-gray-800">
-                            Let customers pick a quantity
+                      <div className="space-y-2">
+                        <label className="flex items-start gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(extra.quantityEnabled)}
+                            onChange={() => setExtraQuantityMode(index, 'guests')}
+                            className="mt-1 rounded border-gray-300 text-primary focus:ring-primary"
+                          />
+                          <span>
+                            <span className="block text-sm font-medium text-gray-800">
+                              {isServiceFlow
+                                ? 'Let customers pick a quantity'
+                                : 'Let customers pick a quantity with guest limit'}
+                            </span>
+                            <span className="block text-xs text-gray-500">
+                              {isServiceFlow
+                                ? 'Shows + / −. Charged × quantity × the unit above (episode / reel / order).'
+                                : 'Shows + / −. Max quantity follows the number of guests selected. Charged × quantity × hourly rate × booked hours.'}
+                            </span>
                           </span>
-                          <span className="block text-xs text-gray-500">
-                            {isServiceFlow
-                              ? 'Shows + / −. Charged × quantity × the unit above (episode / reel / order).'
-                              : 'Shows + / −. Charged × quantity × hourly rate × booked hours.'}
+                        </label>
+                        {!isServiceFlow && (
+                          <label className="flex items-start gap-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(extra.quantityUnlimited)}
+                              onChange={() => setExtraQuantityMode(index, 'unlimited')}
+                              className="mt-1 rounded border-gray-300 text-primary focus:ring-primary"
+                            />
+                            <span>
+                              <span className="block text-sm font-medium text-gray-800">
+                                Let customers pick a quantity with no guest limit
+                              </span>
+                              <span className="block text-xs text-gray-500">
+                                Shows + / −. Quantity is not capped by how many guests are selected.
+                              </span>
+                            </span>
+                          </label>
+                        )}
+                        <label className="flex items-start gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={quantityHidden}
+                            onChange={() => setExtraQuantityMode(index, 'hidden')}
+                            className="mt-1 rounded border-gray-300 text-primary focus:ring-primary"
+                          />
+                          <span>
+                            <span className="block text-sm font-medium text-gray-800">
+                              Hide quantity increment / decrement
+                            </span>
+                            <span className="block text-xs text-gray-500">
+                              + / − is not shown. Customers can only add this extra once.
+                            </span>
                           </span>
-                        </span>
-                      </label>
+                        </label>
+                      </div>
 
                       <details className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2">
                         <summary className="cursor-pointer text-sm text-gray-700">
