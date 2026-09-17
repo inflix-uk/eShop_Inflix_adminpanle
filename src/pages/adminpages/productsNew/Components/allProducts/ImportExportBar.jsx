@@ -19,7 +19,11 @@ import {
  * three variants and one single product — so the file documents its own format.
  * Those rows use a `sample-` producturl, which the importer skips.
  */
-export default function ImportExportBar({ products, onImported, compact }) {
+export default function ImportExportBar({
+  products = [],
+  onImported,
+  compact = false,
+}) {
   const fileInputRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [report, setReport] = useState(null);
@@ -345,10 +349,4 @@ ImportExportBar.propTypes = {
   onImported: PropTypes.func,
   /** Inline placement (e.g. beside the brand stats): drops the helper text and floats the report. */
   compact: PropTypes.bool,
-};
-
-ImportExportBar.defaultProps = {
-  products: [],
-  onImported: undefined,
-  compact: false,
 };

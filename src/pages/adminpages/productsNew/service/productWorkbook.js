@@ -185,7 +185,7 @@ function buildInstructionsSheet(workbook) {
     "The Products sheet starts with grey SAMPLE rows (producturl begins with 'sample-'). They exist to show the format. The importer always skips them — you can overwrite or delete them freely.",
     "Header colours on the Products sheet: dark blue columns describe the PRODUCT (read from the first row of each product only); green columns describe each VARIANT (read from every row).",
     "Cells that offer multiple values use the pipe character | between values — never a comma. Example: tag1|tag2.",
-    "Dropdown-backed cells (category, brand, condition, tags, variant attributes…) must use values from the Reference sheet. The dropdowns are attached to the first 500 rows; a typo fails that row on import instead of creating a broken product.",
+    "Dropdown-backed cells (category, brand, condition, tags, variant attributes…) should use values from the Reference sheet. New category, subcategory, brand, tag and attribute values are created automatically on import. An unknown attribute type (e.g. a misspelled 'color' slug) still fails that row.",
     "Do not rename or reorder the header row — the importer finds columns by these exact names.",
     "Images are carried as https:// URLs and linked as-is. Keep the URLs publicly reachable, or add images later in the product form.",
     "Prices are numbers only (19.99). Currency symbols are tolerated but not needed.",

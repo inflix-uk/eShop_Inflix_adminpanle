@@ -447,7 +447,10 @@ export default function NewProducts() {
                     <ImportExportBar
                       compact
                       products={products}
-                      onImported={() => getProducts(false, selectedBrand)}
+                      onImported={() => {
+                        getBrands();
+                        if (selectedBrand) getProducts(false, selectedBrand);
+                      }}
                     />
                   }
                 />
@@ -484,7 +487,10 @@ export default function NewProducts() {
                         <ImportExportBar
                           compact
                           products={products}
-                          onImported={() => getProducts(false, selectedBrand)}
+                          onImported={() => {
+                            getBrands();
+                            if (selectedBrand) getProducts(false, selectedBrand);
+                          }}
                         />
                         {selectedBrand && (
                           <span className={`px-3 py-1 rounded-full text-sm font-medium ${

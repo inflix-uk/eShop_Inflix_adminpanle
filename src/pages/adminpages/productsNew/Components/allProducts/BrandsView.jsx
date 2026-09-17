@@ -8,7 +8,7 @@ import {
 
 /** `actions` renders beside the Brands/Products stats — used for the CSV export/import buttons. */
 const BrandsView = ({
-  actions,
+  actions = null,
   brands = [],
   brandsLoading = false,
   unassignedProductCount = 0,
@@ -356,10 +356,10 @@ const BrandPropTypes = PropTypes.shape({
   metaImage: MetaImagePropTypes,
   metaTitle: PropTypes.string,
   metaDescription: PropTypes.string,
-  isPublish: PropTypes.bool.isRequired,
-  isFeatured: PropTypes.bool.isRequired,
-  createdAt: PropTypes.string.isRequired,
-  updatedAt: PropTypes.string.isRequired,
+  isPublish: PropTypes.bool,
+  isFeatured: PropTypes.bool,
+  createdAt: PropTypes.string,
+  updatedAt: PropTypes.string,
   __v: PropTypes.number,
   productCount: PropTypes.number
 });
@@ -404,12 +404,6 @@ BrandsView.propTypes = {
    * Optional controls rendered beside the Brands/Products stats
    */
   actions: PropTypes.node
-};
-
-BrandsView.defaultProps = {
-  unassignedProductCount: 0,
-  auth: undefined,
-  actions: null,
 };
 
 export default BrandsView;
