@@ -256,6 +256,9 @@ const SiteWideSchemaSettings = lazy(() =>
 const RobotsSettings = lazy(() =>
   import("./pages/adminpages/settings/robots/page")
 );
+const DashboardSettings = lazy(() =>
+  import("./pages/adminpages/settings/dashboard/page")
+);
 // Roles and Permissions
 import ManageRoles from "./pages/adminpages/roles/ManageRoles";
 import RoleUsers from "./pages/adminpages/roles/RoleUsers";
@@ -1740,6 +1743,20 @@ function App() {
                       <Suspense fallback={<PageSkeleton />}>
                         <PermissionRoute>
                           <SiteWideSchemaSettings />
+                        </PermissionRoute>
+                      </Suspense>
+                    </ErrorBoundary>
+                  </>
+                }
+              />
+              <Route
+                path="/admin/settings/dashboard"
+                element={
+                  <>
+                    <ErrorBoundary fallback={<div>Error</div>}>
+                      <Suspense fallback={<PageSkeleton />}>
+                        <PermissionRoute>
+                          <DashboardSettings />
                         </PermissionRoute>
                       </Suspense>
                     </ErrorBoundary>
