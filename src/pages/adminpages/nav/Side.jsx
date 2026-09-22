@@ -295,6 +295,7 @@ export default function Side({
       "smtp-settings",
       "site-wide-schema-settings",
       "robots-settings",
+      "dashboard-settings",
       "widgets-settings",
       "announcement-banner-settings",
       "deals-modal-settings",
@@ -1329,7 +1330,7 @@ export default function Side({
           strokeWidth={1.5}
           stroke="currentColor"
           className={`h-5 w-5 shrink-0 ${
-            selectedPage === "stripe-settings" || selectedPage === "shipping-settings" || selectedPage === "trustpilot-settings" || selectedPage === "scripts-settings" || selectedPage === "email-template-settings" || selectedPage === "smtp-settings" || selectedPage === "site-wide-schema-settings" || selectedPage === "robots-settings" || selectedPage === "widgets-settings" || selectedPage === "announcement-banner-settings" || selectedPage === "deals-modal-settings" || selectedPage === "footer-settings" || selectedPage === "logo" || selectedPage === "site-wide-color"
+            selectedPage === "stripe-settings" || selectedPage === "shipping-settings" || selectedPage === "trustpilot-settings" || selectedPage === "scripts-settings" || selectedPage === "email-template-settings" || selectedPage === "smtp-settings" || selectedPage === "site-wide-schema-settings" || selectedPage === "robots-settings" || selectedPage === "dashboard-settings" || selectedPage === "widgets-settings" || selectedPage === "announcement-banner-settings" || selectedPage === "deals-modal-settings" || selectedPage === "footer-settings" || selectedPage === "logo" || selectedPage === "site-wide-color"
               ? "text-primary"
               : "text-gray-400 group-hover:text-primary"
           } my-auto`}
@@ -1347,6 +1348,32 @@ export default function Side({
         </svg>
       ),
       links: [
+        {
+          label: "Dashboard Settings",
+          to: "/admin/settings/dashboard",
+          selectedKey: "dashboard-settings",
+          permissionCheck: (p) => p?.store?.view_blogs || true,
+          icon: (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className={`h-5 w-5 shrink-0 ${
+                selectedPage === "dashboard-settings"
+                  ? "text-primary"
+                  : "text-gray-400 group-hover:text-primary"
+              } my-auto`}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z"
+              />
+            </svg>
+          ),
+        },
         {
           label: "Stripe",
           to: "/admin/settings/stripe",

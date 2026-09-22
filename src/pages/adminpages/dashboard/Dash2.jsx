@@ -6,6 +6,7 @@ import { useAuth } from '../../../context/Auth.jsx';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { getOrderLineItemImageUrl } from '../orders/utils/orderItemImageUrl';
+import UpcomingBookingsSection from './UpcomingBookingsSection';
 
 
 const Dash2 = () => {
@@ -32,6 +33,8 @@ const Dash2 = () => {
 
     // State to hold top selling products
     const [topProducts, setTopProducts] = useState([]);
+    const [dashboardWidget, setDashboardWidget] = useState("orders");
+    const [widgetReady, setWidgetReady] = useState(false);
 
     // Array to render stat cards
     const displayStats = [
@@ -41,8 +44,9 @@ const Dash2 = () => {
         { id: 4, name: "New Messages", value: unreadMessagesCount },
     ];
 
-    // Fetch the stats data
+    // Order summary cards only load when the orders widget is showing
     useEffect(() => {
+        if (!widgetReady || dashboardWidget !== "orders") return;
         axios
             .get(`${auth.ip}get/stats`)
             .then((response) => {
@@ -55,10 +59,10 @@ const Dash2 = () => {
             .catch((error) => {
                 console.log(error);
             });
-    }, [auth.ip]);
+    }, [auth.ip, widgetReady, dashboardWidget]);
 
-    // Fetch unread messages count
     useEffect(() => {
+        if (!widgetReady || dashboardWidget !== "orders") return;
         axios
             .get(`${auth.ip}get/total/messages/count`)
             .then((response) => {
@@ -69,10 +73,26 @@ const Dash2 = () => {
             .catch((error) => {
                 console.log("Error fetching unread messages count:", error);
             });
+    }, [auth.ip, widgetReady, dashboardWidget]);
+
+    useEffect(() => {
+        axios.get(`${auth.ip}dashboard-settings`)
+            .then((response) => {
+                const next = response.data?.data?.widget;
+                setDashboardWidget(next === "bookings" ? "bookings" : "orders");
+            })
+            .catch((error) => {
+                console.log("Error fetching dashboard settings:", error);
+                setDashboardWidget("orders");
+            })
+            .finally(() => {
+                setWidgetReady(true);
+            });
     }, [auth.ip]);
 
-    // Fetch the top selling products data
+    // Fetch the top selling products data when that widget is enabled
     useEffect(() => {
+        if (!widgetReady || dashboardWidget !== "orders") return;
         axios.get(`${auth.ip}top/product/sold`)
             .then((response) => {
                 setTopProducts(Array.isArray(response.data?.topProducts) ? response.data.topProducts : []);
@@ -80,7 +100,7 @@ const Dash2 = () => {
             .catch((error) => {
                 console.log("Error fetching top selling products:", error);
             });
-    }, [auth.ip]);
+    }, [auth.ip, widgetReady, dashboardWidget]);
     const icons = [
         // Pending Orders icon
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-6 w-6 text-blue-500">
@@ -138,7 +158,7 @@ const Dash2 = () => {
                 <Top toggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} selectedPage={selectedPage} setSelectedPage={setSelectedPage} />
                 <main className="py-5">
                     <div className="px-4 sm:px-6 lg:px-8">
-                        {/* Stats Cards Section */}
+                        {widgetReady && dashboardWidget === "orders" && (
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-6 lg:grid-cols-4 my-5">
                             {displayStats.map((stat, index) => (
                                 <div
@@ -176,8 +196,16 @@ const Dash2 = () => {
                                 </div>
                             ))}
                         </div>
+                        )}
 
-                        {/* Top Selling Products Section */}
+                        {!widgetReady ? (
+                            <div className="mt-10 bg-white rounded-xl shadow-lg p-12 flex justify-center">
+                                <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-blue-600" />
+                            </div>
+                        ) : dashboardWidget === "bookings" ? (
+                            <UpcomingBookingsSection apiBase={auth.ip} />
+                        ) : (
+                        /* Top Selling Products Section */
                         <section className="mt-10">
                             <div className="flex items-center gap-2 mb-6">
 
@@ -339,6 +367,7 @@ const Dash2 = () => {
                                 )}
                             </div>
                         </section>
+                        )}
 
                     </div>
                 </main>
