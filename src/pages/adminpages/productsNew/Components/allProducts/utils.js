@@ -260,7 +260,26 @@ export function stripHtmlForExport(value) {
   // Strip remaining tags
   text = text.replace(/<[^>]+>/g, " ");
 
-  // Decode common entities (order matters for &amp;)
+  text = decodeHtmlEntities(text);
+
+  return text
+    .replace(/\u00a0/g, " ")
+    .replace(/[ \t]+\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/[ \t]{2,}/g, " ")
+    .trim();
+}
+
+/** Decode every HTML entity (named, decimal, hex) — e.g. d&eacute;cor → décor. */
+function decodeHtmlEntities(text) {
+  if (typeof document !== "undefined") {
+    // <textarea> content is RCDATA: entities decode, tags stay literal text, nothing executes
+    const el = document.createElement("textarea");
+    el.innerHTML = text;
+    return el.value;
+  }
+
+  // Non-DOM fallback: common entities only (order matters for &amp;)
   const entities = {
     "&nbsp;": " ",
     "&amp;": "&",
@@ -290,13 +309,7 @@ export function stripHtmlForExport(value) {
     const code = parseInt(h, 16);
     return Number.isFinite(code) ? String.fromCharCode(code) : " ";
   });
-
-  return text
-    .replace(/\u00a0/g, " ")
-    .replace(/[ \t]+\n/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .replace(/[ \t]{2,}/g, " ")
-    .trim();
+  return text;
 }
 
 export function getExportDescription(product) {
@@ -307,22 +320,56 @@ export function getExportDescription(product) {
 }
 
 /**
- * GTIN from variant EIN — always export as Excel text formula so spreadsheet
- * apps keep full 13-digit EAN (not 5.06503E+12). Merchant Center reads the
- * digits inside; plain numbers get destroyed by Excel's float display.
+ * GTIN from variant EIN — plain digits only. Google fetches the CSV directly
+ * (not through Excel), so an Excel text-formula wrapper like ="5065025022043"
+ * is sent literally and rejected as an invalid GTIN. Also strips spaces/dashes.
  */
 export function formatExportGtin(ein) {
-  const raw = String(ein ?? "").trim();
-  if (!raw) return "";
-  // Strip any prior tab/spaces; keep digits (and rare letter GTINs)
-  const gtin = raw.replace(/^[\t\s]+|[\t\s]+$/g, "").replace(/\s+/g, "");
-  if (!gtin) return "";
-  // Leading ="" forces Excel/Sheets to treat cell as text and show full value
-  return `="${gtin}"`;
+  return String(ein ?? "").replace(/\D/g, "");
 }
 
 export function getExportIdentifierExists(ein) {
-  return String(ein ?? "").trim() ? "yes" : "no";
+  return formatExportGtin(ein) ? "yes" : "no";
+}
+
+/**
+ * Merchant Center item id — must be identical on every export, or Google treats
+ * each export as a brand-new set of products. Uses the saved SKU when present,
+ * otherwise derives the id from the product's Mongo _id. (Variant subdocument
+ * _ids are regenerated whenever a product is saved, so they can't be used.)
+ */
+export function getExportItemId(product, variant, isSingle) {
+  const sku = String(variant?.SKU || "").trim();
+  if (sku) return sku;
+
+  const productId = String(product?._id || "");
+  if (isSingle) return productId;
+
+  const variantKey = String(variant?.variantId || variant?.slug || variant?.name || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  const id = `${productId}-${variantKey}`;
+  // Merchant ids max out at 50 chars — fall back to a short deterministic hash
+  return id.length <= 50 ? id : `${productId}-${stableHash(variantKey)}`;
+}
+
+/** FNV-1a 32-bit, base36 — same input always gives the same short key. */
+function stableHash(value) {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < value.length; i++) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+/** Merchant shipping attribute `country:region:service:price`, e.g. GB:::0.00 GBP */
+export function formatExportShipping(shippingCost) {
+  const raw = String(shippingCost ?? "").trim();
+  if (raw.includes(":")) return raw; // already in Merchant composite format
+  if (!raw) return "GB:::0.00 GBP";
+  return `GB:::${/[a-z]{3}$/i.test(raw) ? raw : `${raw} GBP`}`;
 }
 
 function resolveImageUrl(img) {
@@ -347,7 +394,6 @@ function resolveImageUrl(img) {
  * @param {boolean} [options.includeAccessories=false]
  * @param {boolean} [options.includeOutOfStock=false] — when true, emit out_of_stock rows
  * @param {object|null} [options.categoryGooglePathMap]
- * @param {(productName: string, variantName?: string) => string} [options.generateSku]
  */
 export function buildMerchantFeedRows(
   products,
@@ -355,7 +401,6 @@ export function buildMerchantFeedRows(
     includeAccessories = false,
     includeOutOfStock = false,
     categoryGooglePathMap = null,
-    generateSku = null,
   } = {}
 ) {
   if (!Array.isArray(products)) return [];
@@ -392,14 +437,10 @@ export function buildMerchantFeedRows(
 
       const productNameSlug = product.producturl;
       const ein = variant?.EIN;
-      const sku =
-        variant?.SKU ||
-        (generateSku ? generateSku(product.name) : "") ||
-        product._id;
 
       return [
         {
-          id: sku,
+          id: getExportItemId(product, variant, true),
           title: product.name || "",
           description: getExportDescription(product),
           availability: quantity > 0 ? "in_stock" : "out_of_stock",
@@ -418,9 +459,7 @@ export function buildMerchantFeedRows(
           condition: condition || "",
           custom_label_0: "",
           color: getExportColor(variant, productType),
-          capacity: getExportCapacity(variant, productType),
-          shipping: product.shipping_cost || "0.00 GBP",
-          tax: product.tax_rate || "0%",
+          shipping: formatExportShipping(product.shipping_cost),
           mobile_link: getStorefrontMobileProductUrl(productNameSlug),
           google_product_category: googleProductCategory,
         },
@@ -444,14 +483,10 @@ export function buildMerchantFeedRows(
           ? resolveImageUrl(variant.variantImages[0])
           : "";
       const titleParts = [product.name, colorName, storage].filter(Boolean);
-      const sku =
-        variant.SKU ||
-        (generateSku ? generateSku(product.name, variantName) : "") ||
-        product._id;
 
       return [
         {
-          id: sku,
+          id: getExportItemId(product, variant, false),
           title: titleParts.join(" - "),
           description: getExportDescription(product),
           availability: quantity > 0 ? "in_stock" : "out_of_stock",
@@ -472,9 +507,7 @@ export function buildMerchantFeedRows(
             ? variant.slug || variantName || ""
             : "",
           color: colorName,
-          capacity: storage,
-          shipping: product.shipping_cost || "0.00 GBP",
-          tax: product.tax_rate || "0%",
+          shipping: formatExportShipping(product.shipping_cost),
           mobile_link: getStorefrontMobileProductUrl(fullProductNameSlug),
           google_product_category: googleProductCategory,
         },

@@ -84,34 +84,22 @@ const LEGACY_CATEGORY_MAPPING = {
 };
 
 /**
- * Google taxonomy paths use " > " in DB; Merchant CSV expects " / " between segments.
- * Does not add a leading slash — use {@link ensureLeadingSlashGoogleMerchantCsv} for export.
+ * Google Merchant expects google_product_category as the taxonomy path with
+ * " > " between segments (or a numeric taxonomy ID) — no leading slash.
+ * Accepts DB paths using " > " and legacy " / " paths (with or without a leading "/").
  */
 export function formatGoogleCategoryPathForCsv(fullPath) {
-  const raw = String(fullPath || "").trim();
+  const raw = String(fullPath || "")
+    .trim()
+    .replace(/^\/+\s*/, "");
   if (!raw) return "";
-  if (raw.includes(" > ")) {
-    return raw
-      .split(" > ")
-      .map((s) => s.trim())
-      .filter(Boolean)
-      .join(" / ");
-  }
-  if (raw.includes(" / ")) {
-    return raw
-      .split(" / ")
-      .map((s) => s.trim())
-      .filter(Boolean)
-      .join(" / ");
-  }
-  return raw;
-}
-
-/** Merchant Center-style path with leading slash: `/Electronics / ...` */
-export function ensureLeadingSlashGoogleMerchantCsv(path) {
-  const s = String(path || "").trim();
-  if (!s) return "";
-  return s.startsWith("/") ? s : `/${s}`;
+  const separator = raw.includes(" > ") ? " > " : raw.includes(" / ") ? " / " : null;
+  if (!separator) return raw;
+  return raw
+    .split(separator)
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .join(" > ");
 }
 
 /**
@@ -164,5 +152,5 @@ export function resolveGoogleProductCategoryForExport(product, categoryGooglePat
   } else {
     path = legacyGooglePathFromProductCategories(product?.category);
   }
-  return ensureLeadingSlashGoogleMerchantCsv(path);
+  return formatGoogleCategoryPathForCsv(path);
 }

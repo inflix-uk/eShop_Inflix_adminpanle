@@ -168,19 +168,9 @@ export default function AllProducts() {
     const baseUrl = auth.ip.endsWith("/") ? auth.ip.slice(0, -1) : auth.ip;
     return `${baseUrl}/uploads/${correctedPath}`;
   };
-  // Generate random SKU when product/variant doesn't have one
-  const generateRandomSKU = (productName, variantName = '') => {
-    const timestamp = Date.now().toString(36).toUpperCase();
-    const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const namePrefix = productName ? productName.substring(0, 3).toUpperCase().replace(/[^A-Z]/g, 'X') : 'PRD';
-    const variantPrefix = variantName ? variantName.substring(0, 2).toUpperCase().replace(/[^A-Z0-9]/g, '') : '';
-    return `ZEX-${namePrefix}${variantPrefix}-${timestamp}-${randomPart}`;
-  };
-
   const buildCsvRows = (options = {}) =>
     buildMerchantFeedRows(products, {
       categoryGooglePathMap,
-      generateSku: generateRandomSKU,
       ...options,
     });
 
