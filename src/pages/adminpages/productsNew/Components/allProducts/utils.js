@@ -389,6 +389,30 @@ function resolveImageUrl(img) {
 }
 
 /**
+ * Google Merchant `additional_image_link`: up to 10 URLs, comma-separated with
+ * NO spaces (e.g. url1,url2). Spaces after commas make Google / browsers treat
+ * the cell as one invalid URL. Field max 2000 chars.
+ * @see https://support.google.com/merchants/answer/6324370
+ */
+function formatAdditionalImageLinks(images, { excludeUrl = "" } = {}) {
+  const exclude = String(excludeUrl || "").trim();
+  const urls = [];
+  for (const img of images || []) {
+    const url = String(resolveImageUrl(img) || "").trim();
+    if (!url || (exclude && url === exclude)) continue;
+    urls.push(url);
+    if (urls.length >= 10) break;
+  }
+  let joined = urls.join(",");
+  // Keep under Merchant's 2000-char attribute limit
+  while (joined.length > 2000 && urls.length > 1) {
+    urls.pop();
+    joined = urls.join(",");
+  }
+  return joined.length > 2000 ? "" : joined;
+}
+
+/**
  * Build Google Merchant CSV rows.
  * @param {object} options
  * @param {boolean} [options.includeAccessories=false]
@@ -446,10 +470,10 @@ export function buildMerchantFeedRows(
           availability: quantity > 0 ? "in_stock" : "out_of_stock",
           link: getStorefrontProductUrl(productNameSlug),
           image_link: resolveImageUrl(product.thumbnail_image),
-          additional_image_link: (product.Gallery_Images || [])
-            .map((img) => resolveImageUrl(img))
-            .filter(Boolean)
-            .join(", "),
+          additional_image_link: formatAdditionalImageLinks(
+            product.Gallery_Images,
+            { excludeUrl: resolveImageUrl(product.thumbnail_image) }
+          ),
           price: `${variant?.Price ?? ""} GBP`,
           sale_price: variant?.salePrice ? `${variant.salePrice} GBP` : null,
           identifier_exists: getExportIdentifierExists(ein),
@@ -492,10 +516,10 @@ export function buildMerchantFeedRows(
           availability: quantity > 0 ? "in_stock" : "out_of_stock",
           link: getStorefrontProductUrl(fullProductNameSlug),
           image_link: firstImageLink,
-          additional_image_link: (variant.variantImages || [])
-            .map((img) => resolveImageUrl(img))
-            .filter(Boolean)
-            .join(", "),
+          additional_image_link: formatAdditionalImageLinks(
+            variant.variantImages,
+            { excludeUrl: firstImageLink }
+          ),
           price: `${variant.Price ?? ""} GBP`,
           sale_price: variant.salePrice ? `${variant.salePrice} GBP` : null,
           identifier_exists: getExportIdentifierExists(ein),
