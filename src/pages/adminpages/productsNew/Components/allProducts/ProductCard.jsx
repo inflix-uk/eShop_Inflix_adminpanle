@@ -250,7 +250,7 @@ const ProductCard = ({
           {exporting ? "Exporting…" : "Export"}
         </button>
         <Link
-          to={`/admin/preview/${product.producturl}`}
+          to={`/admin/preview-product/${product.producturl || product._id}`}
           className="flex-1 flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors text-xs sm:text-sm font-medium"
         >
           <svg

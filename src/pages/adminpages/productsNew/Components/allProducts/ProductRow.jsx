@@ -200,7 +200,7 @@ const ProductRow = ({
           </div>
           <div className="text-gray-500">
             <Link
-              to={`/admin/preview/${product.producturl}`}
+              to={`/admin/preview-product/${product.producturl || product._id}`}
               className="text-xs lg:text-sm text-blue-600 hover:underline"
             >
               Preview
