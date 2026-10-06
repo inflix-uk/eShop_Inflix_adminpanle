@@ -21,6 +21,7 @@ import ProductComesWithSelector from "../../../components/EditProductComponents/
 import ProductBattery from "../../../components/NewProductComponents/ProductBattery";
 import SimOptionsandLowStockQuantity from "../../../components/NewProductComponents/SimOptionsandLowStockQuantity";
 import SingleProduct from "../../../components/NewProductComponents/SingleProduct";
+import TabHint from "./guide/TabHint";
 
 // Services
 import NewProductService from "./service/newProductService";
@@ -173,10 +174,9 @@ export default function NewProduct() {
         const filteredCategories = response.data.productCategories.filter(
           (category) => category.isPublish
         );
+        // The form owns the selection. Defaulting it here filed every product
+        // saved with an empty Category box under the first category.
         setCategories(filteredCategories);
-        if (filteredCategories.length > 0) {
-          setProductCategory(filteredCategories[0].name);
-        }
         setProgress(100);
       } else {
         toast.error(response.data.message);
@@ -194,8 +194,9 @@ export default function NewProduct() {
       // First get all variant attributes to find the condition attribute
       const attributesResponse = await productApi.getVariantAttributes();
       if (attributesResponse.data.status === 200) {
+        // Stores name this list "condition" or "conditions".
         const conditionAttribute = attributesResponse.data.variantAttributes.find(
-          (attr) => attr.slug === "condition"
+          (attr) => attr.slug === "condition" || attr.slug === "conditions"
         );
 
         if (conditionAttribute) {
@@ -234,10 +235,8 @@ export default function NewProduct() {
         const filteredTags = response.data.productTags.filter(
           (tag) => tag.isPublished
         );
+        // As with categories: no default, or the first tag is saved unseen.
         settags(filteredTags);
-        if (filteredTags.length > 0) {
-          setProductTag(filteredTags[0].name);
-        }
         setProgress(100);
       } else {
         toast.error(response.data.message);
@@ -612,19 +611,33 @@ export default function NewProduct() {
         <main className="py-5">
           <div className="px-4 sm:px-6 lg:px-8">
             <div className="my-10">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <h1 className="text-lg font-semibold text-gray-900">New Product</h1>
+                <a
+                  href="/admin/product-guide"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                >
+                  <svg className="h-4 w-4 text-primary" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" aria-hidden="true">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+                  </svg>
+                  Product guide
+                </a>
+              </div>
               {/* Info Banner - Save as Draft Required */}
-              <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <div className="mb-4 bg-yellow-50 border border-yellow-300 rounded-lg p-4">
                 <div className="flex items-center gap-3">
                   <div className="flex-shrink-0">
-                    <svg className="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-amber-800">
+                    <p className="text-sm font-medium text-yellow-800">
                       Complete Basic Information & Pricing first
                     </p>
-                    <p className="text-sm text-amber-600">
+                    <p className="text-sm text-yellow-800">
                       Fill in the product details and pricing, then click "Save & Continue Editing" to unlock all other tabs (Images, Settings, SEO, etc.)
                     </p>
                   </div>
@@ -704,6 +717,7 @@ export default function NewProduct() {
                 <Tab.Panels className="mt-6" unmount={false}>
                   {/* Tab 1: Basic Information */}
                   <Tab.Panel className="space-y-5" unmount={false}>
+                    <TabHint slug="basic-information" />
                     <div className="flex flex-col gap-y-5">
                       <ProductForm
                         productName={productName}
@@ -734,6 +748,7 @@ export default function NewProduct() {
 
                   {/* Tab 2: Pricing & Inventory */}
                   <Tab.Panel className="space-y-5" unmount={false}>
+                    <TabHint slug="pricing-inventory" />
                     {/* Product Type Toggle */}
                     <div className="bg-white rounded-lg shadow-md p-6">
                       <h3 className="text-lg font-semibold text-gray-900 mb-4">Product Type</h3>
@@ -943,6 +958,7 @@ export default function NewProduct() {
 
                   {/* Tab 3: Images & Media */}
                   <Tab.Panel className="space-y-5" unmount={false}>
+                    <TabHint slug="images-media" />
                     <div className="flex flex-col gap-y-5">
                       <ProductImages
                         ProductThumbnailImage={ProductThumbnailImage}
@@ -976,6 +992,7 @@ export default function NewProduct() {
 
                   {/* Tab 4: Product Details */}
                   <Tab.Panel className="space-y-5" unmount={false}>
+                    <TabHint slug="product-details" />
                     <div className="flex flex-col gap-y-5">
                       <ProductSpecs
                         specs={specs}
@@ -989,6 +1006,7 @@ export default function NewProduct() {
 
                   {/* Tab 5: Settings */}
                   <Tab.Panel className="space-y-5" unmount={false}>
+                    <TabHint slug="settings" />
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                       <Switches
                         featured={featured}
@@ -1038,6 +1056,7 @@ export default function NewProduct() {
 
                   {/* Tab 6: SEO & Meta (For All Products) */}
                   <Tab.Panel className="space-y-5" unmount={false}>
+                    <TabHint slug="seo-meta" />
                     <div className="flex flex-col gap-y-5">
                       <SingleProduct
                         productMetaTitle={productMetaTitle}
@@ -1080,7 +1099,7 @@ export default function NewProduct() {
                         </h3>
                         <p className="text-gray-500 max-w-md mx-auto mb-6">
                           You can add and manage product reviews after the product is created.
-                          Please save the product first using "Save as Draft" or "Publish" button,
+                          Please save the product first using the Save &amp; Continue Editing button,
                           then edit the product to access the Reviews tab.
                         </p>
                         <div className="flex items-center justify-center gap-2 text-sm text-primary">
@@ -1129,7 +1148,7 @@ export default function NewProduct() {
                         </h3>
                         <p className="text-gray-500 max-w-md mx-auto mb-6">
                           You can add and manage product FAQs after the product is created.
-                          Please save the product first using "Save as Draft" or "Publish" button,
+                          Please save the product first using the Save &amp; Continue Editing button,
                           then edit the product to access the FAQs tab.
                         </p>
                         <div className="flex items-center justify-center gap-2 text-sm text-primary">
@@ -1178,7 +1197,7 @@ export default function NewProduct() {
                         </h3>
                         <p className="text-gray-500 max-w-md mx-auto mb-6">
                           You can add and manage related products after the product is created.
-                          Please save the product first using "Save as Draft" or "Publish" button,
+                          Please save the product first using the Save &amp; Continue Editing button,
                           then edit the product to access the Related Products tab.
                         </p>
                         <div className="flex items-center justify-center gap-2 text-sm text-primary">

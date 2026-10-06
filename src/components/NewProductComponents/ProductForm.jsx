@@ -155,7 +155,7 @@ export default function ProductForm({
                             htmlFor="first-name"
                             className="block text-sm font-medium leading-6 text-gray-900"
                         >
-                            Name
+                            Name <span className="text-red-600" title="Required">*</span>
                         </label>
                         <div className="mt-2">
                             <input
@@ -233,7 +233,10 @@ export default function ProductForm({
                                     htmlFor="brands"
                                     className="block text-sm font-medium leading-6 text-gray-900"
                                 >
-                                    Brand
+                                    Brand{" "}
+                                    <span className="text-xs font-normal text-gray-500">
+                                        (needed before publishing)
+                                    </span>
                                 </label>
                                 <div className="mt-2 w-full">
                                     <Select

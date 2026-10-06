@@ -10,6 +10,7 @@ import { Helmet } from "react-helmet-async";
 import ProductApi from "./api/productApi";
 import DeletedProductService from "./service/deletedProductService";
 import DeletedProductCard from "./Components/allProducts/DeletedProductCard";
+import { cleanText } from "./service/editProductService";
 import {
   EyeIcon,
   PencilSquareIcon,
@@ -523,7 +524,7 @@ export default function DeletedProducts() {
                             {/* Category */}
                             <td className="px-6 py-4">
                               <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                                {product.category || "Uncategorized"}
+                                {cleanText(product.category) || "Uncategorized"}
                               </span>
                             </td>
 
@@ -541,7 +542,7 @@ export default function DeletedProducts() {
                             {/* Condition */}
                             <td className="px-6 py-4 text-center">
                               <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                                {product.condition || "N/A"}
+                                {cleanText(product.condition) || "N/A"}
                               </span>
                             </td>
 
