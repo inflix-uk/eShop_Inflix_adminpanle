@@ -25,8 +25,10 @@ import GeneratedVariants from "../../../components/EditProductComponents/Generat
 import ProductReviews from "../../../components/EditProductComponents/ProductReviews";
 import ProductFAQ from "../../../components/EditProductComponents/ProductFAQ";
 import ProductRelatedProducts from "../../../components/EditProductComponents/ProductRelatedProducts";
+import ProductTransferButtons from "../../../components/EditProductComponents/ProductTransferButtons";
+import TabHint from "./guide/TabHint";
 import { Helmet } from "react-helmet-async";
-import EditProductService from "./service/editProductService";
+import EditProductService, { cleanText } from "./service/editProductService";
 import ProductApi from "./api/productApi";
 import { compressProductImages } from "../../../utils/imageCompression";
 
@@ -151,7 +153,9 @@ export default function EditProduct() {
           console.log("============================================");
 
           // Deduplicate variantValues by name before setting state
-          const productData = response.data.product;
+          const productData = editProductService.sanitizeLoadedProduct(
+            response.data.product
+          );
           if (productData.variantValues && Array.isArray(productData.variantValues)) {
             const seenNames = new Set();
             const uniqueVariants = productData.variantValues.filter(variant => {
@@ -177,7 +181,7 @@ export default function EditProduct() {
 
           // Use service to map variant names
           const variantsArr = editProductService.mapVariantNamesFromResponse(
-            response.data.product.variantNames
+            productData.variantNames
           );
           setVariants(variantsArr);
           setVariantNames(variantsArr);
@@ -276,8 +280,10 @@ export default function EditProduct() {
       // Use VariantAttribute system to fetch conditions
       const attributesResponse = await productApi.getVariantAttributes();
       if (attributesResponse.data.status === 200) {
+        // Stores name this list "condition" or "conditions"; matching only the
+        // first left the dropdown with nothing but "Custom" on the others.
         const conditionAttribute = attributesResponse.data.variantAttributes.find(
-          (attr) => attr.slug === "condition"
+          (attr) => attr.slug === "condition" || attr.slug === "conditions"
         );
 
         if (conditionAttribute) {
@@ -411,6 +417,12 @@ export default function EditProduct() {
       return;
     }
 
+    if (!cleanText(product.name).trim()) {
+      toast.error("Product name is required");
+      handleTabChange(0);
+      return;
+    }
+
     setIsUpdating(true);
 
     console.log(
@@ -463,11 +475,21 @@ export default function EditProduct() {
     setProgress(50);
 
     // Prepare form data using the service
-    const formData = editProductService.prepareFormData(
-      compressedProduct,
-      productUrl,
-      variantNames
-    );
+    let formData;
+    try {
+      formData = editProductService.prepareFormData(
+        compressedProduct,
+        productUrl,
+        variantNames
+      );
+    } catch (error) {
+      // Without this the button would stay on "Updating..." for good.
+      console.error("Could not prepare the product for saving:", error);
+      toast.error("Could not prepare this product for saving: " + error.message);
+      setProgress(100);
+      setIsUpdating(false);
+      return;
+    }
 
     console.log(
       "\n╔════════════════════════════════════════════════════════════╗"
@@ -568,7 +590,10 @@ export default function EditProduct() {
         console.error(
           "═══════════════════════════════════════════════════════════\n"
         );
-        toast.error("Failed to update product");
+        const reason = error.response?.data?.message;
+        toast.error(
+          reason ? `Failed to update product: ${reason}` : "Failed to update product"
+        );
         setProgress(100);
         setIsUpdating(false);
       });
@@ -940,6 +965,33 @@ export default function EditProduct() {
         <main className="py-5">
           <div className="px-4 sm:px-6 lg:px-8">
             <div className="my-10">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <h1 className="truncate text-lg font-semibold text-gray-900">
+                    {product?.name || "Edit Product"}
+                  </h1>
+                  {product?._id && (
+                    <p className="mt-0.5 text-xs text-gray-500">
+                      {product.status === true ? "Published" : "Draft"} ·{" "}
+                      <a
+                        href="/admin/product-guide"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-primary hover:underline"
+                      >
+                        How to complete a product
+                      </a>
+                    </p>
+                  )}
+                </div>
+                {product?._id && (
+                  <ProductTransferButtons
+                    product={product}
+                    productApi={productApi}
+                    onImported={getProduct}
+                  />
+                )}
+              </div>
               <Tab.Group selectedIndex={selectedTabIndex} onChange={handleTabChange}>
                 <Tab.List className="flex space-x-1 rounded-xl bg-primary/20 p-1 overflow-x-auto">
                   <Tab
@@ -1055,6 +1107,7 @@ export default function EditProduct() {
                 <Tab.Panels className="mt-6">
                   {/* Tab 1: Basic Information */}
                   <Tab.Panel className="space-y-5">
+                    <TabHint slug="basic-information" />
                     <div className="flex flex-col gap-y-5">
                       {/* form */}
                       <ProductEditForm
@@ -1085,6 +1138,7 @@ export default function EditProduct() {
 
                   {/* Tab 2: Pricing & Inventory */}
                   <Tab.Panel className="space-y-5">
+                    <TabHint slug="pricing-inventory" />
                     <div className="flex flex-col gap-y-5">
                       {/* Product Type Selector */}
                       <ProductTypeDetail
@@ -1121,6 +1175,7 @@ export default function EditProduct() {
 
                   {/* Tab 3: Images & Media */}
                   <Tab.Panel className="space-y-5">
+                    <TabHint slug="images-media" />
                     <div className="flex flex-col gap-y-5">
                       {/* Product Images */}
                       <ProductImages
@@ -1166,6 +1221,7 @@ export default function EditProduct() {
 
                   {/* Tab 4: Product Details */}
                   <Tab.Panel className="space-y-5">
+                    <TabHint slug="product-details" />
                     <div className="flex flex-col gap-y-5">
                       {/* Specifications */}
                       <ProductSpecifications
@@ -1180,6 +1236,7 @@ export default function EditProduct() {
 
                   {/* Tab 5: Settings */}
                   <Tab.Panel className="space-y-4">
+                    <TabHint slug="settings" />
                     {/* Main Settings Grid - 2 Column Layout */}
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                       {/* Left Column - Product Toggles, Low Stock & Battery */}
@@ -1224,6 +1281,7 @@ export default function EditProduct() {
 
                   {/* Tab 6: SEO & Meta (For All Products) */}
                   <Tab.Panel className="space-y-5">
+                    <TabHint slug="seo-meta" />
                     <div className="flex flex-col gap-y-5">
                       <ProductSingleMetaTags
                         product={product}
@@ -1236,16 +1294,19 @@ export default function EditProduct() {
 
                   {/* Tab 7: Reviews */}
                   <Tab.Panel className="space-y-5">
+                    <TabHint slug="reviews" />
                     <ProductReviews productId={id} />
                   </Tab.Panel>
 
                   {/* Tab 8: FAQs */}
                   <Tab.Panel className="space-y-5">
-                    <ProductFAQ productId={id} />
+                    <TabHint slug="faqs" />
+                    <ProductFAQ productId={id} productSlug={product?.producturl} />
                   </Tab.Panel>
 
                   {/* Tab 9: Related Products */}
                   <Tab.Panel className="space-y-5">
+                    <TabHint slug="related-products" />
                     <ProductRelatedProducts productId={id} />
                   </Tab.Panel>
                 </Tab.Panels>

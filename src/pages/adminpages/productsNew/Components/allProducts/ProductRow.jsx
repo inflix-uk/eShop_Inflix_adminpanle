@@ -1,7 +1,13 @@
+import { useState } from 'react';
 import PropTypes from 'prop-types';
 import { Link } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import { getStorefrontProductUrl } from './utils';
 import { isProductMissingBrand } from '../../constants/brandConstants';
+import ProductApi from '../../api/productApi';
+import { exportSingleProduct } from '../../service/singleProductTransfer';
+
+const productApi = new ProductApi();
 
 function getThumbUrl(image, ip) {
   if (!image) return "";
@@ -26,6 +32,22 @@ const ProductRow = ({
 }) => {
   const productNameSlug = product.producturl;
   const storefrontProductUrl = getStorefrontProductUrl(productNameSlug);
+  const thumbUrl = getThumbUrl(product.thumbnail_image, auth.ip);
+  const [thumbFailed, setThumbFailed] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await exportSingleProduct(productApi, product._id);
+      toast.success(`Exported "${product.name}"`);
+    } catch (error) {
+      console.error('Product export failed:', error);
+      toast.error('Could not export this product');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <tr className="border-b border-gray-200 hover:bg-gray-50 transition-colors duration-200">
@@ -38,11 +60,22 @@ const ProductRow = ({
               rel="noopener noreferrer"
               className="inline-flex"
             >
-              <img
-                className="h-11 w-11 object-cover rounded-lg"
-                src={getThumbUrl(product.thumbnail_image, auth.ip)}
-                alt="Product thumbnail"
-              />
+              {thumbUrl && !thumbFailed ? (
+                <img
+                  className="h-11 w-11 object-cover rounded-lg"
+                  src={thumbUrl}
+                  alt="Product thumbnail"
+                  onError={() => setThumbFailed(true)}
+                />
+              ) : (
+                // Products can be saved without images; show that instead of a broken picture.
+                <span
+                  className="h-11 w-11 rounded-lg border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center text-[9px] leading-tight text-gray-400 text-center"
+                  title="No thumbnail image yet"
+                >
+                  No image
+                </span>
+              )}
             </a>
           </div>
           <div className="min-w-0 flex-1">
@@ -98,7 +131,9 @@ const ProductRow = ({
       </td>
       
       <td className="px-4 lg:px-6 py-3 text-sm text-gray-500">
-        <span className="text-xs lg:text-sm">{product.condition}</span>
+        <span className="text-xs lg:text-sm">
+          {product.condition && product.condition !== "null" ? product.condition : "—"}
+        </span>
       </td>
       
       <td className="px-4 lg:px-6 py-3 text-sm text-gray-500">
@@ -154,6 +189,16 @@ const ProductRow = ({
             </button>
           </div>
           <div className="text-gray-500">
+            <button
+              onClick={handleExport}
+              disabled={exporting}
+              title="Download this product as an Excel file"
+              className="text-xs lg:text-sm hover:underline disabled:opacity-50"
+            >
+              {exporting ? 'Exporting…' : 'Export'}
+            </button>
+          </div>
+          <div className="text-gray-500">
             <Link
               to={`/admin/preview/${product.producturl}`}
               className="text-xs lg:text-sm text-blue-600 hover:underline"
@@ -171,9 +216,9 @@ ProductRow.propTypes = {
   product: PropTypes.shape({
     _id: PropTypes.string.isRequired,
     name: PropTypes.string.isRequired,
-    category: PropTypes.string.isRequired,
-    condition: PropTypes.string.isRequired,
-    is_featured: PropTypes.bool.isRequired,
+    category: PropTypes.string,
+    condition: PropTypes.string,
+    is_featured: PropTypes.bool,
     status: PropTypes.bool.isRequired,
     variantValues: PropTypes.arrayOf(PropTypes.object), // Optional - only for single products
     productType: PropTypes.shape({

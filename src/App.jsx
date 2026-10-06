@@ -163,6 +163,9 @@ const DraftProducts = lazy(() =>
 const EditProduct = lazy(() =>
   import("./pages/adminpages/productsNew/EditProduct")
 );
+const ProductGuide = lazy(() =>
+  import("./pages/adminpages/productsNew/guide/ProductGuide")
+);
 const ProductPreview = lazy(() =>
   import("./pages/adminpages/productsNew/ProductPreview")
 );
@@ -1058,6 +1061,22 @@ function App() {
                       <PermissionRoute permission="store.view_products">
                         <AdminRouteAccessGuard routePath="/admin/draft-products">
                           <DraftProducts />
+                        </AdminRouteAccessGuard>
+                      </PermissionRoute>
+                    </Suspense>
+                  </RouteErrorBoundary>
+                </>
+              }
+            />
+            <Route
+              path="/admin/product-guide"
+              element={
+                <>
+                  <RouteErrorBoundary>
+                    <Suspense fallback={<PageSkeleton />}>
+                      <PermissionRoute permission="store.view_products">
+                        <AdminRouteAccessGuard routePath="/admin/product-guide">
+                          <ProductGuide />
                         </AdminRouteAccessGuard>
                       </PermissionRoute>
                     </Suspense>

@@ -1,6 +1,12 @@
+import { useState } from "react";
 import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
+import { toast } from "react-toastify";
 import { getStorefrontProductUrl } from "./utils";
+import ProductApi from "../../api/productApi";
+import { exportSingleProduct } from "../../service/singleProductTransfer";
+
+const productApi = new ProductApi();
 
 function getThumbUrl(image, ip) {
   if (!image) return "";
@@ -25,6 +31,22 @@ const ProductCard = ({
 }) => {
   const productNameSlug = product.producturl;
   const storefrontProductUrl = getStorefrontProductUrl(productNameSlug);
+  const thumbUrl = getThumbUrl(product.thumbnail_image, auth.ip);
+  const [thumbFailed, setThumbFailed] = useState(false);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      await exportSingleProduct(productApi, product._id);
+      toast.success(`Exported "${product.name}"`);
+    } catch (error) {
+      console.error("Product export failed:", error);
+      toast.error("Could not export this product");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4 shadow-sm">
@@ -37,11 +59,22 @@ const ProductCard = ({
             rel="noopener noreferrer"
             className="inline-flex"
           >
-            <img
-              className="h-20 w-20 object-cover rounded-lg"
-              src={getThumbUrl(product.thumbnail_image, auth.ip)}
-              alt="Product thumbnail"
-            />
+            {thumbUrl && !thumbFailed ? (
+              <img
+                className="h-20 w-20 object-cover rounded-lg"
+                src={thumbUrl}
+                alt="Product thumbnail"
+                onError={() => setThumbFailed(true)}
+              />
+            ) : (
+              // Products can be saved without images; show that instead of a broken picture.
+              <span
+                className="h-20 w-20 rounded-lg border border-dashed border-gray-300 bg-gray-50 flex items-center justify-center text-xs text-gray-400 text-center"
+                title="No thumbnail image yet"
+              >
+                No image
+              </span>
+            )}
           </a>
         </div>
         <div className="flex-1 min-w-0">
@@ -68,7 +101,7 @@ const ProductCard = ({
         <div>
           <span className="text-gray-500">Condition:</span>
           <div className="font-medium text-gray-900 mt-1">
-            {product.condition}
+            {product.condition && product.condition !== "null" ? product.condition : "—"}
           </div>
         </div>
 
@@ -193,6 +226,28 @@ const ProductCard = ({
             />
           </svg>
           Duplicate
+        </button>
+        <button
+          onClick={handleExport}
+          disabled={exporting}
+          title="Download this product as an Excel file"
+          className="flex-1 flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-xs sm:text-sm font-medium disabled:opacity-50"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={1.5}
+            stroke="currentColor"
+            className="size-4 sm:size-5"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"
+            />
+          </svg>
+          {exporting ? "Exporting…" : "Export"}
         </button>
         <Link
           to={`/admin/preview/${product.producturl}`}

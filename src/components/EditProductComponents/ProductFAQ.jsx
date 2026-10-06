@@ -1,13 +1,27 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import PropTypes from "prop-types";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { useAuth } from "../../context/Auth";
 import classNames from "classnames";
 
-export default function ProductFAQ({ productId }) {
+// The spreadsheet code brings the Excel library with it (about 1 MB), so it is
+// loaded when Export / Import is used, not with every Edit Product page.
+const loadFaqSpreadsheet = () => import("./faqSpreadsheet");
+
+const plural = (count, word) => `${count} ${word}${count === 1 ? "" : "s"}`;
+
+export default function ProductFAQ({ productId, productSlug }) {
   const auth = useAuth();
   const [faqs, setFaqs] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Import / Export State
+  const fileInputRef = useRef(null);
+  const [busy, setBusy] = useState(null); // null | "export" | "import"
+  const [importReport, setImportReport] = useState(null);
+  // Slug reported by the FAQ endpoint — names the export when no productSlug prop is given.
+  const [fetchedSlug, setFetchedSlug] = useState("");
 
   // Edit Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -32,6 +46,7 @@ export default function ProductFAQ({ productId }) {
       );
       if (response.data.status === 201) {
         setFaqs(response.data.product.faqDetails || []);
+        setFetchedSlug(response.data.product.producturl || "");
       } else {
         setFaqs([]);
       }
@@ -191,6 +206,200 @@ export default function ProductFAQ({ productId }) {
     }
   };
 
+  // Export the on-screen FAQs (in their current order) as a spreadsheet
+  const handleExport = async () => {
+    setBusy("export");
+    try {
+      const { buildFaqWorkbook, faqExportFilename } = await loadFaqSpreadsheet();
+      const workbook = await buildFaqWorkbook(faqs);
+      const buffer = await workbook.xlsx.writeBuffer();
+      const url = URL.createObjectURL(
+        new Blob([buffer], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        })
+      );
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = faqExportFilename(productSlug || fetchedSlug || productId);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success(
+        faqs.length
+          ? `Exported ${plural(faqs.length, "FAQ")}.`
+          : "Exported a template — this product has no FAQs yet."
+      );
+    } catch (error) {
+      console.error("Error exporting FAQs:", error);
+      toast.error("Could not build the Excel file.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  // Import FAQs from a picked .xlsx / .csv file
+  const handleFilePicked = async (event) => {
+    const file = event.target.files?.[0];
+    // Reset immediately so picking the same file twice still fires onChange.
+    event.target.value = "";
+    if (!file || !productId) return;
+
+    const isExcel = /\.xlsx$/i.test(file.name);
+    if (!isExcel && !/\.csv$/i.test(file.name)) {
+      toast.error("Please choose a .xlsx or .csv file.");
+      return;
+    }
+
+    setBusy("import");
+    setImportReport(null);
+
+    try {
+      const { planFaqImport, readFaqCsv, readFaqWorkbook } =
+        await loadFaqSpreadsheet();
+
+      let parsed;
+      try {
+        parsed = isExcel
+          ? await readFaqWorkbook(await file.arrayBuffer())
+          : readFaqCsv(await file.text());
+      } catch (error) {
+        console.error("Error reading FAQ file:", error);
+        toast.error("Could not read that file — is it a valid .xlsx or .csv?");
+        return;
+      }
+
+      const missing = ["question", "answer"].filter(
+        (column) => !parsed.headers.includes(column)
+      );
+      if (missing.length > 0) {
+        toast.error(
+          `Missing the ${missing.map((column) => `'${column}'`).join(" and ")} ` +
+            `column${missing.length === 1 ? "" : "s"} — export a file first to get the right headers.`
+        );
+        return;
+      }
+
+      // Duplicates are checked against the live list, not the on-screen one:
+      // that is emptied when a fetch fails, which would re-add every FAQ.
+      let currentFaqs;
+      try {
+        const response = await axios.get(
+          `${auth.ip}get/all/product/faqs/${productId}`
+        );
+        if (response.data.status !== 201) {
+          throw new Error(response.data.message || "Unexpected response");
+        }
+        currentFaqs = response.data.product.faqDetails || [];
+      } catch (error) {
+        console.error("Error loading FAQs before import:", error);
+        toast.error("Could not check the existing FAQs — nothing was imported.");
+        return;
+      }
+      setFaqs(currentFaqs);
+
+      const plan = planFaqImport(parsed.rows, currentFaqs);
+      const summary =
+        `${plural(plan.toAdd.length, "new FAQ")} to add, ` +
+        `${plural(plan.duplicates, "duplicate")} skipped, ` +
+        `${plural(plan.invalid.length, "invalid row")}`;
+      const report = {
+        fileName: file.name,
+        cancelled: false,
+        added: 0,
+        ready: plan.toAdd.length,
+        duplicates: plan.duplicates,
+        invalid: plan.invalid.length,
+        failed: 0,
+        samples: plan.samples,
+        problems: plan.invalid,
+      };
+
+      if (plan.toAdd.length === 0) {
+        if (plan.duplicates + plan.invalid.length + plan.samples === 0) {
+          toast.error("That file has no FAQ rows.");
+        } else {
+          setImportReport(report);
+          toast.info(`Nothing to import — ${summary}.`);
+        }
+        return;
+      }
+
+      const confirmed = window.confirm(
+        `Import FAQs from "${file.name}":\n\n` +
+          `• ${plural(plan.toAdd.length, "new FAQ")} to add\n` +
+          `• ${plural(plan.duplicates, "duplicate")} skipped\n` +
+          `• ${plural(plan.invalid.length, "invalid row")}\n` +
+          `\nProceed with the import?`
+      );
+      if (!confirmed) {
+        // Leave the counts on screen so invalid rows can be fixed in the file.
+        setImportReport({ ...report, cancelled: true });
+        return;
+      }
+
+      // One request at a time: the backend appends each FAQ after the last,
+      // so sequential posts keep the file's order.
+      let added = 0;
+      const failures = [];
+      for (const faq of plan.toAdd) {
+        try {
+          const response = await axios.post(`${auth.ip}post/product/faq`, {
+            faqDetails: {
+              productId: productId,
+              question: faq.question,
+              answer: faq.answer,
+              status: faq.status,
+            },
+          });
+          if (response.status === 201) {
+            added += 1;
+          } else {
+            failures.push({
+              rowNumber: faq.rowNumber,
+              reason: `Not added — ${response.data?.message || "the server rejected it"}`,
+            });
+          }
+        } catch (error) {
+          console.error("Error importing FAQ:", error);
+          failures.push({
+            rowNumber: faq.rowNumber,
+            reason: `Not added — ${
+              error.response?.data?.message || error.message || "request failed"
+            }`,
+          });
+        }
+      }
+
+      await fetchFaqs();
+
+      setImportReport({
+        ...report,
+        added,
+        failed: failures.length,
+        problems: [...plan.invalid, ...failures].sort(
+          (a, b) => a.rowNumber - b.rowNumber
+        ),
+      });
+
+      if (failures.length === 0) {
+        toast.success(`Imported ${plural(added, "FAQ")}.`);
+      } else if (added > 0) {
+        toast.warn(
+          `Imported ${added} of ${plural(plan.toAdd.length, "FAQ")} — ${failures.length} failed, see the report.`
+        );
+      } else {
+        toast.error("Import failed — no FAQs were added.");
+      }
+    } catch (error) {
+      console.error("Error importing FAQs:", error);
+      toast.error("An error occurred while importing FAQs.");
+    } finally {
+      setBusy(null);
+    }
+  };
+
   // Calculate stats
   const totalFaqs = faqs.length;
   const publishedCount = faqs.filter((f) => f.status === "Published").length;
@@ -198,34 +407,126 @@ export default function ProductFAQ({ productId }) {
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
         <div>
           <h2 className="text-xl font-semibold text-gray-900">Product FAQs</h2>
           <p className="text-sm text-gray-500 mt-1">
             Manage frequently asked questions for this product
           </p>
         </div>
-        <button
-          onClick={openAddModal}
-          className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center gap-2"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            viewBox="0 0 24 24"
-            strokeWidth="1.5"
-            stroke="currentColor"
-            className="w-5 h-5"
+        <div className="flex flex-wrap items-stretch gap-2">
+          {/* Export */}
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={busy !== null || isLoading}
+            title="Excel file with the FAQs in their current order, plus an Instructions sheet"
+            className="inline-flex items-center gap-2 rounded-md bg-white border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 disabled:opacity-50"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M12 4.5v15m7.5-7.5h-15"
-            />
-          </svg>
-          Add FAQ
-        </button>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+            </svg>
+            {busy === "export" ? "Building…" : "Export FAQs"}
+          </button>
+
+          {/* Import */}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={busy !== null || !productId}
+            title="Add FAQs from a .xlsx or .csv file — existing questions are skipped"
+            className="inline-flex items-center gap-2 rounded-md bg-primary px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-primary/90 disabled:opacity-50"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 9l5-5 5 5M12 4v12" />
+            </svg>
+            {busy === "import" ? "Importing…" : "Import FAQs"}
+          </button>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            onChange={handleFilePicked}
+            className="hidden"
+          />
+
+          <button
+            onClick={openAddModal}
+            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center gap-2"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth="1.5"
+              stroke="currentColor"
+              className="w-5 h-5"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 4.5v15m7.5-7.5h-15"
+              />
+            </svg>
+            Add FAQ
+          </button>
+        </div>
       </div>
+
+      {/* Import Report */}
+      {importReport && (
+        <div className="mb-6 rounded-md border border-gray-200 bg-gray-50 p-3 text-sm">
+          <div className="flex items-center justify-between gap-3">
+            <span className="font-medium text-gray-800">
+              {importReport.cancelled
+                ? "Import cancelled — nothing was added"
+                : "Import report"}
+              <span className="font-normal text-gray-500"> · {importReport.fileName}</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => setImportReport(null)}
+              className="text-xs text-gray-500 hover:text-gray-700"
+            >
+              Dismiss
+            </button>
+          </div>
+
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-gray-700">
+            {importReport.cancelled ? (
+              <span>Ready to add: <b>{importReport.ready}</b></span>
+            ) : (
+              <span>Added: <b>{importReport.added}</b></span>
+            )}
+            <span>Skipped (duplicates): <b>{importReport.duplicates}</b></span>
+            <span className={importReport.invalid ? "text-amber-700" : ""}>
+              Invalid: <b>{importReport.invalid}</b>
+            </span>
+            {importReport.failed > 0 && (
+              <span className="text-red-600">Failed: <b>{importReport.failed}</b></span>
+            )}
+          </div>
+
+          {importReport.samples > 0 && (
+            <p className="mt-2 text-gray-600">
+              Ignored {plural(importReport.samples, "template row")}.
+            </p>
+          )}
+
+          {importReport.problems.length > 0 && (
+            <ul className="mt-2 max-h-40 overflow-y-auto list-disc pl-5 text-gray-600">
+              {importReport.problems.map((problem) => (
+                <li key={`${problem.rowNumber}-${problem.reason}`}>
+                  Row {problem.rowNumber}: {problem.reason}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-3 gap-4 mb-6">
@@ -573,3 +874,9 @@ export default function ProductFAQ({ productId }) {
     </div>
   );
 }
+
+ProductFAQ.propTypes = {
+  productId: PropTypes.string,
+  /** Only used to name the exported file; falls back to productId. */
+  productSlug: PropTypes.string,
+};

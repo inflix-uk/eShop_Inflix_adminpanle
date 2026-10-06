@@ -1,5 +1,6 @@
 import PropTypes from "prop-types";
 import { Link } from "react-router-dom";
+import { cleanText } from "../../service/editProductService";
 
 function getThumbUrl(image, ip) {
   if (!image) return "";
@@ -45,14 +46,14 @@ const DraftProductCard = ({
         <div>
           <span className="text-gray-500">Category:</span>
           <div className="font-medium text-gray-900 mt-1 line-clamp-2">
-            {product.category}
+            {cleanText(product.category)}
           </div>
         </div>
 
         <div>
           <span className="text-gray-500">Condition:</span>
           <div className="font-medium text-gray-900 mt-1">
-            {product.condition}
+            {cleanText(product.condition)}
           </div>
         </div>
 
