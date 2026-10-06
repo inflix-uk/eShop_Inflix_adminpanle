@@ -145,7 +145,7 @@ export const TAB_GUIDE = [
       {
         name: "Generated URL",
         level: "optional",
-        how: "Made for you from the name — nothing to type. Check it reads sensibly, for example apple-iphone-15-pro-256gb. On the Edit Product page it is remade every time you change the name, so renaming a live product changes its web address.",
+        how: "Made for you from the name — nothing to type. Check it reads sensibly, for example apple-iphone-15-pro-256gb. On the Edit Product page it is shown as Web address. While the product is a draft it follows the name; once the product is published it stays fixed, so links keep working.",
       },
       {
         name: "Categories",
@@ -191,7 +191,7 @@ export const TAB_GUIDE = [
     ],
     tips: [
       "Use one naming pattern for every product (Brand + Model + Storage) so the shop looks tidy and search works.",
-      "Renaming a live product changes its web address, which breaks links customers may have saved. Fix names while the product is still a draft.",
+      "A published product keeps its web address even if you rename it, so get the name right while it is still a draft if you want the address to match.",
       "After the first save, open Basic Information on the Edit Product page and check Categories, Brand and Tags are what you intended.",
     ],
   },
@@ -554,7 +554,7 @@ export const WALKTHROUGH = [
     slug: "basic-information",
     where: "New Product page (and later the Edit Product page)",
     steps: [
-      "Type the Name. Watch the Generated URL appear underneath — it is the product's web address.",
+      "Type the Name. Watch the web address appear underneath — it is the product's web address.",
       "Choose the category in Categories, then any Subcategories that apply.",
       "Choose the Condition.",
       "Choose the Brand. You can skip it for now, but it must be set before you publish.",
@@ -789,7 +789,7 @@ export const COMMON_MISTAKES = [
   },
   {
     problem: "The product's web address changed and old links stopped working.",
-    fix: "The address is made from the Name and is remade when the name changes. Avoid renaming live products; fix names while the product is a draft.",
+    fix: "This happened to products edited before it was fixed: saving used to rebuild the address from the name. A published product now keeps its address. Open the product from the product list to get its current link.",
   },
   {
     problem: "Saving a new product fails with A product with this producturl already exists.",
