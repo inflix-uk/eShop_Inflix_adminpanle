@@ -70,7 +70,7 @@ export const COLUMN_GUIDE = [
     howToFill:
       "Unique lowercase-with-hyphens slug; becomes the storefront URL. Rows sharing the same producturl belong to ONE product (one row per variant). If it matches an existing product, that product is UPDATED instead of created.",
     example: "aroma-desire-hanging-diffuser",
-    formLocation: "Basic Information → Product URL",
+    formLocation: "Basic Information → Generated URL (made from the name)",
   },
   {
     key: "name",
@@ -79,7 +79,7 @@ export const COLUMN_GUIDE = [
     howToFill:
       "Display name shown on the storefront. Only read from the FIRST row of each producturl group. May stay blank when updating an existing product — the stored name is kept.",
     example: "Aroma Desire Hanging Diffuser",
-    formLocation: "Basic Information → Product Name",
+    formLocation: "Basic Information → Name",
   },
   {
     key: "product_type",
@@ -95,7 +95,7 @@ export const COLUMN_GUIDE = [
     required: "Optional",
     howToFill: "true = live on the storefront, false = draft. Blank = draft for new products, unchanged for updates.",
     example: "false",
-    formLocation: "Publish / Save as Draft buttons",
+    formLocation: "Published switch in the product list",
   },
   {
     key: "category",
@@ -103,7 +103,7 @@ export const COLUMN_GUIDE = [
     required: "Recommended",
     howToFill: "Pick from the Reference sheet 'category' list (dropdown), or type a new name — unknown categories are created on import.",
     example: "Car-Fragrance",
-    formLocation: "Basic Information → Category",
+    formLocation: "Basic Information → Categories",
   },
   {
     key: "subcategory",
@@ -111,7 +111,7 @@ export const COLUMN_GUIDE = [
     required: "Optional",
     howToFill: "Category:Subcategory pairs joined by | . Pick ready-made pairs from the Reference sheet 'subcategory' list, or type a new pair — missing categories/subcategories are created on import.",
     example: "Car-Fragrance:Hanging|Car-Fragrance:Vent-Clip",
-    formLocation: "Basic Information → Subcategory",
+    formLocation: "Basic Information → Sub Categories",
   },
   {
     key: "brand",
@@ -135,7 +135,7 @@ export const COLUMN_GUIDE = [
     required: "Optional",
     howToFill: "Tag names joined by | . Missing tags are created on import.",
     example: "Hanging Car Fragrances|Aroma Desire",
-    formLocation: "Basic Information → Tag",
+    formLocation: "Basic Information → Tags",
   },
   {
     key: "main_category",
@@ -143,7 +143,7 @@ export const COLUMN_GUIDE = [
     required: "Optional",
     howToFill: "Central category used for Google Merchant feeds. Leave blank unless you manage feed taxonomy.",
     example: "Vehicles & Parts",
-    formLocation: "Edit product → Basic Information",
+    formLocation: "Basic Information → Main Category (Edit Product page)",
   },
   {
     key: "summary",
@@ -151,7 +151,7 @@ export const COLUMN_GUIDE = [
     required: "Optional",
     howToFill: "Short blurb shown near the price. HTML allowed.",
     example: "<p>Long-lasting hanging car fragrance.</p>",
-    formLocation: "Basic Information → Product Summary",
+    formLocation: "Basic Information → Summary",
   },
   {
     key: "description",
@@ -159,7 +159,7 @@ export const COLUMN_GUIDE = [
     required: "Optional",
     howToFill: "Full product description for the detail page. HTML allowed.",
     example: "<p>Osmanthus notes in a teardrop glass bottle…</p>",
-    formLocation: "Basic Information → Product Description",
+    formLocation: "Basic Information → Description",
   },
   {
     key: "specs",
@@ -223,7 +223,7 @@ export const COLUMN_GUIDE = [
     required: "Optional",
     howToFill: "true shows the authenticity-checked badge.",
     example: "true",
-    formLocation: "Settings → Authenticated",
+    formLocation: "Settings → Verified Refurbished",
   },
   {
     key: "low_stock_alert",
@@ -231,7 +231,7 @@ export const COLUMN_GUIDE = [
     required: "Optional",
     howToFill: "Number. Admin shows a low-stock warning when quantity falls to this level.",
     example: "2",
-    formLocation: "Settings → Low Stock Quantity",
+    formLocation: "Settings → Low Stock Alert",
   },
   {
     key: "comes_with",
@@ -239,7 +239,7 @@ export const COLUMN_GUIDE = [
     required: "Optional",
     howToFill: "Item slugs joined by | . Pick from the Reference sheet 'comes_with' list.",
     example: "1x-car-vent-clip|2x-fragrance-tablet",
-    formLocation: "Settings → Comes With",
+    formLocation: "Settings → What's in the box (Comes With)",
   },
   {
     key: "top_section",
@@ -247,7 +247,7 @@ export const COLUMN_GUIDE = [
     required: "Optional",
     howToFill: "Highlight slugs joined by | . Pick from the Reference sheet 'top_section' list.",
     example: "free_delivery|30_day_returns",
-    formLocation: "Settings → Top Section",
+    formLocation: "Settings → Product highlights (Top Section)",
   },
   {
     key: "variant_attributes",
@@ -527,6 +527,15 @@ export const encodeBool = (v) => (v === true ? "true" : v === false ? "false" : 
 /* Product -> CSV rows                                                  */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Older saves stored empty fields as the text "null" / "undefined". Exported
+ * as written, the next import would save that text straight back.
+ */
+const text = (value) =>
+  value && !["null", "undefined"].includes(String(value).trim().toLowerCase())
+    ? value
+    : "";
+
 /** Product-level cells, repeated only on the first row of a group. */
 function productCells(p) {
   return {
@@ -534,14 +543,14 @@ function productCells(p) {
     name: p.name || "",
     product_type: p.productType?.type || "single",
     status: encodeBool(p.status === true || p.status === "true"),
-    category: p.category || "",
+    category: text(p.category),
     subcategory: encodeSubCategory(p.subCategory),
-    brand: p.brand && p.brand !== "null" ? p.brand : "",
-    condition: p.condition && p.condition !== "null" ? p.condition : "",
-    tags: p.tags || "",
-    main_category: p.mainCategory || "",
-    summary: p.Product_summary || "",
-    description: p.Product_description || "",
+    brand: text(p.brand),
+    condition: text(p.condition),
+    tags: text(p.tags),
+    main_category: text(p.mainCategory),
+    summary: text(p.Product_summary),
+    description: text(p.Product_description),
     specs: encodeSpecs(p.product_Specifications),
     meta_title: p.Seo_Meta?.metaTitle || "",
     meta_description: p.Seo_Meta?.metaDescription || "",

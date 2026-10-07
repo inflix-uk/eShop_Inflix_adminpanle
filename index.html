@@ -3,6 +3,32 @@
   <head>
     <meta charset="UTF-8" />
     <script>
+      // A copy of this page kept by the browser from before a deploy names
+      // script files that no longer exist, so nothing would render until a
+      // manual refresh. Fetch the current page instead, once a minute at most.
+      (function () {
+        var KEY = "eshop:shellReloadAt";
+        window.addEventListener(
+          "error",
+          function (event) {
+            var el = event.target;
+            if (!el || el.tagName !== "SCRIPT" || el.type !== "module") return;
+            if (String(el.src || "").indexOf("/assets/") === -1) return;
+            if (navigator.onLine === false) return;
+            try {
+              var last = Number(sessionStorage.getItem(KEY)) || 0;
+              if (Date.now() - last < 60000) return;
+              sessionStorage.setItem(KEY, String(Date.now()));
+            } catch (e) {
+              return;
+            }
+            window.location.reload();
+          },
+          true
+        );
+      })();
+    </script>
+    <script>
       (function () {
         try {
           var href = localStorage.getItem("favicon");

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import Side from "../nav/Side";
 import Top from "../nav/Top";
 import ProductTab from "./ProductTab";
@@ -27,6 +27,24 @@ import {
   UNASSIGNED_BRAND_KEY,
 } from "./constants/brandConstants";
 import { TableSkeleton } from "../shared/Skeletons";
+
+/** Opens the staff guide (/admin/product-guide) in a new tab. */
+function ProductGuideButton() {
+  return (
+    <Link
+      to="/admin/product-guide"
+      target="_blank"
+      rel="noopener noreferrer"
+      title="How to add a product correctly: every tab and field explained"
+      className="inline-flex items-center gap-2 rounded-md bg-white border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+    >
+      <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+      </svg>
+      Product guide
+    </Link>
+  );
+}
 
 export default function NewProducts() {
   const auth = useAuth();
@@ -444,24 +462,27 @@ export default function NewProducts() {
                   auth={auth}
                   // Bulk CSV controls sit inline with the Brands/Products stats
                   actions={
-                    <ImportExportBar
-                      compact
-                      products={products}
-                      onImported={() => {
-                        getBrands();
-                        if (selectedBrand) getProducts(false, selectedBrand);
-                      }}
-                    />
+                    <>
+                      <ImportExportBar
+                        compact
+                        products={products}
+                        onImported={() => {
+                          getBrands();
+                          if (selectedBrand) getProducts(false, selectedBrand);
+                        }}
+                      />
+                      <ProductGuideButton />
+                    </>
                   }
                 />
               ) : (
                 // Products view - existing table layout
                 <div className="flow-root overflow-hidden">
                   <div className="block py-2">
-                    <div className="flex items-center justify-between mb-3 relative">
+                    <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
                       <button
                         onClick={handleBackToBrands}
-                        className="flex items-center text-blue-600 hover:text-blue-700"
+                        className="flex shrink-0 items-center text-blue-600 hover:text-blue-700"
                       >
                         <svg
                           className="w-5 h-5 mr-1"
@@ -478,7 +499,8 @@ export default function NewProducts() {
                         </svg>
                         Back
                       </button>
-                      <h1 className="text-xl font-bold tracking-tight text-gray-900 absolute left-1/2 transform -translate-x-1/2">
+                      {/* In the row, not centred over it: the buttons on the right covered the title. */}
+                      <h1 className="min-w-0 flex-1 truncate text-xl font-bold tracking-tight text-gray-900">
                         {selectedBrand
                           ? `${getBrandDisplayName(selectedBrand)} Products`
                           : "New Products"}
@@ -492,6 +514,7 @@ export default function NewProducts() {
                             if (selectedBrand) getProducts(false, selectedBrand);
                           }}
                         />
+                        <ProductGuideButton />
                         {selectedBrand && (
                           <span className={`px-3 py-1 rounded-full text-sm font-medium ${
                             isUnassignedBrandKey(selectedBrand)

@@ -244,17 +244,19 @@ class NewProductService {
    */
   prepareFormData(productData) {
     const formData = new FormData();
+    // A form field cannot carry null: it is sent, and was stored, as the text "null".
+    const text = (value) => (value === null || value === undefined ? "" : String(value));
 
     // Basic product details
     formData.append("status", productData.visibility);
-    formData.append("name", productData.productName);
+    formData.append("name", text(productData.productName));
     formData.append("producturl", productData.productUrl);
-    formData.append("category", productData.productCategory);
+    formData.append("category", text(productData.productCategory));
     formData.append("subcategory", JSON.stringify(productData.productSubCategory));
-    formData.append("tags", productData.productTag);
-    formData.append("condition", productData.productCondition);
-    formData.append("brand", productData.productBrand);
-    formData.append("sim_option", productData.simOption);
+    formData.append("tags", text(productData.productTag));
+    formData.append("condition", text(productData.productCondition));
+    formData.append("brand", text(productData.productBrand));
+    formData.append("sim_option", text(productData.simOption));
     formData.append("is_featured", productData.featured);
     formData.append("is_authenticated", productData.authentic);
     formData.append("low_stock_quantity_alert", productData.lowStockQty);
@@ -332,8 +334,8 @@ class NewProductService {
     formData.append("specifications", JSON.stringify(productData.specifications));
 
     // Product summary and description
-    formData.append("Product_summary", productData.summary);
-    formData.append("Product_description", productData.description);
+    formData.append("Product_summary", text(productData.summary));
+    formData.append("Product_description", text(productData.description));
 
     // Variant-specific data
     if (productData.ProductType === "variantProduct") {

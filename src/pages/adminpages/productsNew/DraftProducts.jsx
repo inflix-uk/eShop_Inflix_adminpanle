@@ -11,6 +11,7 @@ import ProductApi from "./api/productApi";
 import DraftProductService from "./service/draftProductService";
 import DraftProductCard from "./Components/allProducts/DraftProductCard";
 import ProductPreviewModal from "./Components/preview/ProductPreviewModal";
+import { cleanText } from "./service/editProductService";
 import {
   EyeIcon,
   PencilSquareIcon,
@@ -524,7 +525,7 @@ const DraftProducts = () => {
                                     {product.name}
                                   </p>
                                   <p className="text-sm text-gray-500 truncate max-w-[200px]">
-                                    {product.condition || "No condition"}
+                                    {cleanText(product.condition) || "No condition"}
                                   </p>
                                 </div>
                               </div>
@@ -533,7 +534,7 @@ const DraftProducts = () => {
                             {/* Category */}
                             <td className="px-6 py-4">
                               <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                                {product.category || "Uncategorized"}
+                                {cleanText(product.category) || "Uncategorized"}
                               </span>
                             </td>
 

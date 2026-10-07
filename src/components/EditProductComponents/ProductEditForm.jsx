@@ -81,12 +81,19 @@ export default function ProductEditForm({
     }));
   };
 
+  // A published product keeps its web address: rebuilding it from the name on
+  // every save sent every existing link to "Page Not Found". A draft still
+  // follows its name, as nothing links to it yet.
+  const urlLocked = product?.status === true && Boolean(product?.producturl);
+
   useEffect(() => {
-    if (product && product.name) {
+    if (product?.producturl) {
+      setProductUrl(product.producturl);
+    } else if (product?.name) {
       generateProductURL(product.name);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [product.name]);
+  }, [product?._id, product?.producturl]);
 
   useEffect(() => {
     if (productApi) {
@@ -170,10 +177,14 @@ export default function ProductEditForm({
         console.error('Error parsing subCategory JSON:', error);
         parsedSubCategories = {};
       }
+      // A stored "null" parses to null, and Object.entries(null) throws.
+      if (!parsedSubCategories || typeof parsedSubCategories !== 'object') {
+        parsedSubCategories = {};
+      }
 
       const initialSubCategories = Object.entries(parsedSubCategories).flatMap(
         ([category, subCats]) =>
-          subCats.map(subCat => ({
+          (Array.isArray(subCats) ? subCats : []).map(subCat => ({
             label: subCat,
             value: subCat,
             category: category,
@@ -215,6 +226,9 @@ export default function ProductEditForm({
     try {
       updatedSubCategoryObject = product.subCategory ? JSON.parse(product.subCategory) : {};
     } catch {
+      updatedSubCategoryObject = {};
+    }
+    if (!updatedSubCategoryObject || typeof updatedSubCategoryObject !== 'object') {
       updatedSubCategoryObject = {};
     }
     removedCategories.forEach((cat) => {
@@ -275,7 +289,7 @@ export default function ProductEditForm({
       ...prevProduct,
       name: newName,
     }));
-    generateProductURL(newName);
+    if (!urlLocked) generateProductURL(newName);
   };
 
   return (
@@ -288,7 +302,7 @@ export default function ProductEditForm({
                 htmlFor="product-name"
                 className="block text-sm font-medium leading-6 text-gray-900"
               >
-                Name
+                Name <span className="text-red-600" title="Required">*</span>
               </label>
               <div className="mt-2">
                 <input
@@ -301,7 +315,14 @@ export default function ProductEditForm({
                   onChange={handleNameChange}
                 />
                 <input type="hidden" name="product-url" value={productUrl} />
-                <p>Generated Url:{productUrl}</p>
+                <p className="mt-1 text-sm text-gray-600">
+                  Web address: /products/{productUrl}
+                  {urlLocked && (
+                    <span className="ml-2 text-xs text-gray-500">
+                      (fixed while the product is published)
+                    </span>
+                  )}
+                </p>
               </div>
             </div>
 
@@ -449,7 +470,10 @@ export default function ProductEditForm({
                   htmlFor="brand"
                   className="block text-sm font-medium leading-6 text-gray-900"
                 >
-                  Brand
+                  Brand{" "}
+                  <span className="text-xs font-normal text-gray-500">
+                    (needed before publishing)
+                  </span>
                 </label>
                 <div className="mt-2">
                   <Select

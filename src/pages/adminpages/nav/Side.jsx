@@ -256,6 +256,7 @@ export default function Side({
       "deleted-products",
       "new-product",
       "product-central-main",
+      "product-guide",
     ];
 
     const contentPages = [
@@ -777,6 +778,32 @@ export default function Side({
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"
+              />
+            </svg>
+          ),
+        },
+        {
+          label: "Product Guide",
+          to: "/admin/product-guide",
+          selectedKey: "product-guide",
+          permissionCheck: (p) => p?.store?.view_products,
+          icon: (
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              strokeWidth={1.5}
+              stroke="currentColor"
+              className={`h-5 w-5 shrink-0 ${
+                selectedPage === "product-guide"
+                  ? "text-primary"
+                  : "text-gray-400 group-hover:text-primary"
+              } my-auto`}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"
               />
             </svg>
           ),

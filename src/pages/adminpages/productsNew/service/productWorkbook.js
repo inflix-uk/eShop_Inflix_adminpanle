@@ -25,12 +25,19 @@ const INSTRUCTIONS_SHEET = "Instructions";
 /** Excel refuses to open a workbook with more than 1000 validated rows cheaply. */
 const VALIDATED_ROWS = 500;
 
-/** Attribute slugs that are product-level columns rather than variant dimensions. */
+/**
+ * Attribute slugs that are product-level columns rather than variant
+ * dimensions. Stores spell these slugs differently (comes_with / comes-with,
+ * condition / conditions); an unlisted spelling loses its dropdown.
+ */
 const COLUMN_FOR_ATTRIBUTE = {
   brands: "brand",
   condition: "condition",
+  conditions: "condition",
   comes_with: "comes_with",
+  "comes-with": "comes_with",
   top_section: "top_section",
+  "top-section": "top_section",
 };
 
 /** Wider columns for the fields people actually read. */
@@ -78,7 +85,7 @@ export function buildReferenceLists(reference) {
   (reference.attributes || []).forEach((attr) => {
     const column = COLUMN_FOR_ATTRIBUTE[attr.slug];
     // comes_with / top_section are stored as slugs; everything else by display name.
-    const useSlug = attr.slug === "comes_with" || attr.slug === "top_section";
+    const useSlug = column === "comes_with" || column === "top_section";
     const values = (attr.values || [])
       .map((v) => (useSlug ? v.slug : v.name))
       .filter(Boolean);

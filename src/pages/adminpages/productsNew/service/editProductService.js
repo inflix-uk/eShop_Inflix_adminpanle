@@ -10,6 +10,63 @@ import { appendBlocksToFormData } from "../../blog-new/utils/appendBlocksToFormD
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 
+/**
+ * A multipart form turns null/undefined into the literal text "null" /
+ * "undefined". Earlier saves stored that text on products (subCategory "null"
+ * then crashed this page on the next load), so it counts as empty wherever a
+ * product is read or sent.
+ */
+const EMPTY_TEXT = new Set(["null", "undefined"]);
+
+export function cleanText(value) {
+  if (value === null || value === undefined) return "";
+  const text = String(value);
+  return EMPTY_TEXT.has(text.trim().toLowerCase()) ? "" : text;
+}
+
+/** `battery` is stored as one JSON string; the form works with the object. */
+function parseBattery(entry) {
+  let battery = entry;
+  if (typeof entry === "string") {
+    try {
+      battery = JSON.parse(entry);
+    } catch {
+      battery = null;
+    }
+  }
+  if (!battery || typeof battery !== "object") {
+    return { status: false, batteryPrice: "" };
+  }
+  return {
+    status: battery.status === true || battery.status === "true",
+    batteryPrice: battery.batteryPrice ?? "",
+  };
+}
+
+const TEXT_FIELDS = [
+  "name",
+  "category",
+  "mainCategory",
+  "brand",
+  "condition",
+  "tags",
+  "sim_options",
+  "selectOption",
+  "Product_summary",
+  "Product_description",
+];
+
+const LIST_FIELDS = [
+  "Gallery_Images",
+  "variantValues",
+  "variantNames",
+  "variantDescription",
+  "product_Specifications",
+  "comesWithItems",
+  "topSectionItems",
+  "topsection",
+];
+
 function appendProductDescriptionBlocksToFormData(formData, product) {
   appendBlocksToFormData(formData, product.Product_description_blocks, {
     jsonField: "Product_description_blocks",
@@ -60,6 +117,62 @@ class EditProductService {
   }
 
   /**
+   * Make a product from the API safe for the edit form: imported products and
+   * products saved before the "null" text fix carry empty fields in shapes the
+   * form does not expect (see cleanText).
+   * @param {Object} product - Product as returned by the API
+   * @returns {Object} - The same product with empty fields normalised
+   */
+  sanitizeLoadedProduct(product) {
+    if (!product || typeof product !== "object") return product;
+    const clean = { ...product };
+
+    TEXT_FIELDS.forEach((field) => {
+      clean[field] = cleanText(clean[field]);
+    });
+
+    // subCategory is a JSON string of { Category: [Sub, ...] }.
+    clean.subCategory = this.parseSubCategory(clean.subCategory)
+      ? cleanText(clean.subCategory)
+      : "";
+
+    LIST_FIELDS.forEach((field) => {
+      if (!Array.isArray(clean[field])) clean[field] = [];
+    });
+
+    clean.battery = [parseBattery(Array.isArray(clean.battery) ? clean.battery[0] : null)];
+    clean.productType = {
+      type: clean.productType?.type === "variant" ? "variant" : "single",
+    };
+
+    // The price and stock form only renders when a single product has its one
+    // row; an imported product without it had nowhere to enter a price.
+    if (clean.productType.type === "single" && clean.variantValues.length === 0) {
+      clean.variantValues = [this.createDefaultVariantObject("single")];
+    }
+
+    return clean;
+  }
+
+  /**
+   * Read the stored subCategory JSON.
+   * @param {string} raw - Stored subCategory value
+   * @returns {Object|null} - { Category: [Sub, ...] }, or null when there is none
+   */
+  parseSubCategory(raw) {
+    const text = cleanText(raw).trim();
+    if (!text) return null;
+    try {
+      const parsed = JSON.parse(text);
+      return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+        ? parsed
+        : null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Prepare form data for product update
    * @param {Object} product - The product object
    * @param {string} productUrl - The product URL
@@ -68,21 +181,30 @@ class EditProductService {
    */
   prepareFormData(product, productUrl, variantNames) {
     const formData = new FormData();
+    const productType = product.productType?.type === "variant" ? "variant" : "single";
+    const variantValues = Array.isArray(product.variantValues) ? product.variantValues : [];
 
     // Append standard fields
-    formData.append("name", product.name);
+    formData.append("name", cleanText(product.name));
     formData.append("producturl", productUrl);
-    formData.append("category", product.category);
-    formData.append("subcategory", product.subCategory);
-    formData.append("mainCategory", product.mainCategory || "");
-    formData.append("condition", product.condition);
-    formData.append("brand", product.brand || "");
-    formData.append("tags", product.tags || "");
-    formData.append("sim_option", product.sim_options);
-    formData.append("is_featured", product.is_featured);
+    formData.append("category", cleanText(product.category));
+    formData.append("subcategory", cleanText(product.subCategory));
+    formData.append("mainCategory", cleanText(product.mainCategory));
+    formData.append("condition", cleanText(product.condition));
+    formData.append("brand", cleanText(product.brand));
+    formData.append("tags", cleanText(product.tags));
+    // An empty value makes API builds from before this fix fail the save (they
+    // fall back to an array, which the text field rejects). "null" is the
+    // placeholder every build stores or reads as "no SIM option".
+    formData.append("sim_option", cleanText(product.sim_options) || "null");
+    // Booleans go as "true"/"false": the API rejects any other text.
+    formData.append("is_featured", String(product.is_featured === true));
     formData.append("seeAccessoriesWeDontNeed", product.seeAccessoriesWeDontNeed);
-    formData.append("is_authenticated", product.is_authenticated);
-    formData.append("low_stock_quantity_alert", product.low_stock_quantity_alert);
+    formData.append("is_authenticated", String(product.is_authenticated === true));
+    const lowStock = cleanText(product.low_stock_quantity_alert).trim();
+    if (lowStock !== "") {
+      formData.append("low_stock_quantity_alert", lowStock);
+    }
     formData.append("is_refundable", JSON.stringify(product.is_refundable));
 
     // Handle perks_and_benefits with image
@@ -137,22 +259,20 @@ class EditProductService {
     // selectOption - single slug from VariantAttribute system
     formData.append("selectOption", product.selectOption || "");
 
-    formData.append("battery", JSON.stringify({
-      status: product?.battery[0]?.status,
-      batteryPrice: product?.battery[0]?.batteryPrice,
-    }));
+    // Untouched since load, the battery is still the stored JSON string.
+    formData.append("battery", JSON.stringify(parseBattery(product.battery?.[0])));
 
     formData.append("has_warranty", JSON.stringify(product.has_warranty));
-    formData.append("specifications", JSON.stringify(product.product_Specifications));
+    formData.append("specifications", JSON.stringify(product.product_Specifications || []));
 
     // Append product type
     formData.append("productType", JSON.stringify({
-      "type": product.productType.type
+      "type": productType
     }));
 
-    formData.append("Product_summary", product.Product_summary);
-    formData.append("Product_description", product.Product_description);
-    formData.append("status", product.status);
+    formData.append("Product_summary", cleanText(product.Product_summary));
+    formData.append("Product_description", cleanText(product.Product_description));
+    formData.append("status", String(product.status === true || product.status === "true"));
     formData.append("rating", product.rating);
 
     // Append thumbnail image handling
@@ -163,18 +283,18 @@ class EditProductService {
     }
 
     // Handle single product type
-    if (product.productType.type === "single") {
+    if (productType === "single") {
       const singleProductValues = {
-        name: product.variantValues[0]?.name || "single",
-        Cost: product.variantValues[0]?.Cost,
-        Price: product.variantValues[0]?.Price,
-        salePrice: product.variantValues[0]?.salePrice,
-        Quantity: product.variantValues[0]?.Quantity,
-        SKU: product.variantValues[0]?.SKU,
-        EIN: product.variantValues[0]?.EIN,
-        MPN: product.variantValues[0]?.MPN,
-        attributes: Array.isArray(product.variantValues[0]?.attributes)
-          ? product.variantValues[0].attributes
+        name: variantValues[0]?.name || "single",
+        Cost: variantValues[0]?.Cost,
+        Price: variantValues[0]?.Price,
+        salePrice: variantValues[0]?.salePrice,
+        Quantity: variantValues[0]?.Quantity,
+        SKU: variantValues[0]?.SKU,
+        EIN: variantValues[0]?.EIN,
+        MPN: variantValues[0]?.MPN,
+        attributes: Array.isArray(variantValues[0]?.attributes)
+          ? variantValues[0].attributes
           : [],
       };
 
@@ -189,9 +309,9 @@ class EditProductService {
       }
     }
     // Handle variant product type
-    else if (product.productType.type === "variant") {
+    else {
       const strippedVariantValues = {};
-      product.variantValues.forEach((variant) => {
+      variantValues.forEach((variant) => {
         // Extract name, metaImage, and variantImages to exclude them from otherData
         // eslint-disable-next-line no-unused-vars
         const { name, metaImage: _metaImage, variantImages: _variantImages, ...otherData } = variant;
@@ -224,7 +344,7 @@ class EditProductService {
 
       // Variant images are sent only via varImgGroup above (per attribute option slug).
       // Do not also send variantImages[full-variant-name] — backend would merge them into the wrong group.
-      product.variantValues.forEach((variant) => {
+      variantValues.forEach((variant) => {
         const variantName = variant.name;
 
         if (variant.metaImage) {
@@ -253,7 +373,7 @@ class EditProductService {
     }
 
     // Handle gallery images
-    product.Gallery_Images.forEach((image) => {
+    (product.Gallery_Images || []).forEach((image) => {
       if (image instanceof File) {
         formData.append("Gallery_Images", image);
       } else {

@@ -26,6 +26,27 @@ import backCoverImg from "../../../assets/backcover.png";
 // Product Options slugs that should appear in this page
 const PRODUCT_OPTIONS_SLUGS = ["select_options", "top_section", "comes_with"];
 
+// A list created from its name gets a hyphen slug (comes-with); seeded ones
+// use an underscore (comes_with). Both are the same list.
+const optionKey = (slug) => String(slug || "").toLowerCase().replace(/-/g, "_");
+
+// Lists the product form needs. A store that lacks one gets a "Set up" card
+// here, as there is nowhere else to create it under the right name.
+const REQUIRED_LISTS = [
+  {
+    key: "comes_with",
+    name: "Comes With",
+    label: "What's in the box (Comes With)",
+    description: "Accessories included with a product, e.g. charging cable, power adapter.",
+  },
+  {
+    key: "top_section",
+    name: "Top Section",
+    label: "Product highlights (Top Section)",
+    description: "Short selling points shown near the top of the product page, e.g. free delivery, 30-day returns.",
+  },
+];
+
 function normalizePresetIconKey(id) {
   if (!id || typeof id !== "string") return id;
   const t = id.trim();
@@ -270,7 +291,7 @@ export default function ProductCentralProductOptions() {
       if (response.data.status === 200 || response.data.status === 201) {
         // Filter only product options attributes
         const productOptions = (response.data.variantAttributes || []).filter(
-          attr => PRODUCT_OPTIONS_SLUGS.includes(attr.slug)
+          attr => PRODUCT_OPTIONS_SLUGS.includes(optionKey(attr.slug))
         );
         setVariantAttributes(productOptions);
       }
@@ -280,6 +301,30 @@ export default function ProductCentralProductOptions() {
       console.error("Error fetching variant attributes:", error);
       setProgress(100);
       setIsLoading(false);
+    }
+  };
+
+  // Create one of the REQUIRED_LISTS this store does not have yet
+  const [creatingList, setCreatingList] = useState(null);
+  const createMissingList = async (list) => {
+    setCreatingList(list.key);
+    try {
+      const response = await axios.post(`${auth.ip}create/variant-attribute`, {
+        name: list.name,
+        description: list.description,
+        values: [],
+        isActive: true,
+      });
+      if (response.data.status === 201) {
+        toast.success(`"${list.name}" list created — open it to add options`);
+        fetchVariantAttributes();
+      } else {
+        toast.error(response.data.message || "Could not create the list");
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Could not create the list");
+    } finally {
+      setCreatingList(null);
     }
   };
 
@@ -390,6 +435,10 @@ export default function ProductCentralProductOptions() {
       attr.description?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const missingLists = REQUIRED_LISTS.filter(
+    (list) => !variantAttributes.some((attr) => optionKey(attr.slug) === list.key)
+  );
+
   // Filter values in detail view
   const filteredValues = selectedAttribute?.values?.filter(
     (value) =>
@@ -415,7 +464,7 @@ export default function ProductCentralProductOptions() {
         </svg>
       ),
     };
-    return icons[slug] || (
+    return icons[optionKey(slug)] || (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
       </svg>
@@ -787,8 +836,34 @@ export default function ProductCentralProductOptions() {
         </div>
       )}
 
+      {/* Lists the product form uses that this store has not set up yet */}
+      {!isLoading && !searchTerm && missingLists.length > 0 && (
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {missingLists.map((list) => (
+            <div
+              key={list.key}
+              className="bg-white rounded-xl border border-dashed border-gray-300 p-5"
+            >
+              <h3 className="text-lg font-semibold text-gray-900">{list.label}</h3>
+              <p className="mt-1 text-sm text-gray-500">{list.description}</p>
+              <p className="mt-2 text-sm text-gray-500">
+                Not set up on this store yet, so it cannot be chosen on products.
+              </p>
+              <button
+                type="button"
+                onClick={() => createMissingList(list)}
+                disabled={creatingList !== null}
+                className="mt-4 rounded-md bg-primary px-3 py-2 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
+              >
+                {creatingList === list.key ? "Setting up…" : "Set up this list"}
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Empty State */}
-      {!isLoading && filteredAttributes.length === 0 && (
+      {!isLoading && filteredAttributes.length === 0 && (searchTerm || missingLists.length === 0) && (
         <div className="text-center py-12">
           <svg
             className="w-16 h-16 mx-auto text-gray-300 mb-4"
