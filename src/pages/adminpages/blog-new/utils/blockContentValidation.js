@@ -111,6 +111,13 @@ export function blockHasValidContent(block) {
   if (
     block.type === "widget" &&
     block.content &&
+    block.content.widgetType === "cart"
+  ) {
+    return true;
+  }
+  if (
+    block.type === "widget" &&
+    block.content &&
     block.content.widgetType === "dealsDiscountCards" &&
     Array.isArray(block.content.items)
   ) {

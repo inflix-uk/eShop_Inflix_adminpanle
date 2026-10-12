@@ -21,6 +21,7 @@ import {
   Gift,
   Contact,
   PanelTop,
+  ShoppingCart,
 } from "lucide-react";
 
 const WIDGET_OPTIONS = [
@@ -113,6 +114,13 @@ const WIDGET_OPTIONS = [
     description:
       "Live list from the deals API (filters, copy code, shop links). Use on the Deals & Discounts footer page or anywhere offers should appear.",
     Icon: Percent,
+  },
+  {
+    id: "cart",
+    title: "Shopping cart",
+    description:
+      "The customer's own cart: the products they added, quantity, remove, subtotal and Checkout. Same cart as the navbar cart drawer. Use it on your Cart page under the banner.",
+    Icon: ShoppingCart,
   },
   {
     id: "dealsDiscountCards",

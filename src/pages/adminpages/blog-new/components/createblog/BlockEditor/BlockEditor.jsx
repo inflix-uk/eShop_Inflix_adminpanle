@@ -190,6 +190,10 @@ export default function BlockEditor({ blocks, setBlocks, className, collapsibleR
         newBlock.content = {
           widgetType: 'activeDeals',
         };
+      } else if (widgetSubtype === 'cart') {
+        newBlock.content = {
+          widgetType: 'cart',
+        };
       } else if (widgetSubtype === 'dealsDiscountCards') {
         newBlock.content = {
           widgetType: 'dealsDiscountCards',
@@ -593,6 +597,7 @@ export default function BlockEditor({ blocks, setBlocks, className, collapsibleR
             widgetType === "promotionalSections" ||
             widgetType === "latestBlogs" ||
             widgetType === "activeDeals" ||
+            widgetType === "cart" ||
             widgetType === "dealsDiscountCards" ||
             widgetType === "htmlCss" ||
             widgetType === "contactUs" ||

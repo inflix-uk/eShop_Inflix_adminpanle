@@ -3661,6 +3661,53 @@ export default function WidgetBlock({
     );
   }
 
+  if (widgetType === "cart") {
+    return (
+      <div className="border-2 border-blue-200 rounded-lg p-3 mb-4 bg-blue-50/60">
+        <div className="flex justify-between items-center mb-3 pb-2 border-b border-blue-200">
+          <div className="flex items-center gap-2">
+            <Grip className="text-blue-700" size={18} />
+            <FiShoppingCart className="text-blue-800" size={18} />
+            <span className="text-sm font-semibold text-blue-950">
+              Shopping cart
+            </span>
+          </div>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={onMoveUp}
+              className="p-1.5 text-gray-600 hover:bg-white rounded-full"
+              title="Move up"
+            >
+              <ChevronUp size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={onMoveDown}
+              className="p-1.5 text-gray-600 hover:bg-white rounded-full"
+              title="Move down"
+            >
+              <ChevronDown size={18} />
+            </button>
+            <button
+              type="button"
+              onClick={() => onDelete(id)}
+              className="p-1.5 text-red-500 hover:bg-red-50 rounded-full"
+              title="Remove widget"
+            >
+              <Trash2 size={18} />
+            </button>
+          </div>
+        </div>
+        <p className="text-sm text-gray-700">
+          On the live site this block shows the <strong>customer&apos;s own cart</strong>: the
+          products they added, quantity, remove, subtotal and Checkout. It is the same cart as
+          the navbar cart drawer. No extra settings here.
+        </p>
+      </div>
+    );
+  }
+
   if (widgetType === "activeDeals") {
     return (
       <div className="border-2 border-emerald-200 rounded-lg p-3 mb-4 bg-emerald-50/60">
