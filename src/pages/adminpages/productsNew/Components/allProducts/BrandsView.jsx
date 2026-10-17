@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { useAuth } from "../../../../../context/Auth";
 import {
+  ALL_PRODUCTS_KEY,
   UNASSIGNED_BRAND_KEY,
   UNASSIGNED_BRAND_LABEL,
 } from '../../constants/brandConstants';
@@ -61,7 +62,14 @@ const BrandsView = ({
             </h3>
             <p className="text-sm text-gray-500 mb-3">
               Products saved without a brand appear under{' '}
-              <span className="font-semibold text-amber-700">{UNASSIGNED_BRAND_LABEL}</span>.
+              <span className="font-semibold text-amber-700">{UNASSIGNED_BRAND_LABEL}</span>.{' '}
+              <button
+                type="button"
+                onClick={() => onBrandSelect(ALL_PRODUCTS_KEY)}
+                className="ml-1 inline-flex items-center rounded-md bg-blue-600 px-3 py-1 text-xs font-semibold text-white hover:bg-blue-700"
+              >
+                View all products
+              </button>
             </p>
 
             {/* Search */}

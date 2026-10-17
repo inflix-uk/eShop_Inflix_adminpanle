@@ -18,12 +18,12 @@ const Pagination = ({
           Previous
         </button>
         
-        <span className="hidden sm:flex items-center text-sm font-bold">
+        <span className="flex items-center text-sm font-bold">
           Page {currentPage} of {totalPages}
         </span>
         
         <div className="flex items-center gap-3">
-          <div className="hidden sm:flex items-center">
+          <div className="flex items-center">
             <label htmlFor="itemsPerPage" className="mr-2 font-semibold">
               Rows per Page:
             </label>
