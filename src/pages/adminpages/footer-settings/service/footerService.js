@@ -160,6 +160,34 @@ export const getDefaultFooterSettings = () => {
       creditUrl: "",
     },
     sectionCustom: [],
+    sectionPayments: {
+      isEnabled: false,
+      heading: "",
+      description: "",
+      logos: [],
+    },
+    sectionContact: {
+      isEnabled: false,
+      title: "",
+      items: [],
+    },
+    customHtml: {
+      isEnabled: false,
+      position: "below_columns",
+      html: "",
+      css: "",
+    },
+    layout: {
+      columnOrder: [
+        "section1",
+        "section2",
+        "section3",
+        "sectionNewsletter",
+        "sectionContact",
+      ],
+      hiddenColumns: [],
+      colors: {},
+    },
     section3: {
       title: "",
       links: []
