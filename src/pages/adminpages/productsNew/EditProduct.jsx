@@ -381,8 +381,26 @@ export default function EditProduct() {
 
   useEffect(() => {
     getBrands();
+    // Brands added in another tab show up when the admin comes back here
+    window.addEventListener("focus", getBrands);
+    return () => window.removeEventListener("focus", getBrands);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Typing a brand that isn't listed yet adds it to the store's brand list
+  const handleCreateBrand = async (name) => {
+    const brandName = String(name || "").trim();
+    if (!brandName) return null;
+    try {
+      await productApi.addBrand(brandName);
+      await getBrands();
+      toast.success(`Brand "${brandName}" added`);
+      return { value: brandName, label: brandName };
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message || "Could not add brand");
+      return null;
+    }
+  };
 
   async function getBrands() {
     try {
@@ -1125,6 +1143,7 @@ export default function EditProduct() {
                         handleTagsChange={handleTagsChange}
                         productApi={productApi}
                         brands={brands}
+                        onCreateBrand={handleCreateBrand}
                       />
                       {/* Product Description */}
                       <ProductDescription

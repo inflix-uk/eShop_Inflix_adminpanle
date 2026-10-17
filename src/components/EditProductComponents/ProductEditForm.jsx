@@ -1,6 +1,7 @@
 import  { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import Select from 'react-select';
+import CreatableSelect from 'react-select/creatable';
 import { toast } from 'react-toastify';
 import {
   buildMainCategorySelectOptions,
@@ -48,6 +49,7 @@ export default function ProductEditForm({
   handleTagsChange,
   productApi,
   brands,
+  onCreateBrand,
 }) {
   const [categories, setCategories] = useState([]);
   const [mainCategoryOptions, setMainCategoryOptions] = useState([]);
@@ -63,15 +65,26 @@ export default function ProductEditForm({
     value: brand.name,
     label: brand.name,
   })) || [];
+  // Keep a saved brand visible even when it isn't in the brand list, instead
+  // of showing an empty box that silently drops it on the next save.
+  if (product?.brand && !brandOptions.some((b) => b.value === product.brand)) {
+    brandOptions.push({ value: product.brand, label: `${product.brand} (not in brand list)` });
+  }
 
   useEffect(() => {
-    if (product?.brand && brandOptions.length > 0) {
+    if (product?.brand) {
       const brandOption = brandOptions.find(b => b.value === product.brand);
       if (brandOption) {
         setSelectedBrand(brandOption);
       }
     }
   }, [product?.brand, brandOptions.length]);
+
+  const handleBrandCreate = async (name) => {
+    if (!onCreateBrand) return;
+    const created = await onCreateBrand(name);
+    if (created) handleBrandChange(created);
+  };
 
   const handleBrandChange = (selectedOption) => {
     setSelectedBrand(selectedOption);
@@ -120,13 +133,17 @@ export default function ProductEditForm({
     try {
       const response = await productApi.getCategories();
       if (response.data.status === 201) {
-        const filteredCategories = response.data.productCategories.filter(
+        const allCategories = [...response.data.productCategories].sort(
+          (a, b) => Number(!!b.isPublish) - Number(!!a.isPublish)
+        );
+        const filteredCategories = allCategories.filter(
           (category) => category.isPublish
         );
         setStoreCategories(filteredCategories);
         setMainCategoryOptions(buildMainCategorySelectOptions(filteredCategories));
-        setCategories(filteredCategories.map(cat => ({
-          label: cat.name,
+        // Unpublished categories stay selectable (labelled) so none go missing
+        setCategories(allCategories.map(cat => ({
+          label: cat.isPublish ? cat.name : `${cat.name} (unpublished)`,
           value: cat.name,
           googleCategoryFullPath: cat.googleCategoryFullPath || "",
           subCategory: (cat.subCategory || []).map(subCat => ({
@@ -476,15 +493,17 @@ export default function ProductEditForm({
                   </span>
                 </label>
                 <div className="mt-2">
-                  <Select
+                  <CreatableSelect
                     id="brand"
                     name="brand"
                     options={brandOptions}
                     value={selectedBrand}
                     onChange={handleBrandChange}
+                    onCreateOption={handleBrandCreate}
+                    formatCreateLabel={(input) => `Add brand "${input}"`}
                     isClearable
                     className="block w-full rounded-md border-0 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 aa"
-                    placeholder="Select brand"
+                    placeholder="Select or type a new brand"
                   />
                 </div>
               </div>
@@ -529,4 +548,5 @@ ProductEditForm.propTypes = {
   handleTagsChange: PropTypes.func.isRequired,
   productApi: PropTypes.object.isRequired,
   brands: PropTypes.array,
+  onCreateBrand: PropTypes.func,
 };
