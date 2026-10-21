@@ -158,6 +158,7 @@ export const getDefaultFooterSettings = () => {
       textBeforeCredit: "© {{year}} All Rights Reserved.",
       creditLabel: "",
       creditUrl: "",
+      showCookieSettingsButton: true,
     },
     sectionCustom: [],
     sectionPayments: {
