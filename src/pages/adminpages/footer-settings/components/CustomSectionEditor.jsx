@@ -6,6 +6,7 @@ const PLACEMENT_OPTIONS = [
   { value: "after_useful_links", label: "After Useful Links" },
   { value: "after_customer_care", label: "After Customer Care" },
   { value: "after_newsletter", label: "After Newsletter" },
+  { value: "after_contact", label: "After Contact" },
 ];
 
 const createEmptySection = (order = 0) => ({

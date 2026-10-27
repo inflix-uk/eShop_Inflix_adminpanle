@@ -19,6 +19,18 @@ import Section3Editor from "./components/Section3Editor";
 import NewsletterSectionEditor from "./components/NewsletterSectionEditor";
 import BottomBarEditor from "./components/BottomBarEditor";
 import CustomSectionEditor from "./components/CustomSectionEditor";
+import ContactSectionEditor from "./components/ContactSectionEditor";
+import PaymentMethodsEditor from "./components/PaymentMethodsEditor";
+import CustomHtmlEditor from "./components/CustomHtmlEditor";
+import LayoutEditor from "./components/LayoutEditor";
+
+/** Blocks the server returns in its cleaned-up form after a save. */
+const SERVER_NORMALIZED_SECTIONS = [
+  "sectionPayments",
+  "sectionContact",
+  "customHtml",
+  "layout",
+];
 
 function mergeFooterPayload(data) {
   if (!data) return data;
@@ -45,6 +57,22 @@ function mergeFooterPayload(data) {
       ...(data.bottomBar ?? {}),
     },
     sectionCustom,
+    sectionPayments: {
+      ...defaults.sectionPayments,
+      ...(data.sectionPayments ?? {}),
+    },
+    sectionContact: {
+      ...defaults.sectionContact,
+      ...(data.sectionContact ?? {}),
+    },
+    customHtml: {
+      ...defaults.customHtml,
+      ...(data.customHtml ?? {}),
+    },
+    layout: {
+      ...defaults.layout,
+      ...(data.layout ?? {}),
+    },
   };
 }
 
@@ -96,7 +124,12 @@ export default function FooterSettings() {
                 : Array.isArray(result.data)
                   ? result.data
                   : []
-            : sectionData;
+            : SERVER_NORMALIZED_SECTIONS.includes(sectionName) &&
+                result.data &&
+                typeof result.data === "object" &&
+                !Array.isArray(result.data)
+              ? result.data
+              : sectionData;
         setFooterData((prev) => ({
           ...prev,
           [sectionName]: nextValue,
@@ -167,6 +200,10 @@ export default function FooterSettings() {
     { name: "Newsletter", section: "sectionNewsletter" },
     { name: "Bottom bar", section: "bottomBar" },
     { name: "Custom Sections", section: "sectionCustom" },
+    { name: "Contact", section: "sectionContact" },
+    { name: "Payment Methods", section: "sectionPayments" },
+    { name: "Custom HTML/CSS", section: "customHtml" },
+    { name: "Layout & Colours", section: "layout" },
   ];
 
   return (
@@ -192,6 +229,9 @@ export default function FooterSettings() {
                 <h1 className="text-3xl font-bold text-gray-800">Footer Settings</h1>
                 <p className="text-gray-600 mt-2">
                   Manage your website footer content and links
+                </p>
+                <p className="text-gray-500 text-sm mt-1">
+                  Saved changes can take a few minutes to appear on the website.
                 </p>
               </div>
               <button
@@ -227,12 +267,12 @@ export default function FooterSettings() {
 
             {/* Tabs */}
             <Tab.Group selectedIndex={selectedTab} onChange={setSelectedTab}>
-              <Tab.List className="mb-6 flex space-x-1 overflow-x-auto rounded-xl bg-gray-100 p-1">
+              <Tab.List className="mb-6 flex flex-wrap gap-1 rounded-xl bg-gray-100 p-1">
                 {tabs.map((tab, index) => (
                   <Tab
                     key={index}
                     className={({ selected }) =>
-                      `w-full rounded-lg py-2.5 px-4 text-sm font-medium leading-5 whitespace-nowrap
+                      `rounded-lg py-2.5 px-4 text-sm font-medium leading-5 whitespace-nowrap
                       ${
                         selected
                           ? "bg-white text-primary shadow-sm"
@@ -299,6 +339,47 @@ export default function FooterSettings() {
                   <CustomSectionEditor
                     data={footerData?.sectionCustom}
                     onSave={(data) => handleSaveSection("sectionCustom", data)}
+                    isSaving={isSaving}
+                  />
+                </Tab.Panel>
+
+                <Tab.Panel>
+                  <ContactSectionEditor
+                    data={footerData?.sectionContact}
+                    onSave={(data) => handleSaveSection("sectionContact", data)}
+                    isSaving={isSaving}
+                  />
+                </Tab.Panel>
+
+                <Tab.Panel>
+                  <PaymentMethodsEditor
+                    data={footerData?.sectionPayments}
+                    onSave={(data) => handleSaveSection("sectionPayments", data)}
+                    onUploadImage={uploadFooterImage}
+                    backendUrl={auth.ip}
+                    isSaving={isSaving}
+                  />
+                </Tab.Panel>
+
+                <Tab.Panel>
+                  <CustomHtmlEditor
+                    data={footerData?.customHtml}
+                    colors={footerData?.layout?.colors}
+                    onSave={(data) => handleSaveSection("customHtml", data)}
+                    isSaving={isSaving}
+                  />
+                </Tab.Panel>
+
+                <Tab.Panel>
+                  <LayoutEditor
+                    data={footerData?.layout}
+                    columnTitles={{
+                      section2: footerData?.section2?.title,
+                      section3: footerData?.section3?.title,
+                      sectionNewsletter: footerData?.sectionNewsletter?.heading,
+                      sectionContact: footerData?.sectionContact?.title,
+                    }}
+                    onSave={(data) => handleSaveSection("layout", data)}
                     isSaving={isSaving}
                   />
                 </Tab.Panel>

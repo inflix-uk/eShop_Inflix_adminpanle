@@ -4,6 +4,7 @@ const defaultForm = {
   textBeforeCredit: "© {{year}} All Rights Reserved.",
   creditLabel: "",
   creditUrl: "",
+  showCookieSettingsButton: true,
 };
 
 const BottomBarEditor = ({ data, onSave, isSaving }) => {
@@ -15,6 +16,7 @@ const BottomBarEditor = ({ data, onSave, isSaving }) => {
         textBeforeCredit: data.textBeforeCredit ?? defaultForm.textBeforeCredit,
         creditLabel: data.creditLabel ?? defaultForm.creditLabel,
         creditUrl: data.creditUrl ?? defaultForm.creditUrl,
+        showCookieSettingsButton: data.showCookieSettingsButton !== false,
       });
     }
   }, [data]);
@@ -96,6 +98,28 @@ const BottomBarEditor = ({ data, onSave, isSaving }) => {
           </div>
         </div>
 
+        <div className="rounded-md border border-gray-200 p-4">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={formData.showCookieSettingsButton}
+              onChange={(e) => handleChange("showCookieSettingsButton", e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+            />
+            <span>
+              <span className="block text-sm font-medium text-gray-800">
+                Show the &quot;Cookie settings&quot; button under the footer
+              </span>
+              <span className="block text-xs text-gray-500 mt-1">
+                Untick to hide only this button (desktop and mobile). The cookie
+                banner keeps working. Visitors must still be able to change their
+                cookie choice, so if you hide it, add a link to your custom footer
+                HTML: <code className="bg-gray-100 px-1 rounded">{'<a href="#cookie-settings">Cookie settings</a>'}</code>
+              </span>
+            </span>
+          </label>
+        </div>
+
         <div className="rounded-md bg-gray-50 border border-gray-200 p-4">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
             Preview
@@ -116,6 +140,9 @@ const BottomBarEditor = ({ data, onSave, isSaving }) => {
               </>
             ) : null}
           </p>
+          {formData.showCookieSettingsButton && (
+            <p className="text-xs text-gray-500 text-center mt-2 underline">Cookie settings</p>
+          )}
         </div>
 
         <button

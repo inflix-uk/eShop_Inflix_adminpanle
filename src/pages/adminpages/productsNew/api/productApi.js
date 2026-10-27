@@ -57,6 +57,40 @@ class ProductApi {
   }
 
   /**
+   * Add a brand straight from the product form. The Brand dropdown reads the
+   * values of the "brands" variant attribute, so the new name goes there —
+   * creating that attribute first on stores that don't have it yet.
+   * @param {string} name - Brand name, e.g. "Honor"
+   * @returns {Promise<void>}
+   */
+  async addBrand(name) {
+    const attributesResponse = await this.getVariantAttributes();
+    let brandsAttribute = (attributesResponse.data?.variantAttributes || []).find(
+      (attr) => attr.slug === "brands"
+    );
+
+    if (!brandsAttribute) {
+      const created = await axios.post(`${BACKEND_URL}create/variant-attribute`, {
+        name: "Brands",
+        values: [],
+        isActive: true,
+      });
+      brandsAttribute = created.data?.variantAttribute;
+      if (!brandsAttribute?._id) {
+        throw new Error(created.data?.message || "Could not create the Brands list");
+      }
+    }
+
+    const response = await axios.post(
+      `${BACKEND_URL}add/variant-attribute-value/${brandsAttribute._id}`,
+      { name, isActive: true }
+    );
+    if (response.data?.status && response.data.status >= 400) {
+      throw new Error(response.data.message || "Could not add brand");
+    }
+  }
+
+  /**
    * Fetch brands with product counts for admin panel
    * @returns {Promise} - Axios response with brands and their product counts
    */
@@ -204,7 +238,8 @@ class ProductApi {
    */
   async getAllProductsWithBrand(batchSize = 50, skip = 0, brandName = null) {
     let queryParams = `batchSize=${batchSize}&skip=${skip}`;
-    if (brandName) {
+    // "__all__" is the every-product view: no brand filter at all
+    if (brandName && brandName !== "__all__") {
       queryParams += `&brand=${encodeURIComponent(brandName)}`;
     }
     return axios.get(`${BACKEND_URL}get/all/newProduct/adminpage?${queryParams}`);

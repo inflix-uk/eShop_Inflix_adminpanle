@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import Select from 'react-select';
+import CreatableSelect from 'react-select/creatable';
 
 export default function ProductForm({
     productName,
@@ -17,6 +18,7 @@ export default function ProductForm({
     categories,
     condition,
     brands,
+    onCreateBrand,
 }) {
     // A product belongs to a single category — the backend `category` field is one
     // String, indexed and filtered as a single value. A multi-select here produced
@@ -73,6 +75,12 @@ export default function ProductForm({
         setSelectedBrand(selectedOption);
     };
 
+    const handleBrandCreate = async (name) => {
+        if (!onCreateBrand) return;
+        const created = await onCreateBrand(name);
+        if (created) setSelectedBrand(created);
+    };
+
     // Submitted category is a single value to match the backend `category` String.
     useEffect(() => {
         setProductCategory(selectedCategory ? selectedCategory.value : "");
@@ -127,7 +135,7 @@ export default function ProductForm({
 
     const options = categories.map((category) => ({
         value: category.name,
-        label: category.name,
+        label: category.isPublish ? category.name : `${category.name} (unpublished)`,
     }));
 
     const tagOptions = tags.map((tag) => ({
@@ -239,14 +247,16 @@ export default function ProductForm({
                                     </span>
                                 </label>
                                 <div className="mt-2 w-full">
-                                    <Select
+                                    <CreatableSelect
                                         id="brands"
                                         name="brands"
                                         options={brandOptions}
+                                        onCreateOption={handleBrandCreate}
+                                        formatCreateLabel={(input) => `Add brand "${input}"`}
                                         className="block w-full rounded-md border-0 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6 aa"
                                         onChange={handleBrandChange}
                                         value={selectedBrand}
-                                        placeholder="Select a brand..."
+                                        placeholder="Select or type a new brand..."
                                         isClearable
                                     />
                                 </div>
@@ -292,4 +302,5 @@ ProductForm.propTypes = {
     categories: PropTypes.array.isRequired,
     condition: PropTypes.array.isRequired,
     brands: PropTypes.array.isRequired,
+    onCreateBrand: PropTypes.func,
 }

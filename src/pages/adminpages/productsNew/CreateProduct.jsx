@@ -171,12 +171,14 @@ export default function NewProduct() {
     try {
       const response = await productApi.getCategories();
       if (response.data.status === 201) {
-        const filteredCategories = response.data.productCategories.filter(
-          (category) => category.isPublish
+        // Unpublished categories are listed too (the form labels them), so a
+        // category is always selectable here as soon as it exists.
+        const sortedCategories = [...response.data.productCategories].sort(
+          (a, b) => Number(!!b.isPublish) - Number(!!a.isPublish)
         );
         // The form owns the selection. Defaulting it here filed every product
         // saved with an empty Category box under the first category.
-        setCategories(filteredCategories);
+        setCategories(sortedCategories);
         setProgress(100);
       } else {
         toast.error(response.data.message);
@@ -291,8 +293,31 @@ export default function NewProduct() {
     getCondition();
     getCategories();
     getBrands();
+    // Categories and brands added in another tab show up when the admin comes
+    // back to this one, without reloading and losing the half-filled form.
+    const refreshLists = () => {
+      getCategories();
+      getBrands();
+    };
+    window.addEventListener("focus", refreshLists);
+    return () => window.removeEventListener("focus", refreshLists);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Typing a brand that isn't listed yet adds it to the store's brand list
+  const handleCreateBrand = async (name) => {
+    const brandName = String(name || "").trim();
+    if (!brandName) return null;
+    try {
+      await productApi.addBrand(brandName);
+      await getBrands();
+      toast.success(`Brand "${brandName}" added`);
+      return { value: brandName, label: brandName };
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message || "Could not add brand");
+      return null;
+    }
+  };
 
   // Image Handlers
   const handleProductThumbnailImage = (event) => {
@@ -733,6 +758,7 @@ export default function NewProduct() {
                         categories={categories}
                         condition={condition}
                         brands={brands}
+                        onCreateBrand={handleCreateBrand}
                         productSubCategory={productSubCategory}
                       />
                       <ProductDescription

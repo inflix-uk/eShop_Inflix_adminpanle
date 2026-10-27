@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import Side from "../nav/Side";
 import Top from "../nav/Top";
@@ -59,7 +59,7 @@ export default function NewProducts() {
   const [products, setProducts] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(50);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState(null);
   const [selectedProductVariants, setSelectedProductVariants] = useState(null);
@@ -70,6 +70,7 @@ export default function NewProducts() {
   const brandFromUrl = searchParams.get("brand");
   const [selectedBrand, setSelectedBrand] = useState(brandFromUrl);
   const [brandsLoading, setBrandsLoading] = useState(true);
+  const productsFetchIdRef = useRef(0);
   const [unassignedProductCount, setUnassignedProductCount] = useState(0);
   const [viewMode, setViewMode] = useState(brandFromUrl ? "products" : "brands"); // 'brands' or 'products'
 
@@ -312,9 +313,9 @@ export default function NewProducts() {
     setCurrentPage(1);
     setSearchQuery(""); // Clear search when changing brand
     setViewMode("products");
-    // Update URL with brand parameter
+    // Update URL with brand parameter — the brandFromUrl effect below loads
+    // the products, so loading here as well ran two fetch loops at once.
     setSearchParams({ brand: brandName });
-    getProducts(false, brandName);
   };
 
   // Back to brands handler - clears URL
@@ -336,8 +337,12 @@ export default function NewProducts() {
       let allProducts = [];
       let skipCount = 0;
       const batchSize = 50;
+      // Only the newest load may write products; an older loop for another
+      // brand stops instead of overwriting the list.
+      const fetchId = ++productsFetchIdRef.current;
 
       const fetchBatch = async () => {
+        if (fetchId !== productsFetchIdRef.current) return;
         try {
           const response = await productApi.getAllProductsWithBrand(
             batchSize,
@@ -345,6 +350,7 @@ export default function NewProducts() {
             brandName
           );
 
+          if (fetchId !== productsFetchIdRef.current) return;
           if (response.data.status === 201) {
             const { products: batchProducts, totalProductsCount } =
               response.data;
@@ -355,14 +361,14 @@ export default function NewProducts() {
 
             skipCount += batchProducts.length;
 
-            if (allProducts.length >= totalProductsCount) {
+            if (allProducts.length >= totalProductsCount || batchProducts.length === 0) {
               console.log("All products retrieved:", allProducts);
               setProgress(100);
               if (showSuccessMessage) {
                 // Optional success feedback
               }
             } else {
-              setTimeout(fetchBatch, 1000);
+              setTimeout(fetchBatch, 300);
             }
           } else {
             toast.error(response.data.message);

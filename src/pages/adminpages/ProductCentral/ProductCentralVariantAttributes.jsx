@@ -26,6 +26,12 @@ import backCoverImg from "../../../assets/backcover.png";
 // Product Options slugs that should NOT appear in Variant Attributes (they have their own page)
 const PRODUCT_OPTIONS_SLUGS = ["select_options", "top_section", "comes_with"];
 
+// A list created from its name gets a hyphen slug (comes-with); seeded ones
+// use an underscore (comes_with). Both are the same list — matching only the
+// underscore form listed "Comes with" here, in a value editor with no icon field.
+const optionKey = (slug) => String(slug || "").toLowerCase().replace(/-/g, "_");
+const hasIconEditor = (slug) => ["comes_with", "top_section"].includes(optionKey(slug));
+
 export default function ProductCentralVariantAttributes() {
   const auth = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -224,7 +230,7 @@ export default function ProductCentralVariantAttributes() {
       if (response.data.status === 200 || response.data.status === 201) {
         // Filter out product options (they have their own page)
         const variantAttrs = (response.data.variantAttributes || []).filter(
-          attr => !PRODUCT_OPTIONS_SLUGS.includes(attr.slug)
+          attr => !PRODUCT_OPTIONS_SLUGS.includes(optionKey(attr.slug))
         );
         setVariantAttributes(variantAttrs);
       }
@@ -1369,13 +1375,13 @@ export default function ProductCentralVariantAttributes() {
       {/* Add/Edit Value Modal */}
       {showValueModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className={`bg-white rounded-xl w-full p-6 ${(selectedAttribute?.slug === 'comes_with' || selectedAttribute?.slug === 'top_section') ? 'max-w-4xl' : 'max-w-md'}`}>
+          <div className={`bg-white rounded-xl w-full p-6 ${hasIconEditor(selectedAttribute?.slug) ? 'max-w-4xl' : 'max-w-md'}`}>
             <h3 className="text-lg font-semibold text-gray-900 mb-4">
               {editingValue ? "Edit Value" : "Add New Value"}
             </h3>
             <form onSubmit={handleValueSubmit}>
               {/* Two-column layout for "Comes With" and "Top Section" attributes */}
-              {(selectedAttribute?.slug === 'comes_with' || selectedAttribute?.slug === 'top_section') ? (
+              {hasIconEditor(selectedAttribute?.slug) ? (
                 <div className="flex gap-6">
                   {/* Left Section - Basic Info */}
                   <div className="w-1/2 space-y-4">
