@@ -166,9 +166,15 @@ export default function GeneratedVariants({
             />
             <div className="relative transform overflow-hidden rounded-lg bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg">
               <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                <h3 className="text-lg font-semibold leading-6 text-gray-900 mb-4">
+                <h3 className="text-lg font-semibold leading-6 text-gray-900 mb-2">
                   Bulk Edit ({selectedVariants.length} variants selected)
                 </h3>
+                <p className="mb-4 rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                  Every selected variant gets the <b>same</b> value. Leave a box empty to keep each
+                  variant&apos;s own value. To give each variant its own price, edit the rows in the
+                  table, or use <b>Prices &amp; Content → Export</b> at the top of this page, change the
+                  prices in Excel and import the file.
+                </p>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">

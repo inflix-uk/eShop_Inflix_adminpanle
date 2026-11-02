@@ -11,6 +11,21 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchBlogs } from "../../../redux/reducers/blogsSlice";
 import { Helmet } from "react-helmet-async";
 import { blogListCardImageSrc } from "./blogListImageUrl";
+import { updateBlogPost, deleteBlogPost } from "../blog-new/service/blogService";
+
+// This page lists both the old blogs and the new-editor blogs (isNewBlog). New blogs use
+// title / excerpt / categories / publishStatus instead of name / blogShortDescription /
+// blogCategory / visibility, so read both shapes through these helpers.
+const blogTitle = (b) => (b.isNewBlog ? b.title : b.name) || b.title || "";
+const blogSummary = (b) => (b.isNewBlog ? b.excerpt : b.blogShortDescription) || "";
+const blogCategoryName = (b) => {
+    if (!b.isNewBlog) return b.blogCategory;
+    const first = Array.isArray(b.categories) ? b.categories[0] : null;
+    return (first && (first.name || first)) || "";
+};
+const isBlogVisible = (b) => (b.isNewBlog ? b.publishStatus === "published" : !!b.visibility);
+const blogEditPath = (b) =>
+    b.isNewBlog ? `/admin/blog/editblog?id=${b._id}` : `/admin/edit-blog/${b.permalink}`;
 
 const BLOG_CARD_IMAGE_PLACEHOLDER =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='360'%3E%3Crect fill='%23e5e7eb' width='100%25' height='100%25'/%3E%3C/svg%3E";
@@ -29,6 +44,22 @@ export default function DraftsBlogs() {
     const blogsPerPage = 20;
 
     const handleDelete = async (id) => {
+        const target = allBlogs.find((b) => b._id === id);
+        if (target?.isNewBlog) {
+            try {
+                setIsDeleting(true);
+                setProgress(50);
+                await deleteBlogPost(id);
+                toast.success('Blog deleted');
+                dispatch(fetchBlogs());
+            } catch (error) {
+                toast.error('Failed to delete blog');
+            } finally {
+                setProgress(100);
+                setIsDeleting(false);
+            }
+            return;
+        }
         try {
             setIsDeleting(true);
             setProgress(50);
@@ -57,7 +88,7 @@ export default function DraftsBlogs() {
 
     useEffect(() => {
         // whenever blogs from Redux changes, set local state
-        const drafts = blogs.filter(blog => !blog.visibility);
+        const drafts = blogs.filter(blog => !isBlogVisible(blog));
         setAllBlogs(drafts);
     }, [blogs]);
 
@@ -75,10 +106,10 @@ export default function DraftsBlogs() {
     };
 
     const filteredBlogs = allBlogs.filter(blog => {
-        const searchableText = `${blog.name} ${blog.blogShortDescription} ${blog.blogCategory}`.toLowerCase();
+        const searchableText = `${blogTitle(blog)} ${blogSummary(blog)} ${blogCategoryName(blog)}`.toLowerCase();
         const searchTermLower = searchTerm.toLowerCase();
         const matchesSearch = searchableText.includes(searchTermLower);
-        const matchesCategory = filterCategory === 'all' || blog.blogCategory === filterCategory;
+        const matchesCategory = filterCategory === 'all' || blogCategoryName(blog) === filterCategory;
         return matchesSearch && matchesCategory;
     });
 
@@ -91,7 +122,7 @@ export default function DraftsBlogs() {
         'all',
         ...new Set(
             allBlogs
-                .map((blog) => blog.blogCategory)
+                .map((blog) => blogCategoryName(blog))
                 .filter((c) => c != null && String(c).trim() !== '')
                 .map((c) => String(c))
         ),
@@ -102,20 +133,13 @@ export default function DraftsBlogs() {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
     const handleFeaturedChange = (index) => {
-        // Create a *new* array of blogs, ensuring we also create 
-        // a new object for the one we want to modify:
-        const updatedBlogs = allBlogs.map((blog, i) => {
-            if (i !== index) return blog;           // no change
-            return { ...blog, isFeatured: !blog.isFeatured }; // toggle isFeatured
-        });
+        const blog = currentBlogs[index];
+        if (!blog) return;
+        const isFeatured = !blog.isFeatured;
+        setAllBlogs((list) => list.map((b) => (b._id === blog._id ? { ...b, isFeatured } : b)));
 
-        setAllBlogs(updatedBlogs);
-
-        // Then call your API:
         axios
-            .patch(`${auth.ip}feature/blog/${updatedBlogs[index]._id}`, {
-                isFeatured: updatedBlogs[index].isFeatured
-            })
+            .patch(`${auth.ip}feature/blog/${blog._id}`, { isFeatured })
             .then((response) => {
                 if (response.data.status === 201) {
                     toast.success("Blog Featured Successfully");
@@ -128,26 +152,38 @@ export default function DraftsBlogs() {
 
 
     const handleStatusChange = (index) => {
-        // Create a new array, new object for the changed blog
-        const updatedBlogs = allBlogs.map((blog, i) => {
-            if (i !== index) return blog;
-            return { ...blog, visibility: !blog.visibility };
-        });
+        const blog = currentBlogs[index];
+        if (!blog) return;
+        const nextVisible = !isBlogVisible(blog);
 
-        setAllBlogs(updatedBlogs);
+        // Show the change straight away; put it back if saving fails.
+        const applyVisible = (visible) =>
+            setAllBlogs((list) =>
+                list.map((b) =>
+                    b._id !== blog._id
+                        ? b
+                        : b.isNewBlog
+                            ? { ...b, publishStatus: visible ? "published" : "draft" }
+                            : { ...b, visibility: visible }
+                )
+            );
+        applyVisible(nextVisible);
 
-        // Then call your API:
-        axios
-            .patch(`${auth.ip}status/blog/${updatedBlogs[index]._id}`, {
-                visibility: updatedBlogs[index].visibility
+        const save = blog.isNewBlog
+            ? updateBlogPost(blog._id, { publishStatus: nextVisible ? "published" : "draft" }).then(() => true)
+            : axios
+                .patch(`${auth.ip}status/blog/${blog._id}`, { visibility: nextVisible })
+                .then((response) => response.data.status === 201);
+
+        save
+            .then((ok) => {
+                if (!ok) throw new Error("not saved");
+                toast.success(nextVisible ? "Blog published" : "Blog hidden");
+                dispatch(fetchBlogs());
             })
-            .then((response) => {
-                if (response.data.status === 201) {
-                    toast.success("Blog Visible status changed successfully");
-                    dispatch(fetchBlogs());
-                } else {
-                    toast.error("Failed to change blog status");
-                }
+            .catch(() => {
+                applyVisible(!nextVisible);
+                toast.error("Failed to change blog status");
             });
     };
 
@@ -235,7 +271,7 @@ export default function DraftsBlogs() {
 
                                                 <div className="absolute top-4 right-4 flex gap-2">
                                                     <Link
-                                                        to={`/admin/edit-blog/${post.permalink}`}
+                                                        to={blogEditPath(post)}
                                                         className="rounded-full bg-white p-2 hover:bg-gray-100 transition-colors shadow-sm"
                                                         title="Edit blog"
                                                     >
@@ -259,7 +295,7 @@ export default function DraftsBlogs() {
                                             <div className="p-4">
                                                 <div className="flex items-center justify-between mb-3">
                                                     <span className="px-3 py-1 text-sm font-medium text-blue-800 bg-blue-100 rounded-full">
-                                                        {post.blogCategory}
+                                                        {blogCategoryName(post)}
                                                     </span>
                                                     <time className="text-sm text-gray-500">
                                                         {new Date(post.updatedAt).toLocaleDateString()}
@@ -267,32 +303,34 @@ export default function DraftsBlogs() {
                                                 </div>
 
                                                 <h3 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
-                                                    {post.name}
+                                                    {blogTitle(post)}
                                                 </h3>
                                                 <p className="text-gray-600 text-sm line-clamp-2 mb-3">
-                                                    {post.blogShortDescription}
+                                                    {blogSummary(post)}
                                                 </p>
 
+                                                {!post.isNewBlog && (
                                                 <div className="flex items-center justify-between">
                                                     <p className='text-lg font-bold'>Featured</p>
                                                     <label className="inline-flex items-center cursor-pointer">
                                                         <input
                                                             type="checkbox"
                                                             value=""
-                                                            checked={post.isFeatured}
+                                                            checked={!!post.isFeatured}
                                                             onChange={() => handleFeaturedChange(index)}
                                                             className="sr-only peer"
                                                         />
                                                         <div className="relative w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary" />
                                                     </label>
                                                 </div>
+                                                )}
                                                 <div className="flex items-center justify-between">
                                                     <p className='text-lg font-bold'>Visible</p>
                                                     <label className="inline-flex items-center cursor-pointer">
                                                         <input
                                                             type="checkbox"
                                                             value=""
-                                                            checked={post.visibility}
+                                                            checked={isBlogVisible(post)}
                                                             onChange={() => handleStatusChange(index)}
                                                             className="sr-only peer"
                                                         />

@@ -7,6 +7,7 @@ export { default as Pagination } from './Pagination';
 export { default as BrandFilter } from './BrandFilter';
 export { default as BrandsView } from './BrandsView';
 export { default as ImportExportBar } from './ImportExportBar';
+export { default as PricesContentSheetBar } from './PricesContentSheetBar';
 
 // Export utility functions
 export * from './utils';
