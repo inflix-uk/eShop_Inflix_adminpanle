@@ -182,6 +182,22 @@ class ProductApi {
   }
 
   /**
+   * "Prices & Content" sheet rows (variant prices + descriptions/perks)
+   * @param {string[]} [ids] - product ids; omit for every product
+   */
+  async getPricesContentSheet(ids = []) {
+    return axios.post(`${BACKEND_URL}get/products/prices-content-sheet`, { ids });
+  }
+
+  /**
+   * Apply (or preview, with dryRun) an edited "Prices & Content" sheet
+   * @param {{ variants: Array, content: Array, dryRun: boolean }} payload
+   */
+  async importPricesContentSheet(payload) {
+    return axios.post(`${BACKEND_URL}import/products/prices-content-sheet`, payload);
+  }
+
+  /**
    * Delete a product
    * @param {string} productId - The product ID
    * @returns {Promise} - Axios response

@@ -30,6 +30,7 @@ import TabHint from "./guide/TabHint";
 import { Helmet } from "react-helmet-async";
 import EditProductService, { cleanText } from "./service/editProductService";
 import ProductApi from "./api/productApi";
+import PricesContentSheetBar from "./Components/allProducts/PricesContentSheetBar";
 import { compressProductImages } from "../../../utils/imageCompression";
 
 /** Sentinel value for the extra "Custom" row in the condition react-select (not saved to DB). */
@@ -1003,11 +1004,14 @@ export default function EditProduct() {
                   )}
                 </div>
                 {product?._id && (
-                  <ProductTransferButtons
-                    product={product}
-                    productApi={productApi}
-                    onImported={getProduct}
-                  />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <PricesContentSheetBar productIds={[product._id]} onImported={getProduct} />
+                    <ProductTransferButtons
+                      product={product}
+                      productApi={productApi}
+                      onImported={getProduct}
+                    />
+                  </div>
                 )}
               </div>
               <Tab.Group selectedIndex={selectedTabIndex} onChange={handleTabChange}>

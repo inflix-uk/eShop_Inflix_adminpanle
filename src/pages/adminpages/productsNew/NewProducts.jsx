@@ -16,6 +16,7 @@ import {
   Pagination,
   BrandsView,
   ImportExportBar,
+  PricesContentSheetBar,
 } from "./Components/allProducts";
 
 // Import API and Service
@@ -477,6 +478,12 @@ export default function NewProducts() {
                           if (selectedBrand) getProducts(false, selectedBrand);
                         }}
                       />
+                      <PricesContentSheetBar
+                        onImported={() => {
+                          getBrands();
+                          if (selectedBrand) getProducts(false, selectedBrand);
+                        }}
+                      />
                       <ProductGuideButton />
                     </>
                   }
@@ -515,6 +522,13 @@ export default function NewProducts() {
                         <ImportExportBar
                           compact
                           products={products}
+                          onImported={() => {
+                            getBrands();
+                            if (selectedBrand) getProducts(false, selectedBrand);
+                          }}
+                        />
+                        <PricesContentSheetBar
+                          productIds={filteredProducts.map((p) => p._id)}
                           onImported={() => {
                             getBrands();
                             if (selectedBrand) getProducts(false, selectedBrand);
