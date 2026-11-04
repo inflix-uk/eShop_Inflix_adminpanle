@@ -525,17 +525,16 @@ class EditProductService {
    * Supports both old format (name-based) and new format (selectedAttributeSlug-based)
    * @param {Array} variantsData - Array of variants with options
    * @param {Array} existingVariantValues - Existing variant values from product
+   * @param {Array} previousOptionSlugs - Option slugs the product was saved with (to read old names)
    * @returns {Array} - Generated variant combinations
    */
-  generateVariants(variantsData, existingVariantValues = []) {
+  generateVariants(variantsData, existingVariantValues = [], previousOptionSlugs = []) {
     const generatedVariants = [];
 
     // Helper to generate SEO-friendly slug from string (hyphen format)
     const toSlug = (str) => {
       if (!str) return '';
-      const result = String(str).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').replace(/-+/g, '-');
-      console.log(`[EditProductService] toSlug: "${str}" => "${result}"`);
-      return result;
+      return String(str).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').replace(/-+/g, '-');
     };
 
     // Helper to extract slug from option (handles both string and object formats)
@@ -589,69 +588,80 @@ class EditProductService {
     const allCombinations = cartesian(optionArrays);
     console.log('[EditProductService] Generated combinations:', allCombinations.length);
 
-    // Helper to normalize variant name (underscore -> hyphen)
-    const normalizeVariantName = (name) => {
-      if (!name) return '';
-      return name.toLowerCase().replace(/_/g, '-');
+    // Names are compared fully slugified, so "Brand New-Awesome Gray-128GB" and
+    // "brand_new-awesome-gray-128gb" are the same row.
+    const normalizeVariantName = (name) => toSlug(name);
+
+    // Every option slug we know: the ones selected now plus the ones the product was
+    // saved with. Longest first, so "dual-sim-physical-sim-esim" wins over "dual-sim".
+    const knownSlugs = [...new Set([
+      ...optionArrays.flat(),
+      ...(previousOptionSlugs || []).map(toSlug),
+    ].filter(Boolean))].sort((a, b) => b.length - a.length);
+
+    // Split a stored variant name into the option slugs it is made of (any order).
+    // `complete` is false when part of the name is not a known option.
+    const parseName = (name) => {
+      let rest = `-${normalizeVariantName(name)}-`;
+      const keys = new Set();
+      knownSlugs.forEach((slug) => {
+        const token = `-${slug}-`;
+        if (rest.includes(token)) {
+          keys.add(slug);
+          rest = rest.replace(token, '-');
+        }
+      });
+      return { keys, complete: rest.replace(/-/g, '') === '' };
     };
+
+    const existing = (existingVariantValues || [])
+      .filter((v) => v && v.name)
+      .map((v) => ({ variant: v, exact: normalizeVariantName(v.name), ...parseName(v.name) }));
+    const usedRows = new Set();
+    const hasData = (v) =>
+      ['Cost', 'Price', 'salePrice', 'Quantity', 'SKU', 'EIN', 'MPN'].some(
+        (f) => v[f] !== undefined && v[f] !== null && String(v[f]).trim() !== ''
+      );
 
     // Convert each combination to a variant object
     allCombinations.forEach(combo => {
       const variantName = combo.join('-');
       const normalizedNewName = normalizeVariantName(variantName);
-      console.log(`[EditProductService] Variant combo: [${combo.join(', ')}] => "${variantName}"`);
+      const comboKeys = new Set(combo);
 
-      // First, try exact match (with normalization)
-      let existingVariant = (existingVariantValues || []).find(variant =>
-        normalizeVariantName(variant.name) === normalizedNewName
-      );
-      let matchType = existingVariant ? 'exact' : 'none';
+      // 1. Same name, or the same options in a different order.
+      let match = existing.find((e) => !usedRows.has(e) && e.exact === normalizedNewName)
+        || existing.find((e) => !usedRows.has(e) && e.complete
+          && e.keys.size === comboKeys.size && [...comboKeys].every((k) => e.keys.has(k)));
+      let sameRow = !!match;
 
-      // If no exact match, try to find a partial match (for when new attributes are added)
-      // This handles cases like: old "brand_new-red-32gb" -> new "brand-new-red-32gb-intel-i3"
-      if (!existingVariant) {
-        // Check if new name STARTS WITH an existing variant name (attribute added at end)
-        existingVariant = (existingVariantValues || []).find(variant =>
-          normalizedNewName.startsWith(normalizeVariantName(variant.name) + '-')
-        );
-        if (existingVariant) matchType = 'prefix';
-
-        // Also check if existing name STARTS WITH new name (attribute removed - less common)
-        if (!existingVariant) {
-          existingVariant = (existingVariantValues || []).find(variant =>
-            normalizeVariantName(variant.name).startsWith(normalizedNewName + '-')
-          );
-          if (existingVariant) matchType = 'suffix';
-        }
-
-        // Also check for partial overlap (attributes reordered or middle attributes changed)
-        if (!existingVariant) {
-          const newParts = normalizedNewName.split('-');
-          existingVariant = (existingVariantValues || []).find(variant => {
-            const existingParts = normalizeVariantName(variant.name).split('-');
-            // Count how many parts match
-            let matchCount = 0;
-            newParts.forEach(part => {
-              if (existingParts.includes(part)) matchCount++;
-            });
-            // If most parts match (at least half), consider it a match
-            return matchCount >= Math.ceil(Math.min(newParts.length, existingParts.length) / 2);
-          });
-          if (existingVariant) matchType = 'partial';
-        }
+      // 2. An attribute was added (old options are all in the new combination) or
+      //    removed (new options are all in the old one). Prices are copied over but the
+      //    row keeps no id, because several new rows can come from one old row.
+      if (!match) {
+        const candidates = existing.filter((e) => e.complete && e.keys.size > 0 && (
+          [...e.keys].every((k) => comboKeys.has(k)) || [...comboKeys].every((k) => e.keys.has(k))
+        ));
+        // Prefer an old row that has prices and has not been used yet.
+        match = candidates.find((e) => !usedRows.has(e) && hasData(e.variant))
+          || candidates.find((e) => hasData(e.variant)) || candidates[0];
+        // The first new row built from an old row keeps its id.
+        if (match && !usedRows.has(match)) sameRow = true;
       }
 
-      if (existingVariant) {
-        // Copy existing data but use the new name
-        // Remove _id to avoid duplicate key issues when multiple new variants match same old variant
+      if (match) {
         // eslint-disable-next-line no-unused-vars
-        const { _id, ...dataWithoutId } = existingVariant;
+        const { _id, variantId, attributes, ...data } = match.variant;
+        if (sameRow) usedRows.add(match);
         generatedVariants.push({
-          ...dataWithoutId,
+          ...data,
+          ...(sameRow ? { _id, variantId } : {}),
+          ...(sameRow && Array.isArray(attributes) ? { attributes } : {}),
           name: variantName,
           _tempId: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
         });
       } else {
+        // A genuinely new combination (e.g. a condition just added) starts empty.
         const defaultVariant = this.createDefaultVariantObject(variantName);
         defaultVariant._tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         generatedVariants.push(defaultVariant);
@@ -708,7 +718,10 @@ class EditProductService {
    */
   processVariantChanges(variants, product, variantData) {
     // generateVariants handles data preservation when attributes are added/changed
-    const generatedVariants = this.generateVariants(variantData, product.variantValues);
+    const previousOptionSlugs = (product.variantNames || []).flatMap((vn) =>
+      (vn.options || []).map((o) => (typeof o === 'string' ? o : o?.slug || o?.value || o?.name || ''))
+    );
+    const generatedVariants = this.generateVariants(variantData, product.variantValues, previousOptionSlugs);
     const updatedVariants = generatedVariants;
 
     // Transform variants to use attribute slug as key for descriptions

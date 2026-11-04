@@ -96,7 +96,10 @@ export default function ProductTransferButtons({ product, productApi, onImported
           (otherProducts
             ? `• ${otherProducts} other product(s) in the file will be ignored\n`
             : "") +
-          (warnings.length ? `• ${warnings.length} warning(s): ${warnings[0].message}\n` : "") +
+          (warnings.length
+            ? `• ${warnings.length} warning(s):\n` +
+              warnings.slice(0, 3).map((w) => `   – ${w.message}\n`).join("")
+            : "") +
           `\nChanges on this page that you have not saved with Update will be lost.`
       );
       if (!confirmed) return;

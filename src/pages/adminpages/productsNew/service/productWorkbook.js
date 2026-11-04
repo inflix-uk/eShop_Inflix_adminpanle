@@ -192,7 +192,8 @@ function buildInstructionsSheet(workbook) {
     "The Products sheet starts with grey SAMPLE rows (producturl begins with 'sample-'). They exist to show the format. The importer always skips them — you can overwrite or delete them freely.",
     "Header colours on the Products sheet: dark blue columns describe the PRODUCT (read from the first row of each product only); green columns describe each VARIANT (read from every row).",
     "Cells that offer multiple values use the pipe character | between values — never a comma. Example: tag1|tag2.",
-    "Dropdown-backed cells (category, brand, condition, tags, variant attributes…) should use values from the Reference sheet. New category, subcategory, brand, tag and attribute values are created automatically on import. An unknown attribute type (e.g. a misspelled 'color' slug) still fails that row.",
+    "Dropdown-backed cells (category, brand, condition, tags, variant attributes…) should use values from the Reference sheet. New category, subcategory, brand, tag and attribute values are created automatically on import. An unknown attribute type still fails that row — use the attribute slug exactly as the Reference sheet's variant_attributes list shows it (e.g. variant-colour, not color).",
+    "Only the columns listed on this sheet are read. An extra column such as 'colour' is ignored (the import preview warns about it) — colours go in variant_attributes.",
     "Do not rename or reorder the header row — the importer finds columns by these exact names.",
     "Images are carried as https:// URLs and linked as-is. Keep the URLs publicly reachable, or add images later in the product form.",
     "Prices are numbers only (19.99). Currency symbols are tolerated but not needed.",
@@ -217,7 +218,7 @@ function buildInstructionsSheet(workbook) {
   [
     "Add ONE ROW PER VARIANT and give every row the SAME producturl — that is what groups them into one product.",
     "On the FIRST row only, fill the product columns (name, product_type = variant, category, brand, description…). Product columns on later rows are ignored.",
-    "On EVERY row, fill variant_attributes with what makes that variant different, as slug=Value pairs joined by | . Example: scent=White Tea|size=S. Pick ready-made pairs from the Reference sheet.",
+    "On EVERY row, fill variant_attributes with what makes that variant different, as slug=Value pairs joined by | . Example: condition=Brand New|variant-colour=Awesome Gray|storage=128GB. Pick ready-made pairs from the Reference sheet; a new value (a new colour) is created on import. variant_name is then built from these values automatically.",
     "Use the same attribute slugs on every row of the product (e.g. every row sets scent and size). The storefront's option pickers are built from these.",
     "Give each row its own price / sale_price, quantity, sku and (optionally) variant_image_urls.",
     "The 'sample-variant-product' rows at the top of the Products sheet show a complete worked example with three variants.",

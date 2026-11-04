@@ -157,7 +157,7 @@ export default function ImportExportBar({
         return;
       }
 
-      const { products: parsed, errors, skippedSamples } = rowsToProducts(rows);
+      const { products: parsed, errors, skippedSamples } = rowsToProducts(rows, headers);
 
       if (parsed.length === 0) {
         toast.error(
@@ -199,7 +199,11 @@ export default function ImportExportBar({
           (failedRows.length
             ? `• ${failedRows.length} row(s) failed validation and will be skipped\n`
             : "") +
-          (errors.length ? `• ${errors.length} row warning(s) from the file\n` : "") +
+          (errors.length
+            ? `• ${errors.length} row warning(s) from the file:\n` +
+              errors.slice(0, 3).map((e) => `   – Row ${e.line}: ${e.message}\n`).join("") +
+              (errors.length > 3 ? `   – …see the report for the rest\n` : "")
+            : "") +
           `\nProceed with the import?`
       );
       if (!confirmed) {
