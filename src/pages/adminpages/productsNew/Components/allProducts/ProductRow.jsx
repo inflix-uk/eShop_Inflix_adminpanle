@@ -20,6 +20,12 @@ function getThumbUrl(image, ip) {
   return "";
 }
 
+// Conditions the product is sold in (from variants), else the product-level condition
+const getConditions = (product) => {
+  if (Array.isArray(product.conditions) && product.conditions.length > 0) return product.conditions;
+  return product.condition && product.condition !== "null" ? [product.condition] : [];
+};
+
 const ProductRow = ({
   product,
   index,
@@ -131,9 +137,20 @@ const ProductRow = ({
       </td>
       
       <td className="px-4 lg:px-6 py-3 text-sm text-gray-500">
-        <span className="text-xs lg:text-sm">
-          {product.condition && product.condition !== "null" ? product.condition : "—"}
-        </span>
+        {getConditions(product).length > 0 ? (
+          <div className="flex flex-wrap gap-1">
+            {getConditions(product).map((c) => (
+              <span
+                key={c}
+                className="text-xs bg-gray-100 text-gray-700 px-2 py-0.5 rounded whitespace-nowrap"
+              >
+                {c}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <span className="text-xs lg:text-sm">—</span>
+        )}
       </td>
       
       <td className="px-4 lg:px-6 py-3 text-sm text-gray-500">
@@ -218,6 +235,7 @@ ProductRow.propTypes = {
     name: PropTypes.string.isRequired,
     category: PropTypes.string,
     condition: PropTypes.string,
+    conditions: PropTypes.arrayOf(PropTypes.string),
     is_featured: PropTypes.bool,
     status: PropTypes.bool.isRequired,
     variantValues: PropTypes.arrayOf(PropTypes.object), // Optional - only for single products

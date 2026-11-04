@@ -118,42 +118,178 @@ export function cellText(value) {
   return String(value);
 }
 
+// Byte-order mark Excel/Notepad put at the start of UTF-8 CSV files.
+const LEADING_BOM = new RegExp("^" + String.fromCharCode(0xfeff));
+
+/** Header text as the importer compares it: no BOM, trimmed, lowercase, "Sale Price" -> "sale_price". */
+export function normalizeHeader(text) {
+  return String(text ?? "")
+    .replace(LEADING_BOM, "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+}
+
+/** Minimal CSV parser (quoted fields, "" escapes, CRLF). Returns rows of strings. */
+export function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let field = "";
+  let quoted = false;
+  const src = String(text).replace(LEADING_BOM, "");
+  for (let i = 0; i < src.length; i += 1) {
+    const ch = src[i];
+    if (quoted) {
+      if (ch === '"' && src[i + 1] === '"') {
+        field += '"';
+        i += 1;
+      } else if (ch === '"') {
+        quoted = false;
+      } else {
+        field += ch;
+      }
+    } else if (ch === '"') {
+      quoted = true;
+    } else if (ch === ",") {
+      row.push(field);
+      field = "";
+    } else if (ch === "\n" || ch === "\r") {
+      if (ch === "\r" && src[i + 1] === "\n") i += 1;
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = "";
+    } else {
+      field += ch;
+    }
+  }
+  if (field !== "" || row.length > 0) {
+    row.push(field);
+    rows.push(row);
+  }
+  return rows.filter((r) => r.some((c) => String(c).trim() !== ""));
+}
+
 /**
- * Read an edited workbook back into { variants, content } rows for the API.
+ * Turn a header row + data rows into API records for one sheet.
+ * `rowNumberOf(i)` gives the spreadsheet row number of data row i (for messages).
+ */
+function rowsToRecords(headers, dataRows, columns, rowNumberOf) {
+  const headerIndex = {};
+  headers.forEach((h, i) => {
+    const key = normalizeHeader(h);
+    if (key && headerIndex[key] === undefined) headerIndex[key] = i;
+  });
+  const missingId = headerIndex.product_id === undefined;
+  const records = [];
+  let rowsWithoutId = 0;
+  dataRows.forEach((cells, i) => {
+    const record = { row: rowNumberOf(i) };
+    let hasId = false;
+    let hasAny = false;
+    columns.forEach((c) => {
+      const col = headerIndex[c.header];
+      if (col === undefined) return;
+      let v = cells[col];
+      if (v === undefined || v === null) v = "";
+      if (typeof v === "string") v = v.trim();
+      if (c.key === "description" && v === NOT_EDITABLE_DESCRIPTION) v = "";
+      record[c.key] = v;
+      if (v !== "") hasAny = true;
+      if (c.key === "productId" && v) hasId = true;
+    });
+    if (hasId) records.push(record);
+    else if (hasAny) rowsWithoutId += 1;
+  });
+  return { records, missingId, rowsWithoutId };
+}
+
+/**
+ * Read an edited file back into { variants, content } rows for the API.
+ * Accepts the exported .xlsx or a .csv of either sheet.
  * Columns are found by header name, so reordering columns is fine.
- * Each row carries its spreadsheet row number for error messages.
+ * Each row carries its spreadsheet row number for error messages, and
+ * `warnings` lists anything that was ignored so nothing is dropped silently.
  */
 export async function readPricesContentWorkbook(file) {
+  const out = { variants: [], content: [], missingSheets: [], warnings: [] };
+  const isCsv = /\.csv$/i.test(file.name || "") || file.type === "text/csv";
+
+  const addSheet = ({ name, columns, dataKey }, headers, dataRows, rowNumberOf) => {
+    const { records, missingId, rowsWithoutId } = rowsToRecords(headers, dataRows, columns, rowNumberOf);
+    if (missingId) {
+      out.warnings.push(
+        `"${name}": no product_id column was found in the first row, so no rows could be read. Keep the header row exactly as exported.`
+      );
+    } else if (rowsWithoutId > 0) {
+      out.warnings.push(`"${name}": ${rowsWithoutId} row(s) have no product_id and were ignored.`);
+    }
+    out[dataKey].push(...records);
+  };
+
+  if (isCsv) {
+    const rows = parseCsv(await file.text());
+    const headers = (rows[0] || []).map(normalizeHeader);
+    // A CSV holds one sheet: variant rows have a variant_id column.
+    const sheet = headers.includes("variant_id") ? SHEETS[0] : SHEETS[1];
+    out.missingSheets = SHEETS.filter((s) => s !== sheet).map((s) => s.name);
+    if (!headers.includes("product_id")) out.missingSheets = SHEETS.map((s) => s.name);
+    else addSheet(sheet, rows[0], rows.slice(1), (i) => i + 2);
+    return out;
+  }
+
   const workbook = new ExcelJS.Workbook();
   await workbook.xlsx.load(await file.arrayBuffer());
-  const out = { variants: [], content: [], missingSheets: [] };
-
-  SHEETS.forEach(({ name, columns, dataKey }) => {
-    const ws = workbook.getWorksheet(name);
-    if (!ws) {
-      out.missingSheets.push(name);
-      return;
-    }
-    const headerIndex = {};
+  const readSheet = (ws) => {
+    const headers = [];
     ws.getRow(1).eachCell((cell, col) => {
-      const h = String(cellText(cell.value)).trim().toLowerCase();
-      if (h) headerIndex[h] = col;
+      headers[col - 1] = String(cellText(cell.value));
     });
+    for (let i = 0; i < headers.length; i += 1) if (headers[i] === undefined) headers[i] = "";
+    const dataRows = [];
+    const rowNumbers = [];
     ws.eachRow((row, rowNumber) => {
       if (rowNumber === 1) return;
-      const record = { row: rowNumber };
-      let hasId = false;
-      columns.forEach((c) => {
-        const col = headerIndex[c.header];
-        if (!col) return;
-        let v = cellText(row.getCell(col).value);
-        if (typeof v === "string") v = v.trim();
-        if (c.key === "description" && v === NOT_EDITABLE_DESCRIPTION) v = "";
-        record[c.key] = v;
-        if (c.key === "productId" && v) hasId = true;
-      });
-      if (hasId) out[dataKey].push(record);
+      const cells = [];
+      for (let c = 1; c <= headers.length; c += 1) cells.push(cellText(row.getCell(c).value));
+      dataRows.push(cells);
+      rowNumbers.push(rowNumber);
     });
+    return { headers, dataRows, rowNumberOf: (i) => rowNumbers[i] };
+  };
+
+  SHEETS.forEach((sheet) => {
+    // Sheet names are matched loosely ("variant prices", "Variant Prices ").
+    const ws =
+      workbook.getWorksheet(sheet.name) ||
+      workbook.worksheets.find((w) => normalizeHeader(w.name) === normalizeHeader(sheet.name));
+    if (!ws) {
+      out.missingSheets.push(sheet.name);
+      return;
+    }
+    const { headers, dataRows, rowNumberOf } = readSheet(ws);
+    addSheet(sheet, headers, dataRows, rowNumberOf);
   });
+
+  // Neither sheet name found (e.g. a CSV re-saved as Excel, "Sheet1"): use any sheet
+  // whose header row has product_id, deciding by whether it has variant_id.
+  if (out.missingSheets.length === SHEETS.length) {
+    workbook.worksheets.forEach((ws) => {
+      const { headers, dataRows, rowNumberOf } = readSheet(ws);
+      const keys = headers.map(normalizeHeader);
+      if (!keys.includes("product_id")) return;
+      const sheet = keys.includes("variant_id") ? SHEETS[0] : SHEETS[1];
+      out.missingSheets = out.missingSheets.filter((n) => n !== sheet.name);
+      addSheet(sheet, headers, dataRows, rowNumberOf);
+    });
+  }
+
+  // An Excel file without the "Variant Prices" sheet cannot change any price.
+  if (out.missingSheets.includes(SHEETS[0].name) && !out.missingSheets.includes(SHEETS[1].name)) {
+    const names = workbook.worksheets.map((w) => `"${w.name}"`).join(", ");
+    out.warnings.push(
+      `No "Variant Prices" sheet was found (sheets in this file: ${names}), so no prices were read. Keep the sheet names from the export.`
+    );
+  }
   return out;
 }

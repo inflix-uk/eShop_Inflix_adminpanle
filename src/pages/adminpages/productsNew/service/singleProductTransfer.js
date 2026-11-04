@@ -70,7 +70,7 @@ export async function readSingleProductFile(file, producturl) {
     return { product: null, otherProducts: 0, errors: [], hasProductUrlColumn: false };
   }
 
-  const { products, errors } = rowsToProducts(rows);
+  const { products, errors } = rowsToProducts(rows, headers);
   const target = String(producturl || "").trim().toLowerCase();
   const product =
     products.find((p) => String(p.producturl).trim().toLowerCase() === target) || null;
@@ -78,7 +78,10 @@ export async function readSingleProductFile(file, producturl) {
   return {
     product,
     otherProducts: products.length - (product ? 1 : 0),
-    errors: errors.filter((e) => !product || e.message.includes(`"${product.producturl}"`)),
+    // Header-row warnings (line 1) apply to every product in the file.
+    errors: errors.filter(
+      (e) => !product || e.line === 1 || e.message.includes(`"${product.producturl}"`)
+    ),
     hasProductUrlColumn: true,
   };
 }

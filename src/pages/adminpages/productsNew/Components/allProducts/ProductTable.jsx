@@ -45,7 +45,7 @@ const ProductTable = ({
                 Variants
               </th>
               <th scope="col" className="px-4 lg:px-6 py-5 font-semibold">
-                Condition
+                Conditions
               </th>
               <th scope="col" className="px-4 lg:px-6 py-5 font-semibold">
                 Featured
@@ -86,6 +86,7 @@ ProductTable.propTypes = {
       name: PropTypes.string.isRequired,
       category: PropTypes.string.isRequired,
       condition: PropTypes.string.isRequired,
+      conditions: PropTypes.arrayOf(PropTypes.string),
       is_featured: PropTypes.bool.isRequired,
       status: PropTypes.bool.isRequired,
       variantValues: PropTypes.arrayOf(PropTypes.object), // Optional - only for single products

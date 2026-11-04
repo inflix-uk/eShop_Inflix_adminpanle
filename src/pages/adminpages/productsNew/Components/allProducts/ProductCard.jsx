@@ -19,6 +19,12 @@ function getThumbUrl(image, ip) {
   return "";
 }
 
+// Conditions the product is sold in (from variants), else the product-level condition
+const getConditions = (product) => {
+  if (Array.isArray(product.conditions) && product.conditions.length > 0) return product.conditions;
+  return product.condition && product.condition !== "null" ? [product.condition] : [];
+};
+
 const ProductCard = ({
   product,
   index,
@@ -99,9 +105,9 @@ const ProductCard = ({
         </div>
 
         <div>
-          <span className="text-gray-500">Condition:</span>
+          <span className="text-gray-500">Conditions:</span>
           <div className="font-medium text-gray-900 mt-1">
-            {product.condition && product.condition !== "null" ? product.condition : "—"}
+            {getConditions(product).join(", ") || "—"}
           </div>
         </div>
 
@@ -285,6 +291,7 @@ ProductCard.propTypes = {
     name: PropTypes.string.isRequired,
     category: PropTypes.string.isRequired,
     condition: PropTypes.string.isRequired,
+    conditions: PropTypes.arrayOf(PropTypes.string),
     is_featured: PropTypes.bool.isRequired,
     status: PropTypes.bool.isRequired,
     variantValues: PropTypes.arrayOf(PropTypes.object),

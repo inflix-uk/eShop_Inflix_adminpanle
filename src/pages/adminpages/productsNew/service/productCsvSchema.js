@@ -254,15 +254,15 @@ export const COLUMN_GUIDE = [
     level: "variant",
     required: "Variant products: REQUIRED",
     howToFill:
-      "What makes this variant different: slug=Value pairs joined by | . The attribute slug (color, storage, …) must already exist. New values (e.g. Pink) are created on import. LEAVE EMPTY for single products. Every variant row of a product should use the same attribute slugs.",
-    example: "scent=White Tea|size=S",
+      "What makes this variant different: slug=Value pairs joined by | . Use the attribute slug shown in the Reference sheet's variant_attributes list (e.g. variant-colour, storage, condition); the attribute must already exist. New values (e.g. Awesome Gray) are created on import. LEAVE EMPTY for single products. Every variant row of a product should use the same attribute slugs. A separate 'colour' column is not read — put the colour here.",
+    example: "condition=Brand New|variant-colour=Awesome Gray|storage=128GB",
     formLocation: "Pricing & Inventory → Variants",
   },
   {
     key: "variant_name",
     level: "variant",
     required: "Optional",
-    howToFill: "Auto-built from the attribute values when blank. Single products use the reserved name 'single'.",
+    howToFill: "Built from the variant_attributes values whenever they are filled (so it matches the storefront); only used as typed when variant_attributes is empty. Single products use the reserved name 'single'.",
     example: "white-tea-s",
     formLocation: "Pricing & Inventory → Variants",
   },
@@ -467,17 +467,25 @@ export const encodeVariantAttributes = (attributes) =>
         .join(MULTI)
     : "";
 
-export const decodeVariantAttributes = (str) =>
-  splitMulti(str)
-    .map((pair) => {
-      const idx = pair.indexOf("=");
-      if (idx === -1) return null;
-      return {
-        attributeSlug: pair.slice(0, idx).trim(),
-        value: pair.slice(idx + 1).trim(),
-      };
-    })
-    .filter(Boolean);
+/**
+ * Also accepts `slug:Value` (a common hand-typed slip). Pairs that still
+ * cannot be split are returned in `invalid` so the import can warn about them.
+ */
+export function parseVariantAttributes(str) {
+  const attributes = [];
+  const invalid = [];
+  splitMulti(str).forEach((pair) => {
+    let idx = pair.indexOf("=");
+    if (idx === -1) idx = pair.indexOf(":");
+    const attributeSlug = idx === -1 ? "" : pair.slice(0, idx).trim();
+    const value = idx === -1 ? "" : pair.slice(idx + 1).trim();
+    if (!attributeSlug || !value) invalid.push(pair);
+    else attributes.push({ attributeSlug, value });
+  });
+  return { attributes, invalid };
+}
+
+export const decodeVariantAttributes = (str) => parseVariantAttributes(str).attributes;
 
 /** Image objects -> URL list. Prefers `url`, falls back to `path`. */
 export const encodeImages = (images) =>
@@ -745,12 +753,27 @@ const toBool = (v) => {
 
 /**
  * Group flat rows back into product payloads.
- * Returns { products, errors } — errors are per-row and never throw.
+ * Returns { products, errors } — errors are per-row warnings and never throw.
+ * `headers` defaults to the first row's keys (both readers fill every header).
  */
-export function rowsToProducts(rows) {
+export function rowsToProducts(rows, headers = Object.keys(rows?.[0] || {})) {
   const groups = new Map();
   const errors = [];
+  const typeWarned = new Set();
   let skippedSamples = 0;
+
+  // Unknown columns are not imported — say so instead of dropping them silently.
+  const known = new Set(ALL_COLUMNS);
+  const unknown = (headers || []).filter((h) => h && !known.has(h));
+  if (unknown.length) {
+    const colourHint = unknown.some((h) => /colou?r/.test(h))
+      ? " To import a colour, add it to variant_attributes, e.g. variant-colour=Awesome Gray (use the slug from the Reference sheet)."
+      : "";
+    errors.push({
+      line: 1,
+      message: `Column${unknown.length === 1 ? "" : "s"} ${unknown.map((h) => `"${h}"`).join(", ")} ${unknown.length === 1 ? "is" : "are"} not recognised and will be ignored.${colourHint}`,
+    });
+  }
 
   rows.forEach((row, idx) => {
     const line = idx + 2; // +1 for the header, +1 for 1-based numbering
@@ -818,9 +841,26 @@ export function rowsToProducts(rows) {
       errors.push({ line, message: `"${producturl}" variant has neither price nor sale_price — a NEW product would show as £0 (updates keep the stored price).` });
     }
 
+    const { attributes, invalid } = parseVariantAttributes(row.variant_attributes);
+    if (invalid.length) {
+      errors.push({
+        line,
+        message: `"${producturl}" variant_attributes ${invalid.map((p) => `"${p}"`).join(", ")} ignored — write each as slug=Value, e.g. variant-colour=Awesome Gray.`,
+      });
+    }
+    if (attributes.length && group.productType.type !== "variant" && !typeWarned.has(producturl)) {
+      typeWarned.add(producturl);
+      errors.push({
+        line,
+        message: group.productType.type === "single"
+          ? `"${producturl}" is product_type single, so its variant_attributes are not used as options — set product_type = variant.`
+          : `"${producturl}" has variant_attributes but no product_type — a NEW product is created as single and its options are not used. Set product_type = variant.`,
+      });
+    }
+
     group.variants.push({
       name: String(row.variant_name || "").trim() || (group.productType.type === "single" ? "single" : ""),
-      attributes: decodeVariantAttributes(row.variant_attributes),
+      attributes,
       Cost: toNumber(row.cost),
       Price: price,
       // salePrice is typed String in the schema — keep it a plain numeric string.
@@ -834,8 +874,10 @@ export function rowsToProducts(rows) {
   });
 
   // A variant product needs its option list rebuilt from the variant rows.
+  // A blank product_type still sends it: updating a stored variant product
+  // then adds the new options (the server ignores it for single products).
   const products = [...groups.values()].map((g) => {
-    if (g.productType.type === "variant") {
+    if (g.productType.type !== "single") {
       const byAttribute = new Map();
       g.variants.forEach((v) => {
         v.attributes.forEach((a) => {

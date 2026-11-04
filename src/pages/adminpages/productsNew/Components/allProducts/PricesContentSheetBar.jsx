@@ -61,12 +61,23 @@ export default function PricesContentSheetBar({ productIds = [], label = "Prices
     try {
       const parsed = await readPricesContentWorkbook(file);
       if (parsed.missingSheets.length === 2) {
-        throw new Error('This is not a Prices & Content file (no "Variant Prices" or "Descriptions & Perks" sheet)');
+        throw new Error(
+          'This is not a Prices & Content file: no "Variant Prices" or "Descriptions & Perks" sheet, and no product_id column in the first row'
+        );
+      }
+      if (parsed.variants.length === 0 && parsed.content.length === 0) {
+        throw new Error(parsed.warnings[0] || "No rows with a product_id were found in this file");
       }
       const payload = { variants: parsed.variants, content: parsed.content };
       const { data } = await productApi.importPricesContentSheet({ ...payload, dryRun: true });
       if (data?.status !== 200) throw new Error(data?.message || "Could not read the file");
-      setPreview({ payload, result: data, fileName: file.name });
+      setPreview({
+        payload,
+        result: data,
+        fileName: file.name,
+        warnings: parsed.warnings,
+        rowsRead: parsed.variants.length + parsed.content.length,
+      });
     } catch (error) {
       console.error(error);
       toast.error(error?.response?.data?.message || error.message || "Import failed");
@@ -132,7 +143,9 @@ export default function PricesContentSheetBar({ productIds = [], label = "Prices
             className="block w-full px-4 py-2 text-left hover:bg-gray-50"
           >
             <span className="font-medium text-gray-800">Import</span>
-            <span className="block text-xs text-gray-500">Upload the edited file. You will see the changes before saving.</span>
+            <span className="block text-xs text-gray-500">
+              Upload the edited file (.xlsx, or a .csv of one sheet). You will see the changes before saving.
+            </span>
           </button>
         </div>
       )}
@@ -140,7 +153,7 @@ export default function PricesContentSheetBar({ productIds = [], label = "Prices
       <input
         ref={fileInputRef}
         type="file"
-        accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         onChange={handleFilePicked}
         className="hidden"
       />
@@ -154,9 +167,32 @@ export default function PricesContentSheetBar({ productIds = [], label = "Prices
                 {preview.fileName}: {result.changeCount} change{result.changeCount === 1 ? "" : "s"} on{" "}
                 {result.productsChanged} product{result.productsChanged === 1 ? "" : "s"}
                 {result.errors.length > 0 && `, ${result.errors.length} row${result.errors.length === 1 ? "" : "s"} skipped`}
+                {` (${preview.rowsRead} row${preview.rowsRead === 1 ? "" : "s"} read)`}
               </p>
             </div>
             <div className="flex-1 overflow-y-auto px-5 py-3 text-sm">
+              {preview.warnings?.length > 0 && (
+                <div className="mb-3 rounded-md bg-amber-50 p-3 text-amber-900">
+                  {preview.warnings.map((w, i) => (
+                    <p key={i}>{w}</p>
+                  ))}
+                </div>
+              )}
+              {result.warningCount > 0 && (
+                <div className="mb-3 rounded-md bg-orange-50 p-3">
+                  <p className="font-medium text-orange-800">
+                    Please check {result.warningCount} row{result.warningCount === 1 ? "" : "s"} (they will still be saved):
+                  </p>
+                  <ul className="mt-1 list-disc pl-5 text-orange-900">
+                    {(result.warnings || []).slice(0, 50).map((w, i) => (
+                      <li key={i}>
+                        {w.sheet}, row {w.row}: {w.message}
+                      </li>
+                    ))}
+                  </ul>
+                  {result.warningCount > 50 && <p className="mt-1 text-xs">…and {result.warningCount - 50} more.</p>}
+                </div>
+              )}
               {result.errors.length > 0 && (
                 <div className="mb-3 rounded-md bg-amber-50 p-3">
                   <p className="font-medium text-amber-800">These rows will be skipped:</p>
@@ -170,7 +206,11 @@ export default function PricesContentSheetBar({ productIds = [], label = "Prices
                 </div>
               )}
               {result.changeCount === 0 ? (
-                <p className="text-gray-600">Nothing to change — the file matches what is saved.</p>
+                <p className="text-gray-600">
+                  {result.errors.length > 0
+                    ? "Nothing can be saved — every row above was skipped."
+                    : "Nothing to change — every value in the file is the same as what is saved."}
+                </p>
               ) : (
                 <table className="w-full text-left">
                   <thead className="text-xs uppercase text-gray-500">
