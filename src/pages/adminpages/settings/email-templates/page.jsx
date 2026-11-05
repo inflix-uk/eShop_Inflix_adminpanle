@@ -11,6 +11,7 @@ import {
   getOrderEmailTemplates,
   saveOrderEmailTemplates,
   getEmailBrandingPreview,
+  previewTransactionalEmail,
 } from "./service/emailTemplatesService";
 import { openEmailPreviewInNewTab } from "./emailTemplatesPreview";
 import { getSiteTheme } from "../../site-wide-color/service/siteThemeService";
@@ -36,6 +37,9 @@ function isMultilineField(fieldKey) {
     fieldKey === "footerLine2" ||
     fieldKey === "footerLine3" ||
     fieldKey === "introParagraph" ||
+    fieldKey === "adminIntroParagraph" ||
+    fieldKey === "closingParagraph" ||
+    fieldKey === "adminEmailSubject" ||
     fieldKey === "beforeTrackButton" ||
     fieldKey === "closingThanksLine"
   );
@@ -67,6 +71,12 @@ const SECTION_META = {
     hint: "Sent when an order is marked Shipped. Layout is fixed; you edit headings, labels, and footer lines.",
   },
 };
+
+/** Yes/no switches on the receipt / delivered / return / refund templates. */
+const YES_NO_FIELDS = new Set(["enabled", "adminEnabled"]);
+
+/** Dynamic tabs for server-defined templates use ids like `tx:purchaseReceipt`. */
+const TX_PREFIX = "tx:";
 
 /** Tab ids must match `activeTab` / SECTION_META keys */
 const EMAIL_TABS = [
@@ -140,6 +150,7 @@ const SH_BODY_TOKEN_KEYS = [
   "labelTracking",
   "beforeTrackButton",
   "trackButtonText",
+  "labelDeliveryAddress",
   "closingThanksLine",
   "footerLine1",
   "footerLine2",
@@ -157,6 +168,7 @@ const SH_BODY_LABELS = {
   labelTracking: "Label before tracking number",
   beforeTrackButton: "Line above tracking button",
   trackButtonText: "Tracking button text",
+  labelDeliveryAddress: "Label above delivery address",
   closingThanksLine: "Closing line after button",
   footerLine1: "Footer line 1",
   footerLine2: "Footer line 2",
@@ -168,7 +180,9 @@ const SHIPPED_DATA_TOKENS = [
   { token: "{{orderNumber}}", label: "Order number" },
   { token: "{{carrier}}", label: "Carrier / provider" },
   { token: "{{trackingNumber}}", label: "Tracking number" },
-  { token: "{{trackingUrl}}", label: "Tracking link URL (button href)" },
+  { token: "{{trackingUrl}}", label: "Tracking link URL (selected courier)" },
+  { token: "{{trackingButtonHtml}}", label: "Tracking button (HTML, server-built)" },
+  { token: "{{deliveryAddressHtml}}", label: "Delivery address (HTML, server-built)" },
   { token: "{{productListHtml}}", label: "Product list (HTML, server-built)" },
 ];
 
@@ -249,7 +263,7 @@ function AsideSection({ title, children }) {
   );
 }
 
-function MergeTagsReferenceAside() {
+function MergeTagsReferenceAside({ transactionalMergeTags = [] }) {
   return (
     <aside
       className="flex h-full min-h-0 flex-col rounded-2xl border border-gray-200 bg-white shadow-sm lg:min-h-[calc(100vh-7rem)] lg:max-h-[calc(100vh-7rem)] lg:overflow-hidden xl:sticky xl:top-24"
@@ -308,6 +322,17 @@ function MergeTagsReferenceAside() {
           ))}
         </AsideSection>
 
+        {transactionalMergeTags.length > 0 && (
+          <AsideSection title="Receipt · delivered · returns · refunds">
+            <p className="mb-1 text-[10px] text-gray-400">
+              Use in any text field of these tabs (subject, intro, closing, footer).
+            </p>
+            {transactionalMergeTags.map((row) => (
+              <CopyTokenRow key={row.token} token={row.token} label={row.label} />
+            ))}
+          </AsideSection>
+        )}
+
         <AsideSection title="Order shipped · subject">
           <p className="mb-1 text-[10px] text-gray-400">Use in “Email subject” on the Shipped tab.</p>
           <CopyTokenRow token="{{orderNumber}}" label="Order number" />
@@ -348,7 +373,17 @@ function FieldEditor({ fieldKey, label, value, onChange }) {
       >
         {label}
       </label>
-      {isLong ? (
+      {YES_NO_FIELDS.has(fieldKey) ? (
+        <select
+          id={`etf-${fieldKey}`}
+          className={`${inputClass} sm:w-48`}
+          value={String(value || "yes").toLowerCase() === "no" ? "no" : "yes"}
+          onChange={(e) => onChange(fieldKey, e.target.value)}
+        >
+          <option value="yes">Yes — send</option>
+          <option value="no">No — don&apos;t send</option>
+        </select>
+      ) : isLong ? (
         <textarea
           id={`etf-${fieldKey}`}
           rows={5}
@@ -392,6 +427,11 @@ export default function EmailTemplatesSettings() {
   const [orderStatusAdmin, setOrderStatusAdmin] = useState({});
   const [orderShippedCustomer, setOrderShippedCustomer] = useState({});
   const [orderNumberPrefix, setOrderNumberPrefix] = useState("Z");
+  /** Receipt / delivered / return / refund templates: [{ key, label, group, hint, fieldLabels }] */
+  const [txDefs, setTxDefs] = useState([]);
+  /** { [type]: { field: value } } */
+  const [transactional, setTransactional] = useState({});
+  const [txMergeTags, setTxMergeTags] = useState([]);
   /** Primary / secondary / typography — fallback when live email branding API is unavailable. */
   const [siteTheme, setSiteTheme] = useState(null);
   /** Logo + exact tints from backend `getEmailBranding()` (matches sent mail). */
@@ -480,6 +520,15 @@ export default function EmailTemplatesSettings() {
         if (o?.templates?.orderShippedCustomer) {
           setOrderShippedCustomer({ ...o.templates.orderShippedCustomer });
         }
+        if (Array.isArray(o?.transactionalDefinitions)) {
+          setTxDefs(o.transactionalDefinitions);
+        }
+        if (o?.transactional && typeof o.transactional === "object") {
+          setTransactional(JSON.parse(JSON.stringify(o.transactional)));
+        }
+        if (Array.isArray(o?.transactionalMergeTags)) {
+          setTxMergeTags(o.transactionalMergeTags);
+        }
         if (o?.orderNumberPrefix != null && o.orderNumberPrefix !== "") {
           setOrderNumberPrefix(String(o.orderNumberPrefix));
         } else {
@@ -537,7 +586,48 @@ export default function EmailTemplatesSettings() {
     setOrderShippedCustomer((prev) => ({ ...prev, [key]: val }));
   };
 
+  const patchTransactional = (type) => (key, val) => {
+    setTransactional((prev) => ({ ...prev, [type]: { ...(prev[type] || {}), [key]: val } }));
+  };
+
+  const activeTxDef = activeTab.startsWith(TX_PREFIX)
+    ? txDefs.find((d) => `${TX_PREFIX}${d.key}` === activeTab)
+    : null;
+
+  const allTabs = useMemo(
+    () => [
+      ...EMAIL_TABS,
+      ...txDefs.map((d) => ({ id: `${TX_PREFIX}${d.key}`, label: d.label, group: d.group || "Orders" })),
+    ],
+    [txDefs]
+  );
+
+  const openServerPreview = async (audience) => {
+    if (!activeTxDef) return;
+    // Open synchronously so pop-up blockers allow it, then fill once rendered.
+    const win = window.open("", "_blank");
+    try {
+      const { html } = await previewTransactionalEmail(
+        activeTxDef.key,
+        transactional[activeTxDef.key] || {},
+        audience
+      );
+      if (win) {
+        win.document.open();
+        win.document.write(html);
+        win.document.close();
+      }
+    } catch (err) {
+      if (win) win.close();
+      setNotice({ show: true, message: err?.message || "Preview failed", type: "error" });
+    }
+  };
+
   const handleOpenPreview = () => {
+    if (activeTxDef) {
+      openServerPreview("customer");
+      return;
+    }
     openEmailPreviewInNewTab(activeTab, {
       welcome,
       hotUk,
@@ -563,6 +653,7 @@ export default function EmailTemplatesSettings() {
         orderStatusCustomer,
         orderStatusAdmin,
         orderShippedCustomer,
+        transactional,
       });
       await loadData();
       setNotice({
@@ -761,8 +852,8 @@ export default function EmailTemplatesSettings() {
                     aria-label="Template sections"
                     className="mt-3 flex flex-wrap gap-1.5 rounded-xl border border-gray-200 bg-gray-50/90 p-1.5"
                   >
-                      {EMAIL_TABS.map((t, i) => {
-                        const prevGroup = i > 0 ? EMAIL_TABS[i - 1].group : null;
+                      {allTabs.map((t, i) => {
+                        const prevGroup = i > 0 ? allTabs[i - 1].group : null;
                         const showDivider = prevGroup && prevGroup !== t.group;
                         return (
                           <Fragment key={t.id}>
@@ -807,7 +898,7 @@ export default function EmailTemplatesSettings() {
                     id={`email-tabpanel-${activeTab}-hint`}
                     className="mb-5 mt-4 text-sm text-gray-500"
                   >
-                    {SECTION_META[activeTab]?.hint}
+                    {activeTxDef ? activeTxDef.hint : SECTION_META[activeTab]?.hint}
                   </p>
 
                   <div
@@ -841,6 +932,27 @@ export default function EmailTemplatesSettings() {
                         orderShippedCustomer,
                         patchOrderShippedCustomer
                       )}
+                    {activeTxDef && (
+                      <>
+                        {Object.prototype.hasOwnProperty.call(activeTxDef.fieldLabels || {}, "adminEnabled") && (
+                          <div className="mb-3 flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() => openServerPreview("admin")}
+                              className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
+                            >
+                              Preview admin / seller copy
+                            </button>
+                          </div>
+                        )}
+                        {renderFields(
+                          Object.keys(activeTxDef.fieldLabels || {}),
+                          activeTxDef.fieldLabels || {},
+                          transactional[activeTxDef.key] || {},
+                          patchTransactional(activeTxDef.key)
+                        )}
+                      </>
+                    )}
                   </div>
                 </section>
 
@@ -857,7 +969,7 @@ export default function EmailTemplatesSettings() {
                   </button>
                 </div>
               </form>
-              <MergeTagsReferenceAside />
+              <MergeTagsReferenceAside transactionalMergeTags={txMergeTags} />
               </div>
             )}
           </div>

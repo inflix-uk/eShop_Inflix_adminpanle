@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import ordersService from '../../service/ordersService';
 import { getOrderLineItemImageUrl } from '../../utils/orderItemImageUrl';
+import { useCouriers, findCourier, buildTrackingUrl } from '../../../../../utils/couriers';
 
 const STATUS_OPTIONS = [
   { value: 'Pending', label: 'Pending' },
@@ -13,15 +14,16 @@ const STATUS_OPTIONS = [
   { value: 'Failed', label: 'Failed' },
 ];
 
-const PROVIDER_OPTIONS = [
-  { value: 'Royal Mail', label: 'Royal Mail' },
-  { value: 'DPD', label: 'DPD' },
-  { value: 'FedEx', label: 'FedEx' },
-  { value: 'UPS', label: 'UPS' },
-  { value: 'Evri', label: 'Evri' },
-  { value: 'DHL', label: 'DHL' },
-  { value: 'Other', label: 'Other' },
-];
+/** Map a stored courier name onto the dropdown: known courier -> itself, anything else -> Other + custom name. */
+function initialCourierState(couriers, currentProvider, currentTrackingUrl, currentTrackingUrlCustom) {
+  const known = findCourier(couriers, currentProvider);
+  const isOther = !known || known.id === 'other';
+  return {
+    provider: currentProvider ? (isOther ? 'Other' : known.name) : 'Royal Mail',
+    customProvider: currentProvider && isOther && known?.id !== 'other' ? currentProvider : '',
+    customTrackingUrl: currentTrackingUrlCustom ? currentTrackingUrl || '' : '',
+  };
+}
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -32,14 +34,19 @@ const ShippingUpdateModal = ({
   currentStatus,
   currentProvider,
   currentTrackingNumber,
+  currentTrackingUrl,
+  currentTrackingUrlCustom,
   currentNotes,
   orderTotal,
   isLoading,
   orderDetails,
   isLoadingOrderDetails,
 }) => {
+  const couriers = useCouriers();
   const [status, setStatus] = useState('Shipped');
   const [provider, setProvider] = useState(currentProvider || 'Royal Mail');
+  const [customProvider, setCustomProvider] = useState('');
+  const [customTrackingUrl, setCustomTrackingUrl] = useState('');
   const [trackingNumber, setTrackingNumber] = useState(currentTrackingNumber || '');
   const [notes, setNotes] = useState(currentNotes || '');
   const [refundType, setRefundType] = useState('full');
@@ -62,7 +69,10 @@ const ShippingUpdateModal = ({
     if (isOpen) {
       // Default status to "Shipped"
       setStatus('Shipped');
-      setProvider(currentProvider || 'Royal Mail');
+      const init = initialCourierState(couriers, currentProvider, currentTrackingUrl, currentTrackingUrlCustom);
+      setProvider(init.provider);
+      setCustomProvider(init.customProvider);
+      setCustomTrackingUrl(init.customTrackingUrl);
       setTrackingNumber(currentTrackingNumber || '');
       setNotes(currentNotes || '');
       setRefundType('full');
@@ -70,7 +80,19 @@ const ShippingUpdateModal = ({
       setErrors({});
       setCartDetails([]);
     }
-  }, [isOpen, currentProvider, currentTrackingNumber, currentNotes]);
+    // couriers intentionally omitted: re-initialising when the list loads would wipe user input
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, currentProvider, currentTrackingNumber, currentTrackingUrl, currentTrackingUrlCustom, currentNotes]);
+
+  const isOtherCourier = provider === 'Other';
+  const customUrlTrimmed = customTrackingUrl.trim();
+  const customUrlInvalid = customUrlTrimmed !== '' && !/^https?:\/\/\S+$/i.test(customUrlTrimmed);
+  const trackingUrlPreview = buildTrackingUrl(
+    couriers,
+    isOtherCourier ? customProvider : provider,
+    trackingNumber,
+    customUrlInvalid ? '' : customUrlTrimmed
+  );
 
   // Fetch complete cart details when order details are available
   useEffect(() => {
@@ -99,6 +121,8 @@ const ShippingUpdateModal = ({
       if (!trackingNumber || trackingNumber.trim() === '') {
         return false;
       }
+      if (isOtherCourier && customProvider.trim() === '') return false;
+      if (customUrlInvalid) return false;
     }
 
     if (status === 'Refunded') {
@@ -119,6 +143,12 @@ const ShippingUpdateModal = ({
     if (status === 'Shipped') {
       if (!trackingNumber || trackingNumber.trim() === '') {
         newErrors.trackingNumber = 'Tracking number is required';
+      }
+      if (isOtherCourier && customProvider.trim() === '') {
+        newErrors.customProvider = 'Enter the courier name';
+      }
+      if (customUrlInvalid) {
+        newErrors.customTrackingUrl = 'Tracking URL must start with http:// or https://';
       }
     }
 
@@ -147,8 +177,11 @@ const ShippingUpdateModal = ({
       // Only include shipping details when status is Shipped
       if (status === 'Shipped') {
         updateData.shippingDetails = {
-          provider,
-          trackingNumber,
+          provider: isOtherCourier ? customProvider.trim() : provider,
+          ...(isOtherCourier ? { customProvider: customProvider.trim() } : {}),
+          trackingNumber: trackingNumber.trim(),
+          // Empty -> backend builds the link from the courier map. Filled -> kept as a custom link.
+          trackingUrl: customUrlTrimmed,
           notes,
         };
       }
@@ -167,6 +200,8 @@ const ShippingUpdateModal = ({
   const handleClose = () => {
     setStatus('Shipped');
     setProvider(currentProvider || 'Royal Mail');
+    setCustomProvider('');
+    setCustomTrackingUrl('');
     setTrackingNumber(currentTrackingNumber || '');
     setNotes(currentNotes || '');
     setRefundType('full');
@@ -599,13 +634,34 @@ const ShippingUpdateModal = ({
                       onChange={(e) => setProvider(e.target.value)}
                       className="block w-full rounded-md border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
                     >
-                      {PROVIDER_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
+                      {couriers.map((c) => (
+                        <option key={c.id || c.name} value={c.name}>
+                          {c.name}
                         </option>
                       ))}
                     </select>
                   </div>
+
+                  {isOtherCourier && (
+                    <div>
+                      <label htmlFor="customProvider" className="block text-sm font-medium text-gray-900 mb-2">
+                        Courier name <span className="text-red-600">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        id="customProvider"
+                        value={customProvider}
+                        onChange={(e) => setCustomProvider(e.target.value)}
+                        className={`block w-full rounded-md border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ${
+                          errors.customProvider ? 'ring-red-500' : 'ring-gray-300'
+                        } placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6`}
+                        placeholder="e.g. APC Overnight"
+                      />
+                      {errors.customProvider && (
+                        <p className="mt-1 text-sm text-red-600">{errors.customProvider}</p>
+                      )}
+                    </div>
+                  )}
 
                   {/* Tracking Number */}
                   <div>
@@ -627,6 +683,42 @@ const ShippingUpdateModal = ({
                     {errors.trackingNumber && (
                       <p className="mt-1 text-sm text-red-600">{errors.trackingNumber}</p>
                     )}
+                  </div>
+
+                  {/* Custom tracking URL (optional) */}
+                  <div>
+                    <label htmlFor="customTrackingUrl" className="block text-sm font-medium text-gray-900 mb-2">
+                      Custom tracking URL <span className="text-gray-400 font-normal">(optional)</span>
+                    </label>
+                    <input
+                      type="url"
+                      id="customTrackingUrl"
+                      value={customTrackingUrl}
+                      onChange={(e) => setCustomTrackingUrl(e.target.value)}
+                      className={`block w-full rounded-md border-0 py-2 px-3 text-gray-900 shadow-sm ring-1 ring-inset ${
+                        errors.customTrackingUrl || customUrlInvalid ? 'ring-red-500' : 'ring-gray-300'
+                      } placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6`}
+                      placeholder="Leave empty to use the courier's tracking page"
+                    />
+                    {(errors.customTrackingUrl || customUrlInvalid) && (
+                      <p className="mt-1 text-sm text-red-600">
+                        {errors.customTrackingUrl || 'Tracking URL must start with http:// or https://'}
+                      </p>
+                    )}
+                    <p className="mt-1 text-xs text-gray-500 break-all">
+                      {trackingUrlPreview ? (
+                        <>
+                          Customer tracking link:{' '}
+                          <a href={trackingUrlPreview} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                            {trackingUrlPreview}
+                          </a>
+                        </>
+                      ) : isOtherCourier ? (
+                        'No tracking link will be sent unless you enter a custom URL.'
+                      ) : (
+                        'Enter a tracking number to see the tracking link.'
+                      )}
+                    </p>
                   </div>
 
                   {/* Notes */}
@@ -692,6 +784,8 @@ ShippingUpdateModal.propTypes = {
   currentStatus: PropTypes.string,
   currentProvider: PropTypes.string,
   currentTrackingNumber: PropTypes.string,
+  currentTrackingUrl: PropTypes.string,
+  currentTrackingUrlCustom: PropTypes.bool,
   currentNotes: PropTypes.string,
   orderTotal: PropTypes.number,
   isLoading: PropTypes.bool,

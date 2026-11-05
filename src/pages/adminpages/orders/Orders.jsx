@@ -348,6 +348,8 @@ export default function Orders() {
                     shippingDetails: {
                       ...order.shippingDetails,
                       ...updateData.shippingDetails,
+                      // canonical courier name + tracking URL from the server
+                      ...(response.order?.shippingDetails || {}),
                     },
                   }),
                 }
@@ -837,6 +839,8 @@ export default function Orders() {
                       currentStatus={selectedOrder?.status || ""}
                       currentProvider={selectedOrder?.shippingDetails?.provider || ""}
                       currentTrackingNumber={selectedOrder?.shippingDetails?.trackingNumber || ""}
+                      currentTrackingUrl={selectedOrder?.shippingDetails?.trackingUrl || ""}
+                      currentTrackingUrlCustom={Boolean(selectedOrder?.shippingDetails?.trackingUrlCustom)}
                       currentNotes={selectedOrder?.shippingDetails?.notes || ""}
                       orderTotal={
                         selectedOrder

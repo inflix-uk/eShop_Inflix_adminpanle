@@ -381,6 +381,12 @@ const OrderDetails = () => {
 
       if (response.success && response.status === 200) {
         toast.success("Shipping details updated successfully.");
+        // Prefer the server's canonical courier name + tracking URL over what was typed.
+        const savedShipping = {
+          ...(updateData.shippingDetails || {}),
+          ...(response.order?.shippingDetails || {}),
+        };
+        delete savedShipping.customProvider;
 
         // Update local state with new values
         setOrderDetail((prev) => ({
@@ -388,7 +394,7 @@ const OrderDetails = () => {
           status: updateData.status,
           shippingDetails: {
             ...prev.shippingDetails,
-            ...updateData.shippingDetails,
+            ...savedShipping,
           },
           ...(updateData.refund && { refund: updateData.refund }),
         }));
@@ -398,7 +404,7 @@ const OrderDetails = () => {
           status: updateData.status,
           shippingDetails: {
             ...prev.shippingDetails,
-            ...updateData.shippingDetails,
+            ...savedShipping,
           },
           ...(updateData.refund && { refund: updateData.refund }),
         }));
@@ -1859,6 +1865,8 @@ const OrderDetails = () => {
         currentStatus={orderDetail?.status}
         currentProvider={orderDetail?.shippingDetails?.provider}
         currentTrackingNumber={orderDetail?.shippingDetails?.trackingNumber}
+        currentTrackingUrl={orderDetail?.shippingDetails?.trackingUrl || ""}
+        currentTrackingUrlCustom={Boolean(orderDetail?.shippingDetails?.trackingUrlCustom)}
         currentNotes={orderDetail?.shippingDetails?.notes}
         orderTotal={calculateOrderTotal()}
         isLoading={isShippingUpdating}

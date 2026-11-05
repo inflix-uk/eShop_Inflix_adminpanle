@@ -6,6 +6,7 @@ import {
   CalculatorIcon,
   CurrencyPoundIcon,
 } from '@heroicons/react/24/solid';
+import StableImage from './StableImage';
 
 /**
  * Products Table Component
@@ -62,19 +63,14 @@ const ProductsTable = ({ products, getImageUrl, onImageClick }) => {
               const nameParts = item.name ? item.name.split('-') : ['N/A', 'N/A', 'N/A'];
 
               return (
-                <tr key={index} className="border-b hover:bg-gray-50">
+                <tr key={item?._id || index} className="border-b hover:bg-gray-50">
                   <td className="px-4 py-2">
                     <div className='flex items-center space-x-4'>
-                      <img
-                        src={getImageUrl(item?.metaImage?.path)}
+                      <StableImage
+                        src={getImageUrl(item?.metaImage?.url || item?.metaImage?.path)}
                         alt={item.productName || 'Product'}
-                        className="w-16 h-16 object-cover rounded-md cursor-pointer"
+                        className="w-16 h-16 shrink-0 object-cover rounded-md cursor-pointer"
                         onClick={() => onImageClick(index)}
-                        loading="lazy"
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src = '/assets/images/fallback.jpg';
-                        }}
                       />
                       <span>{item.productName}</span>
                     </div>
@@ -113,6 +109,7 @@ ProductsTable.propTypes = {
       salePrice: PropTypes.number,
       qty: PropTypes.number,
       metaImage: PropTypes.shape({
+        url: PropTypes.string,
         path: PropTypes.string,
       }),
     })

@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import PropTypes from "prop-types";
+import { useCouriers, findCourier, orderTrackingUrl } from "../../../../../utils/couriers";
 
 const OrderInfo = ({
   orderDetail,
@@ -13,6 +14,14 @@ const OrderInfo = ({
 }) => {
   const serialNumberRef = useRef(null);
   const notesRef = useRef(null);
+  const couriers = useCouriers();
+  const editingProvider = updatedOrderDetails?.shippingDetails?.provider || "";
+  // Keep a stored custom courier name selectable instead of silently showing the first option.
+  const providerOptions =
+    editingProvider && !findCourier(couriers, editingProvider)
+      ? [...couriers, { id: `custom-${editingProvider}`, name: editingProvider }]
+      : couriers;
+  const viewTrackingUrl = orderTrackingUrl(orderDetail?.shippingDetails, couriers);
 
   const handleTrackingNumberKeyDown = (e) => {
     if (e.key === "Enter") {
@@ -105,10 +114,14 @@ const OrderInfo = ({
               onChange={onShippingChange}
               className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
             >
-              <option value="Royal Mail">Royal Mail</option>
-              <option value="DPD">DPD</option>
-              <option value="FedEx">FedEx</option>
-              <option value="UPS">UPS</option>
+              {!editingProvider && <option value="">Select courier</option>}
+              {providerOptions
+                .filter((c) => c.id !== "other")
+                .map((c) => (
+                  <option key={c.id || c.name} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
             </select>
           ) : (
             <p className="text-base text-gray-900">
@@ -130,9 +143,21 @@ const OrderInfo = ({
               className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-blue-600 sm:text-sm sm:leading-6"
             />
           ) : (
-            <p className="text-base text-gray-900">
-              {orderDetail.shippingDetails.trackingNumber}
-            </p>
+            <>
+              <p className="text-base text-gray-900">
+                {orderDetail.shippingDetails.trackingNumber}
+              </p>
+              {viewTrackingUrl && (
+                <a
+                  href={viewTrackingUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-blue-600 underline break-all"
+                >
+                  Track with {orderDetail.shippingDetails.provider || "courier"}
+                </a>
+              )}
+            </>
           )}
         </div>
         <div className="flex flex-col ">

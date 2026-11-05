@@ -196,6 +196,11 @@ export default function ImportExportBar({
           `• ${preview.results.created} new product(s) will be created\n` +
           `• ${preview.results.updated} existing product(s) will be updated ` +
           `(matched by producturl — blank cells keep the stored values)\n` +
+          (preview.results.replacedDeleted
+            ? `• ${preview.results.replacedDeleted} of the new product(s) reuse the producturl of a DELETED product: ` +
+              `they are created fresh with only the file's variants, and the deleted copy stays in ` +
+              `Deleted Products under a renamed url\n`
+            : "") +
           (failedRows.length
             ? `• ${failedRows.length} row(s) failed validation and will be skipped\n`
             : "") +

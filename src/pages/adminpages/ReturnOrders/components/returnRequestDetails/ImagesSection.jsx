@@ -1,5 +1,6 @@
 import PropTypes from 'prop-types';
 import { FaTimes, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import StableImage from './StableImage';
 
 /**
  * Images Section Component
@@ -35,17 +36,12 @@ const ImagesSection = ({
       {/* Image Thumbnails */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
         {images.map((file, index) => (
-          <div key={index} className="relative group">
-            <img
+          <div key={file.filename || file.path || index} className="relative group">
+            <StableImage
               src={getImageUrl(file.path)}
               alt={file.originalname}
               className="w-full h-32 object-cover rounded-lg cursor-pointer border border-gray-200 hover:opacity-80 transition-opacity"
               onClick={() => onImageClick(index)}
-              loading="lazy"
-              onError={(e) => {
-                e.target.onerror = null;
-                e.target.src = '/assets/images/fallback.jpg';
-              }}
             />
             {/* Overlay on Hover */}
             <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-25 rounded-lg transition-opacity pointer-events-none"></div>
@@ -97,10 +93,11 @@ const ImagesSection = ({
             )}
 
             {/* Image */}
-            <img
+            <StableImage
               src={getImageUrl(images[currentImageIndex].path)}
               alt={images[currentImageIndex].originalname}
               className="w-full max-h-screen object-contain rounded-lg"
+              loading="eager"
             />
           </div>
         </div>
