@@ -17,6 +17,8 @@ import {
     ImagesSection,
 } from './components/returnRequestDetails';
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
 export default function EditReturnRequests() {
     const { id } = useParams();
     const [progress, setProgress] = useState(0);
@@ -115,14 +117,17 @@ export default function EditReturnRequests() {
 
     const imageFiles = requestData?.files || [];
 
-    // Utility function to correctly form image URLs
-    const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-
-    const getImageUrl = (path) => {
-        if (!path) return '/assets/images/fallback.jpg';
-        if (path.startsWith('http')) return path;
-        return `${BACKEND_URL}${path}`;
-    };
+    // Utility function to correctly form image URLs. Returns '' when there is no image
+    // so StableImage renders its placeholder (no request to a non-existent fallback file).
+    const getImageUrl = useCallback((path) => {
+        if (!path || typeof path !== 'string') return '';
+        if (/^(https?:|data:|blob:)/i.test(path)) return path;
+        // Multer stores `file.path` as a relative OS path (`uploads\requestOrder\x.jpg`
+        // on Windows); normalise to one slash between base and path.
+        const base = (BACKEND_URL || '').replace(/\/+$/, '');
+        const cleanPath = path.replace(/\\/g, '/').replace(/^\.?\/+/, '');
+        return `${base}/${cleanPath}`;
+    }, []);
 
     // Open modal and set the current image index
     const openModal = useCallback((index) => {

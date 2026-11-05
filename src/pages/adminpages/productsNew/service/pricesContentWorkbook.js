@@ -1,10 +1,11 @@
 /**
- * Excel file for the "Prices & Content" export / import.
- *
- * Two editable sheets:
- *   - "Variant Prices": one row per variant (SKU, EAN, MPN, cost, price, sale price,
- *     quantity, active). Each variant keeps its own price.
- *   - "Descriptions & Perks": one row per product (summary, description, perks).
+ * Files for the "Prices & Content" export / import, offered as two separate,
+ * small files so each can be edited (or pasted into ChatGPT) on its own:
+ *   - "Product Details & Pricing" (part "prices"): sheet "Variant Prices", one row
+ *     per variant (SKU, EAN, MPN, cost, price, sale price, quantity, active).
+ *   - "Descriptions & Perks" (part "content"): one row per product (summary,
+ *     description, perks).
+ * Each can be .xlsx or .csv. The old combined workbook (both sheets) still imports.
  * The id columns tie each row to the exact product / variant it came from, so they
  * must not be edited. Blank cells keep what is stored.
  */
@@ -16,6 +17,7 @@ const VARIANT_COLUMNS = [
   { header: "product_id", key: "productId", width: 26, locked: true },
   { header: "variant_id", key: "variantId", width: 26, locked: true },
   { header: "product_name", key: "productName", width: 40, locked: true },
+  { header: "brand", key: "brand", width: 16, locked: true },
   { header: "variant", key: "variant", width: 34, locked: true },
   { header: "sku", key: "sku", width: 20 },
   { header: "ean", key: "ean", width: 18 },
@@ -42,6 +44,25 @@ const SHEETS = [
   { name: "Descriptions & Perks", columns: CONTENT_COLUMNS, dataKey: "content" },
 ];
 
+/** The two halves the admin exports / imports separately. */
+export const PARTS = {
+  prices: {
+    key: "prices",
+    title: "Product Details & Pricing",
+    fileSlug: "product-pricing",
+    sheet: SHEETS[0],
+  },
+  content: {
+    key: "content",
+    title: "Descriptions & Perks",
+    fileSlug: "descriptions-perks",
+    sheet: SHEETS[1],
+  },
+};
+
+const sheetsFor = (part) => (PARTS[part] ? [PARTS[part].sheet] : SHEETS);
+const partOfSheet = (sheet) => Object.values(PARTS).find((p) => p.sheet === sheet)?.key || null;
+
 const LOCKED_FILL = { type: "pattern", pattern: "solid", fgColor: { argb: "FFF3F4F6" } };
 const HEADER_FILL = { type: "pattern", pattern: "solid", fgColor: { argb: "FF1F2937" } };
 
@@ -66,41 +87,79 @@ function addSheet(workbook, { name, columns }, rows) {
   return ws;
 }
 
-export async function buildPricesContentWorkbook({ variants = [], content = [] }) {
+const contentRowsForFile = (content) =>
+  content.map((r) => ({
+    ...r,
+    description: r.descriptionEditable === false ? NOT_EDITABLE_DESCRIPTION : r.description,
+  }));
+
+function howToLines(part) {
+  const one = PARTS[part];
+  const lines = [one ? `${one.title.toUpperCase()} SHEET` : "PRICES & CONTENT SHEET", ""];
+  lines.push(
+    one
+      ? `1. Edit the white cells on the '${one.sheet.name}' sheet.`
+      : "1. Edit the white cells on the 'Variant Prices' and 'Descriptions & Perks' sheets."
+  );
+  if (part !== "content") lines.push("   Every variant has its own row, so each variant keeps its own price.");
+  lines.push(
+    "2. Do not change the grey columns (product_id, variant_id, names, brand). They tell the system which product/variant a row belongs to.",
+    "3. A blank cell means 'keep what is saved'. To change a value, type the new one."
+  );
+  if (part !== "content") lines.push("4. Prices: numbers only (e.g. 249.99). active: Yes or No.");
+  if (part !== "prices") {
+    lines.push(
+      "5. Descriptions and perks are HTML, e.g. <p>Text</p>. Keep the tags if you copy text in. perks_enabled: Yes or No.",
+      `6. A description showing "${NOT_EDITABLE_DESCRIPTION}" has several parts — change it in the product form.`
+    );
+  }
+  lines.push(
+    "7. You can delete rows you are not changing. Rows cannot add or remove variants.",
+    one
+      ? `8. Import it with Prices & Content > ${one.title} > Import. You will see every change before it is saved. This file only ever changes ${one.title.toLowerCase()}.`
+      : "8. Import the file from the products page (Prices & Content). You will see every change before it is saved."
+  );
+  return lines;
+}
+
+/**
+ * Excel file for one part ("prices" | "content"), or both sheets when `part` is
+ * omitted (the original combined workbook).
+ */
+export async function buildPricesContentWorkbook({ variants = [], content = [] }, part) {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Admin panel";
   workbook.created = new Date();
 
   const info = workbook.addWorksheet("How to use");
   info.getColumn(1).width = 110;
-  [
-    "PRICES & CONTENT SHEET",
-    "",
-    "1. Edit the white cells on the 'Variant Prices' and 'Descriptions & Perks' sheets.",
-    "   Every variant has its own row, so each variant keeps its own price.",
-    "2. Do not change the grey columns (product_id, variant_id, names). They tell the system which product/variant a row belongs to.",
-    "3. A blank cell means 'keep what is saved'. To change a value, type the new one.",
-    "4. Prices: numbers only (e.g. 249.99). active / perks_enabled: Yes or No.",
-    "5. Descriptions and perks are HTML, e.g. <p>Text</p>. Keep the tags if you copy text in.",
-    `6. A description showing "${NOT_EDITABLE_DESCRIPTION}" has several parts — change it in the product form.`,
-    "7. You can delete rows you are not changing. Rows cannot add or remove variants.",
-    "8. Import the file from the products page (Prices & Content > Import). You will see every change before it is saved.",
-  ].forEach((line, i) => {
+  howToLines(part).forEach((line, i) => {
     const cell = info.getCell(i + 1, 1);
     cell.value = line;
     if (i === 0) cell.font = { bold: true, size: 14 };
   });
 
-  addSheet(workbook, SHEETS[0], variants);
-  addSheet(
-    workbook,
-    SHEETS[1],
-    content.map((r) => ({
-      ...r,
-      description: r.descriptionEditable === false ? NOT_EDITABLE_DESCRIPTION : r.description,
-    }))
-  );
+  sheetsFor(part).forEach((sheet) => {
+    addSheet(workbook, sheet, sheet.dataKey === "variants" ? variants : contentRowsForFile(content));
+  });
   return workbook;
+}
+
+const csvCell = (value) => {
+  const text = value === null || value === undefined ? "" : String(value);
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+};
+
+/**
+ * CSV text for one part ("prices" | "content"): a header row, then one row per
+ * variant or per product. Starts with a BOM so Excel reads £ and accents as UTF-8.
+ */
+export function buildPricesContentCsv({ variants = [], content = [] }, part) {
+  const { sheet } = PARTS[part];
+  const rows = sheet.dataKey === "variants" ? variants : contentRowsForFile(content);
+  const lines = [sheet.columns.map((c) => c.header).join(",")];
+  rows.forEach((r) => lines.push(sheet.columns.map((c) => csvCell(r[c.key])).join(",")));
+  return String.fromCharCode(0xfeff) + lines.join("\r\n") + "\r\n";
 }
 
 /** Plain text of an ExcelJS cell value (rich text, hyperlinks, formula results). */
@@ -206,16 +265,27 @@ function rowsToRecords(headers, dataRows, columns, rowNumberOf) {
 
 /**
  * Read an edited file back into { variants, content } rows for the API.
- * Accepts the exported .xlsx or a .csv of either sheet.
+ * `part` ("prices" | "content") reads only that half — from a split file, a CSV,
+ * or the matching sheet of an old combined workbook. The other half's sheet is
+ * never read; it is listed in `ignoredSheets`, and `otherPart` is set when the
+ * file holds the other half. Without `part` both halves are read.
  * Columns are found by header name, so reordering columns is fine.
  * Each row carries its spreadsheet row number for error messages, and
  * `warnings` lists anything that was ignored so nothing is dropped silently.
  */
-export async function readPricesContentWorkbook(file) {
-  const out = { variants: [], content: [], missingSheets: [], warnings: [] };
+export async function readPricesContentWorkbook(file, part) {
+  const wanted = sheetsFor(part);
+  const out = {
+    variants: [],
+    content: [],
+    missingSheets: [],
+    warnings: [],
+    ignoredSheets: [],
+    otherPart: null,
+  };
   const isCsv = /\.csv$/i.test(file.name || "") || file.type === "text/csv";
 
-  const addSheet = ({ name, columns, dataKey }, headers, dataRows, rowNumberOf) => {
+  const addRows = ({ name, columns, dataKey }, headers, dataRows, rowNumberOf) => {
     const { records, missingId, rowsWithoutId } = rowsToRecords(headers, dataRows, columns, rowNumberOf);
     if (missingId) {
       out.warnings.push(
@@ -226,15 +296,20 @@ export async function readPricesContentWorkbook(file) {
     }
     out[dataKey].push(...records);
   };
+  const skipSheet = (sheet) => {
+    if (!out.ignoredSheets.includes(sheet.name)) out.ignoredSheets.push(sheet.name);
+    out.otherPart = partOfSheet(sheet);
+  };
 
   if (isCsv) {
     const rows = parseCsv(await file.text());
     const headers = (rows[0] || []).map(normalizeHeader);
     // A CSV holds one sheet: variant rows have a variant_id column.
     const sheet = headers.includes("variant_id") ? SHEETS[0] : SHEETS[1];
-    out.missingSheets = SHEETS.filter((s) => s !== sheet).map((s) => s.name);
-    if (!headers.includes("product_id")) out.missingSheets = SHEETS.map((s) => s.name);
-    else addSheet(sheet, rows[0], rows.slice(1), (i) => i + 2);
+    out.missingSheets = wanted.filter((s) => s !== sheet).map((s) => s.name);
+    if (!headers.includes("product_id")) out.missingSheets = wanted.map((s) => s.name);
+    else if (!wanted.includes(sheet)) skipSheet(sheet);
+    else addRows(sheet, rows[0], rows.slice(1), (i) => i + 2);
     return out;
   }
 
@@ -257,35 +332,47 @@ export async function readPricesContentWorkbook(file) {
     });
     return { headers, dataRows, rowNumberOf: (i) => rowNumbers[i] };
   };
+  // Sheet names are matched loosely ("variant prices", "Variant Prices ").
+  const findSheet = (sheet) =>
+    workbook.getWorksheet(sheet.name) ||
+    workbook.worksheets.find((w) => normalizeHeader(w.name) === normalizeHeader(sheet.name));
 
   SHEETS.forEach((sheet) => {
-    // Sheet names are matched loosely ("variant prices", "Variant Prices ").
-    const ws =
-      workbook.getWorksheet(sheet.name) ||
-      workbook.worksheets.find((w) => normalizeHeader(w.name) === normalizeHeader(sheet.name));
+    const ws = findSheet(sheet);
+    if (!wanted.includes(sheet)) {
+      // e.g. the descriptions sheet of an old combined workbook during a pricing import.
+      if (ws) skipSheet(sheet);
+      return;
+    }
     if (!ws) {
       out.missingSheets.push(sheet.name);
       return;
     }
     const { headers, dataRows, rowNumberOf } = readSheet(ws);
-    addSheet(sheet, headers, dataRows, rowNumberOf);
+    addRows(sheet, headers, dataRows, rowNumberOf);
   });
 
-  // Neither sheet name found (e.g. a CSV re-saved as Excel, "Sheet1"): use any sheet
-  // whose header row has product_id, deciding by whether it has variant_id.
-  if (out.missingSheets.length === SHEETS.length) {
+  // No wanted sheet name found (e.g. a CSV re-saved as Excel, "Sheet1"): use any
+  // other sheet whose header row has product_id, deciding by whether it has variant_id.
+  if (out.missingSheets.length === wanted.length) {
+    const named = SHEETS.map(findSheet).filter(Boolean);
     workbook.worksheets.forEach((ws) => {
+      if (named.includes(ws)) return;
       const { headers, dataRows, rowNumberOf } = readSheet(ws);
       const keys = headers.map(normalizeHeader);
       if (!keys.includes("product_id")) return;
       const sheet = keys.includes("variant_id") ? SHEETS[0] : SHEETS[1];
+      if (!wanted.includes(sheet)) {
+        skipSheet(sheet);
+        return;
+      }
       out.missingSheets = out.missingSheets.filter((n) => n !== sheet.name);
-      addSheet(sheet, headers, dataRows, rowNumberOf);
+      addRows(sheet, headers, dataRows, rowNumberOf);
     });
   }
 
-  // An Excel file without the "Variant Prices" sheet cannot change any price.
-  if (out.missingSheets.includes(SHEETS[0].name) && !out.missingSheets.includes(SHEETS[1].name)) {
+  // A combined import without the "Variant Prices" sheet cannot change any price.
+  if (!part && out.missingSheets.includes(SHEETS[0].name) && !out.missingSheets.includes(SHEETS[1].name)) {
     const names = workbook.worksheets.map((w) => `"${w.name}"`).join(", ");
     out.warnings.push(
       `No "Variant Prices" sheet was found (sheets in this file: ${names}), so no prices were read. Keep the sheet names from the export.`

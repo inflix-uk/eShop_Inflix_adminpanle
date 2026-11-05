@@ -184,9 +184,10 @@ class ProductApi {
   /**
    * "Prices & Content" sheet rows (variant prices + descriptions/perks)
    * @param {string[]} [ids] - product ids; omit for every product
+   * @param {"prices"|"content"} [part] - only that half; omit for both
    */
-  async getPricesContentSheet(ids = []) {
-    return axios.post(`${BACKEND_URL}get/products/prices-content-sheet`, { ids });
+  async getPricesContentSheet(ids = [], part) {
+    return axios.post(`${BACKEND_URL}get/products/prices-content-sheet`, part ? { ids, part } : { ids });
   }
 
   /**

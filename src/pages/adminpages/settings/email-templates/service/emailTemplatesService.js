@@ -67,3 +67,20 @@ export async function getEmailBrandingPreview() {
   if (!json.success || !json.data) return null;
   return json.data;
 }
+
+/**
+ * Server-rendered preview of a receipt / delivered / return / refund template
+ * (same renderer as real emails, sample order data, unsaved copy).
+ * @returns {Promise<{ html: string, subject: string }>}
+ */
+export async function previewTransactionalEmail(type, fields, audience = "customer") {
+  const res = await fetch(`${BACKEND_URL}order-email-templates/preview`, {
+    method: "POST",
+    headers: getHeaders(),
+    credentials: "include",
+    body: JSON.stringify({ type, fields, audience }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || !json.success) throw new Error(json.message || "Preview failed");
+  return json.data;
+}

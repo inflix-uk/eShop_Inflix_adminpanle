@@ -68,7 +68,7 @@ export const COLUMN_GUIDE = [
     level: "product",
     required: "REQUIRED — every row",
     howToFill:
-      "Unique lowercase-with-hyphens slug; becomes the storefront URL. Rows sharing the same producturl belong to ONE product (one row per variant). If it matches an existing product, that product is UPDATED instead of created.",
+      "Unique lowercase-with-hyphens slug; becomes the storefront URL. Rows sharing the same producturl belong to ONE product (one row per variant). If it matches an existing product, that product is UPDATED instead of created. A DELETED product is never updated: a new product is created with only this file's variants, and the deleted one keeps a renamed url.",
     example: "aroma-desire-hanging-diffuser",
     formLocation: "Basic Information → Generated URL (made from the name)",
   },
