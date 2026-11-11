@@ -12,7 +12,7 @@ import StableImage from './StableImage';
  * Products Table Component
  * Displays ordered products in a return request
  */
-const ProductsTable = ({ products, getImageUrl, onImageClick }) => {
+const ProductsTable = ({ products, getProductImageUrl, onImageClick }) => {
   if (!products || products.length === 0) {
     return <p className="text-gray-700">No products found.</p>;
   }
@@ -67,9 +67,9 @@ const ProductsTable = ({ products, getImageUrl, onImageClick }) => {
                   <td className="px-4 py-2">
                     <div className='flex items-center space-x-4'>
                       <StableImage
-                        src={getImageUrl(item?.metaImage?.url || item?.metaImage?.path)}
+                        src={getProductImageUrl(item)}
                         alt={item.productName || 'Product'}
-                        className="w-16 h-16 shrink-0 object-cover rounded-md cursor-pointer"
+                        className="w-16 h-16 shrink-0 object-cover rounded-md cursor-zoom-in"
                         onClick={() => onImageClick(index)}
                       />
                       <span>{item.productName}</span>
@@ -114,7 +114,7 @@ ProductsTable.propTypes = {
       }),
     })
   ).isRequired,
-  getImageUrl: PropTypes.func.isRequired,
+  getProductImageUrl: PropTypes.func.isRequired,
   onImageClick: PropTypes.func.isRequired,
 };
 

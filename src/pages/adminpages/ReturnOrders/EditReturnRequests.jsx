@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import LoadingBar from 'react-top-loading-bar';
 import Side from '../nav/Side';
@@ -15,7 +15,9 @@ import {
     ProductsTable,
     NotesSection,
     ImagesSection,
+    ImageLightbox,
 } from './components/returnRequestDetails';
+import { getOrderLineItemImageUrl } from '../orders/utils/orderItemImageUrl';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -111,72 +113,51 @@ export default function EditReturnRequests() {
         }
     };
 
-    // State to manage modal visibility and current image index
-    const [isImageModalOpen, setIsImageModalOpen] = useState(false);
-    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const imageFiles = useMemo(() => requestData?.files || [], [requestData]);
+    const cartItems = useMemo(() => requestData?.orderId?.cart || [], [requestData]);
 
-    const imageFiles = requestData?.files || [];
-
-    // Utility function to correctly form image URLs. Returns '' when there is no image
-    // so StableImage renders its placeholder (no request to a non-existent fallback file).
-    const getImageUrl = useCallback((path) => {
-        if (!path || typeof path !== 'string') return '';
-        if (/^(https?:|data:|blob:)/i.test(path)) return path;
-        // Multer stores `file.path` as a relative OS path (`uploads\requestOrder\x.jpg`
-        // on Windows); normalise to one slash between base and path.
+    // Customer attachment URL: new uploads carry an absolute `url` (object storage);
+    // older ones only have a disk path like `uploads\requestOrder\x.jpg`.
+    const getFileUrl = useCallback((file) => {
+        if (!file) return '';
+        const raw = file.url || file.path;
+        if (!raw || typeof raw !== 'string') return '';
+        if (/^(https?:|data:|blob:)/i.test(raw)) return raw;
         const base = (BACKEND_URL || '').replace(/\/+$/, '');
-        const cleanPath = path.replace(/\\/g, '/').replace(/^\.?\/+/, '');
+        const cleanPath = raw.replace(/\\/g, '/').replace(/^\.?\/+/, '');
         return `${base}/${cleanPath}`;
     }, []);
 
-    // Open modal and set the current image index
-    const openModal = useCallback((index) => {
-        console.log('Opening modal for image index:', index); // Debugging
-        setCurrentImageIndex(index);
-        setIsImageModalOpen(true);
-        document.body.style.overflow = 'hidden'; // Prevent background scrolling
-    }, []);
+    // Product image: same resolver the Orders pages use (variant → gallery → thumbnail → meta image).
+    const getProductImageUrl = useCallback(
+        (item) => getOrderLineItemImageUrl(item, BACKEND_URL),
+        []
+    );
 
-    // Close modal
-    const closeModal = useCallback(() => {
-        setIsImageModalOpen(false);
-        document.body.style.overflow = 'auto'; // Restore scrolling
-    }, []);
+    // One full-size viewer shared by product images and attachments.
+    const [lightbox, setLightbox] = useState({ images: [], index: null });
 
-    // Navigate to the previous image
-    const prevImage = useCallback(() => {
-        setCurrentImageIndex((prevIndex) =>
-            prevIndex === 0 ? imageFiles.length - 1 : prevIndex - 1
-        );
-    }, [imageFiles.length]);
+    const openAttachment = useCallback((index) => {
+        setLightbox({
+            images: imageFiles.map((f, i) => ({
+                src: getFileUrl(f),
+                alt: f.originalname || `Attachment ${i + 1}`,
+            })),
+            index,
+        });
+    }, [imageFiles, getFileUrl]);
 
-    // Navigate to the next image
-    const nextImage = useCallback(() => {
-        setCurrentImageIndex((prevIndex) =>
-            prevIndex === imageFiles.length - 1 ? 0 : prevIndex + 1
-        );
-    }, [imageFiles.length]);
+    const openProductImage = useCallback((index) => {
+        const item = cartItems[index];
+        if (!item) return;
+        setLightbox({
+            images: [{ src: getProductImageUrl(item), alt: item.productName || 'Product' }],
+            index: 0,
+        });
+    }, [cartItems, getProductImageUrl]);
 
-    // Handle keyboard events for accessibility
-    useEffect(() => {
-        const handleKeyDown = (e) => {
-            if (!isImageModalOpen) return;
-            if (e.key === 'Escape') {
-                closeModal();
-            } else if (e.key === 'ArrowLeft') {
-                prevImage();
-            } else if (e.key === 'ArrowRight') {
-                nextImage();
-            }
-        };
-
-        window.addEventListener('keydown', handleKeyDown);
-        return () => {
-            window.removeEventListener('keydown', handleKeyDown);
-        };
-    }, [isImageModalOpen, closeModal, prevImage, nextImage]);
-
-    console.log(requestData);
+    const closeLightbox = useCallback(() => setLightbox({ images: [], index: null }), []);
+    const setLightboxIndex = useCallback((index) => setLightbox((lb) => ({ ...lb, index })), []);
 
     return (
         <>
@@ -242,9 +223,9 @@ export default function EditReturnRequests() {
 
                                         {/* Ordered Products */}
                                         <ProductsTable
-                                            products={requestData.orderId.cart}
-                                            getImageUrl={getImageUrl}
-                                            onImageClick={openModal}
+                                            products={cartItems}
+                                            getProductImageUrl={getProductImageUrl}
+                                            onImageClick={openProductImage}
                                         />
 
                                         {/* Notes */}
@@ -253,13 +234,15 @@ export default function EditReturnRequests() {
                                         {/* Attached Images */}
                                         <ImagesSection
                                             images={imageFiles}
-                                            getImageUrl={getImageUrl}
-                                            isModalOpen={isImageModalOpen}
-                                            currentImageIndex={currentImageIndex}
-                                            onImageClick={openModal}
-                                            onCloseModal={closeModal}
-                                            onPrevImage={prevImage}
-                                            onNextImage={nextImage}
+                                            getFileUrl={getFileUrl}
+                                            onImageClick={openAttachment}
+                                        />
+
+                                        <ImageLightbox
+                                            images={lightbox.images}
+                                            index={lightbox.index}
+                                            onClose={closeLightbox}
+                                            onIndexChange={setLightboxIndex}
                                         />
                                     </div>
                                 ) : (
