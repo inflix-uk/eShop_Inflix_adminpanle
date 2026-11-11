@@ -9,3 +9,4 @@ export { default as StatusBadge } from './StatusBadge';
 export { default as ProductsTable } from './ProductsTable';
 export { default as NotesSection } from './NotesSection';
 export { default as ImagesSection } from './ImagesSection';
+export { default as ImageLightbox } from './ImageLightbox';

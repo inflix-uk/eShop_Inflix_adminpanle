@@ -1,105 +1,39 @@
 import PropTypes from 'prop-types';
-import { FaTimes, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import StableImage from './StableImage';
 
 /**
- * Images Section Component
- * Displays attached images with modal preview functionality
+ * Customer-uploaded images attached to a return request.
+ * Clicking a thumbnail opens it full size (see ImageLightbox in the page).
  */
-const ImagesSection = ({
-  images,
-  getImageUrl,
-  isModalOpen,
-  currentImageIndex,
-  onImageClick,
-  onCloseModal,
-  onPrevImage,
-  onNextImage,
-}) => {
-  if (!images || images.length === 0) {
-    return (
-      <section className="mb-6 bg-white rounded-lg">
-        <h3 className="text-2xl font-bold mb-5 flex items-center text-gray-800">
-          Attached Images
-        </h3>
-        <p className="text-gray-700">No images attached.</p>
-      </section>
-    );
-  }
-
+const ImagesSection = ({ images, getFileUrl, onImageClick }) => {
   return (
     <section className="mb-6 bg-white rounded-lg">
       <h3 className="text-2xl font-bold mb-5 flex items-center text-gray-800">
         Attached Images
       </h3>
 
-      {/* Image Thumbnails */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-        {images.map((file, index) => (
-          <div key={file.filename || file.path || index} className="relative group">
-            <StableImage
-              src={getImageUrl(file.path)}
-              alt={file.originalname}
-              className="w-full h-32 object-cover rounded-lg cursor-pointer border border-gray-200 hover:opacity-80 transition-opacity"
-              onClick={() => onImageClick(index)}
-            />
-            {/* Overlay on Hover */}
-            <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-25 rounded-lg transition-opacity pointer-events-none"></div>
-          </div>
-        ))}
-      </div>
-
-      {/* Modal for Image Preview */}
-      {isModalOpen && images.length > 0 && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
-          onClick={onCloseModal}
-          aria-modal="true"
-          role="dialog"
-        >
-          <div
-            className="relative bg-transparent rounded-lg overflow-hidden max-w-4xl w-full mx-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Close Button */}
+      {!images || images.length === 0 ? (
+        <p className="text-gray-700">No images attached.</p>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          {images.map((file, index) => (
             <button
-              className="absolute top-4 right-4 text-white hover:text-gray-300 focus:outline-none"
-              onClick={onCloseModal}
-              aria-label="Close"
+              type="button"
+              key={file.filename || file.path || index}
+              className="relative group text-left"
+              onClick={() => onImageClick(index)}
+              title="Click to view full size"
             >
-              <FaTimes size={36} className='bg-primary rounded-lg p-2' />
+              <StableImage
+                src={getFileUrl(file)}
+                alt={file.originalname || `Attachment ${index + 1}`}
+                className="w-full h-32 object-cover rounded-lg cursor-zoom-in border border-gray-200 group-hover:opacity-90 transition-opacity"
+              />
+              <span className="mt-1 block truncate text-xs text-gray-500">
+                {file.originalname || `Attachment ${index + 1}`}
+              </span>
             </button>
-
-            {/* Previous Button */}
-            {images.length > 1 && (
-              <button
-                className="absolute top-1/2 left-4 transform -translate-y-1/2 text-white hover:text-gray-300 focus:outline-none"
-                onClick={onPrevImage}
-                aria-label="Previous Image"
-              >
-                <FaChevronLeft size={30} className='bg-primary rounded-lg p-2' />
-              </button>
-            )}
-
-            {/* Next Button */}
-            {images.length > 1 && (
-              <button
-                className="absolute top-1/2 right-4 transform -translate-y-1/2 text-white hover:text-gray-300 focus:outline-none"
-                onClick={onNextImage}
-                aria-label="Next Image"
-              >
-                <FaChevronRight size={30} className='bg-primary rounded-lg p-2' />
-              </button>
-            )}
-
-            {/* Image */}
-            <StableImage
-              src={getImageUrl(images[currentImageIndex].path)}
-              alt={images[currentImageIndex].originalname}
-              className="w-full max-h-screen object-contain rounded-lg"
-              loading="eager"
-            />
-          </div>
+          ))}
         </div>
       )}
     </section>
@@ -109,17 +43,13 @@ const ImagesSection = ({
 ImagesSection.propTypes = {
   images: PropTypes.arrayOf(
     PropTypes.shape({
+      url: PropTypes.string,
       path: PropTypes.string,
       originalname: PropTypes.string,
     })
   ),
-  getImageUrl: PropTypes.func.isRequired,
-  isModalOpen: PropTypes.bool.isRequired,
-  currentImageIndex: PropTypes.number.isRequired,
+  getFileUrl: PropTypes.func.isRequired,
   onImageClick: PropTypes.func.isRequired,
-  onCloseModal: PropTypes.func.isRequired,
-  onPrevImage: PropTypes.func.isRequired,
-  onNextImage: PropTypes.func.isRequired,
 };
 
 export default ImagesSection;

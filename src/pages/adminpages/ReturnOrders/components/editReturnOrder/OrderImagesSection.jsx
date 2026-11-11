@@ -26,10 +26,10 @@ const OrderImagesSection = ({
           <div
             key={`existing-${index}`}
             className="relative w-20 h-20 cursor-pointer"
-            onClick={() => onImageClick(image.path)}
+            onClick={() => onImageClick(image.url || image.path)}
           >
             <img
-              src={`${baseUrl}${image.path}`}
+              src={image.url || `${baseUrl}${image.path}`}
               alt="Uploaded Image"
               className="w-full h-full object-cover rounded-md"
             />
