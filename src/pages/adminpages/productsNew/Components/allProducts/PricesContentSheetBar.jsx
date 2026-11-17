@@ -40,7 +40,17 @@ function download(blob, filename) {
  * imported in one go. Import shows every change first; nothing is saved until
  * "Apply" is pressed.
  */
-export default function PricesContentSheetBar({ productIds = [], label = "Prices & Content", onImported }) {
+// Switched off until the importer is fixed (comma decimals saved 100x, EAN loss
+// in CSV round trips, description changes not previewable). Set
+// VITE_PRICES_CONTENT_SHEET=true to show it again.
+const SHEET_ENABLED = import.meta.env.VITE_PRICES_CONTENT_SHEET === "true";
+
+export default function PricesContentSheetBar(props) {
+  if (!SHEET_ENABLED) return null;
+  return <PricesContentSheetBarInner {...props} />;
+}
+
+function PricesContentSheetBarInner({ productIds = [], label = "Prices & Content", onImported }) {
   const productApi = useMemo(() => new ProductApi(), []);
   const fileInputRef = useRef(null);
   const importPartRef = useRef(null); // "prices" | "content" | null (combined)
