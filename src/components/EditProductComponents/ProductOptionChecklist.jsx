@@ -265,6 +265,7 @@ export default function ProductOptionChecklist({
   searchPlaceholder = "Search options...",
   manageHref = DEFAULT_MANAGE_HREF,
   apiBase,
+  single = false,
 }) {
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -314,6 +315,11 @@ export default function ProductOptionChecklist({
   const toggleOption = (option) => {
     if (selectedSlugs.has(option.slug)) {
       onChange(canonical.filter((v) => v !== option.slug));
+      return;
+    }
+    // Single choice: ticking another option replaces the current one
+    if (single) {
+      onChange([option.slug]);
       return;
     }
     if (atMax) return;
@@ -571,6 +577,7 @@ ProductOptionChecklist.propTypes = {
   ),
   value: PropTypes.array,
   onChange: PropTypes.func.isRequired,
+  single: PropTypes.bool,
   max: PropTypes.number,
   ordered: PropTypes.bool,
   isLoading: PropTypes.bool,

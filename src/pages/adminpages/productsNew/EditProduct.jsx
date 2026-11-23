@@ -1288,15 +1288,15 @@ export default function EditProduct() {
                           product={product}
                           setProduct={setProduct}
                         />
+                        {/* Select Options (SIM option), right under What's in the box */}
+                        <ProductSimOptions
+                          setProduct={setProduct}
+                          product={product}
+                        />
                         {/* Top Section */}
                         <ProductTopSectionSelector
                           product={product}
                           setProduct={setProduct}
-                        />
-                        {/* Select Options */}
-                        <ProductSimOptions
-                          setProduct={setProduct}
-                          product={product}
                         />
                       </div>
                     </div>
