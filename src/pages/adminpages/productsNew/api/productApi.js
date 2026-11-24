@@ -173,11 +173,13 @@ class ProductApi {
    * @returns {Promise} - Axios response
    */
   async importProducts(products, options = {}) {
-    const { updateExisting = true, dryRun = false } = options;
+    const { updateExisting = true, dryRun = false, clearBlankFields = [] } = options;
     return axios.post(`${BACKEND_URL}import/products`, {
       products,
       updateExisting,
       dryRun,
+      // Variant price columns where an empty cell clears the saved value
+      clearBlankFields,
     });
   }
 

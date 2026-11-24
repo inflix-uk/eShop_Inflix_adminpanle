@@ -27,6 +27,9 @@ export default function ImportExportBar({
   const fileInputRef = useRef(null);
   const [busy, setBusy] = useState(false);
   const [report, setReport] = useState(null);
+  // Off: a blank price cell keeps the saved value (safe for partial files).
+  // On: a blank cell saves blank, so wrong saved prices can be removed.
+  const [clearBlankPrices, setClearBlankPrices] = useState(false);
   const productApi = useMemo(() => new ProductApi(), []);
 
   const download = (blob, filename) => {
@@ -159,6 +162,15 @@ export default function ImportExportBar({
 
       const { products: parsed, errors, skippedSamples } = rowsToProducts(rows, headers);
 
+      // Only price columns that are in this file can be cleared: a file without
+      // a quantity column must never wipe stock.
+      const PRICE_COLUMNS = { cost: "Cost", price: "Price", sale_price: "salePrice", quantity: "Quantity" };
+      const clearBlankFields = clearBlankPrices
+        ? Object.entries(PRICE_COLUMNS)
+            .filter(([column]) => headers.includes(column))
+            .map(([, field]) => field)
+        : [];
+
       if (parsed.length === 0) {
         toast.error(
           skippedSamples > 0
@@ -175,6 +187,7 @@ export default function ImportExportBar({
       const { data: preview } = await productApi.importProducts(parsed, {
         updateExisting: true,
         dryRun: true,
+        clearBlankFields,
       });
 
       if (preview.status !== 201 || !preview.results) {
@@ -196,6 +209,11 @@ export default function ImportExportBar({
           `• ${preview.results.created} new product(s) will be created\n` +
           `• ${preview.results.updated} existing product(s) will be updated ` +
           `(matched by producturl — blank cells keep the stored values)\n` +
+          (clearBlankFields.length
+            ? `• "Empty price cells clear saved prices" is ON: empty ${clearBlankFields
+                .map((f) => ({ Cost: "cost", Price: "price", salePrice: "sale_price", Quantity: "quantity" }[f]))
+                .join(" / ")} cells will be saved as blank\n`
+            : "") +
           (preview.results.replacedDeleted
             ? `• ${preview.results.replacedDeleted} of the new product(s) reuse the producturl of a DELETED product: ` +
               `they are created fresh with only the file's variants, and the deleted copy stays in ` +
@@ -219,6 +237,7 @@ export default function ImportExportBar({
 
       const { data: response } = await productApi.importProducts(parsed, {
         updateExisting: true,
+        clearBlankFields,
       });
 
       if (response.status === 201) {
@@ -266,6 +285,20 @@ export default function ImportExportBar({
           </svg>
           {busy ? "Importing…" : "Import"}
         </button>
+
+        <label
+          className="inline-flex cursor-pointer items-center gap-1.5 text-xs text-gray-700"
+          title="Off: an empty price cell keeps the saved price. On: an empty cost / price / sale_price / quantity cell is saved as empty, so wrong saved prices can be removed by clearing the cell."
+        >
+          <input
+            type="checkbox"
+            className="h-3.5 w-3.5 rounded border-gray-300 text-primary focus:ring-0"
+            checked={clearBlankPrices}
+            onChange={(e) => setClearBlankPrices(e.target.checked)}
+            disabled={busy}
+          />
+          Empty price cells clear saved prices
+        </label>
 
         <input
           ref={fileInputRef}
